@@ -6,25 +6,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Training with Njk</title>
     <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <link rel="stylesheet" href="./css/training.css"/>
+    
 </head>
 <body>
+    
+    <div id="main-page">
 
-    <p class="list" id="myExList">List of exercises: </p>
+        <div id="upper-content">
 
-    <div id="app">
-        <form class="input" enctype="multipart/form-data">
-            <input class="input" type="file" @change="onFileChange">
-        </form>
-        <p class="row1">{{row1}}</p>
-        <p><pre class="row2">{{row2}}</pre></p>
-        
-        <button class="back" v-on:click="handleBack">Back</button>
-        <button class="start" v-on:click="handleStart" v-on:space="handleStart">{{buttonStart}}</button>
-        <button class="next" v-on:click="handleNext">Next</button>
-        
-        <link rel="stylesheet" href="./css/training.css"/>
+            <div id="upper-left-content">
+                <form class="input" enctype="multipart/form-data">
+                    <input class="input" type="file" @change="onFileChange">
+                </form>
+            </div>
+
+            <div id="upper-right-content">Banner</div>
+        </div>
+
+        <div id="lower-content">
+            <div id="lower-left-content">
+                <p class="list" id="myExList">List of exercises: </p>
+            </div>
+
+            <div id="app">
+                
+                <p class="row1">{{row1}}</p>
+                <p><pre class="row2">{{row2}}</pre></p>
+                <div id="button-back"><button class="back" v-on:click="handleBack">Back</button></div>
+                <div id="button-start"><button class="start" v-on:click="handleStart" v-on:space="handleStart">{{buttonStart}}</button></div>
+                <div id="button-next"><button class="next" v-on:click="handleNext">Next</button></div>
+                </p>
+            </div>
+        </div>
+
+        <div id="footer-content">
+            <p>Made by Pika</p>
+        </div>
     </div>
-
+    <script src="./scripts/training.js"></script>
 </body>
-<script src="./scripts/training.js"></script>
 </html>

@@ -1,5 +1,10 @@
 html,body {
     height: 100%;
+    font-family: 'Share Tech Mono', monospace;
+    color: #ffffff;
+    text-align: center;
+    color: #daf6ff;
+    text-shadow: 0 0 20px rgba(10, 175, 230, 1),  0 0 20px rgba(10, 175, 230, 0);
 }
 body {
     background: #0f3854;
@@ -16,26 +21,12 @@ a {
     text-decoration: inherit;
 }
 
-#app {
-    font-family: 'Share Tech Mono', monospace;
-    color: #ffffff;
-    text-align: center;
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    color: #daf6ff;
-    text-shadow: 0 0 20px rgba(10, 175, 230, 1),  0 0 20px rgba(10, 175, 230, 0);
-}
 
 .input {
     font-family: 'Share Tech Mono', monospace;
     text-align: center;
     color: #daf6ff;
     text-shadow: 0 0 20px rgba(10, 175, 230, 1),  0 0 20px rgba(10, 175, 230, 0);
-    position: relative;
-    top: 0;
-    left: 0;
     width: 300px;
     letter-spacing: 0.1em;
     font-size: 18px;
@@ -60,25 +51,37 @@ a {
     text-align: center;
     color: #daf6ff;
     text-shadow: 0 0 20px rgba(10, 175, 230, 1),  0 0 20px rgba(10, 175, 230, 0);
-    position: fixed;
-    top: 10%;
-    left: 0;
     letter-spacing: 0.1em;
     font-size: 18px;
 }
+
+
 
 .back {
     background: #0f3854;
     font-family: 'Share Tech Mono', monospace;
     color: #daf6ff;
     text-shadow: 0 0 20px rgba(10, 175, 230, 1),  0 0 20px rgba(10, 175, 230, 0);
-    text-align: center;
-    position: fixed;
-    top: 100%;
-    right: 100%;
-    transform: translate(-50%, -50%);
+    text-align: left;
     letter-spacing: 0.1em;
     font-size: 18px;
+    padding: 10px 40px 10px 40px;
+}
+
+#button-back{
+    width: 15%;
+    float: left;
+}
+
+#button-start{
+    width: 70%;
+    float: left;
+    margin: auto;
+}
+
+#button-next{
+    width: 15%;
+    float: right;
 }
 
 .start {
@@ -87,12 +90,9 @@ a {
     color: #daf6ff;
     text-shadow: 0 0 20px rgba(10, 175, 230, 1),  0 0 20px rgba(10, 175, 230, 0);
     text-align: center;
-    position: fixed;
-    left: 50%;
-    top: 100%;
-    transform: translate(-50%, -50%);
     letter-spacing: 0.1em;
     font-size: 18px;
+    padding: 10px 40px 10px 40px;
 }
 
 .next {
@@ -101,10 +101,65 @@ a {
     color: #daf6ff;
     text-shadow: 0 0 20px rgba(10, 175, 230, 1),  0 0 20px rgba(10, 175, 230, 0);
     text-align: center;
-    position: fixed;
-    top: 100%;
-    left: 100%;
-    transform: translate(0%, -50%);
     letter-spacing: 0.1em;
     font-size: 18px;
+    padding: 10px 40px 10px 40px;
+}
+
+
+#main-page {
+    width: 1388px;
+    height: 98vh;
+    margin: auto;
+    /*border: 1px solid #daf6ff;*/
+}
+
+#upper-content {
+    width: 98%;
+    height: 15vh;
+    border-bottom: 1px solid #daf6ff;
+}
+
+#lower-content {
+    width: 98%;
+    /*border: 1px solid #daf6ff;*/
+}
+
+#footer-content {
+    width: 98%;
+    height: 5vh;
+    clear: both;
+    /*border: 1px solid #daf6ff;*/
+}
+#footer-content p {
+    width: 100%;
+    text-align: right;
+}
+
+#upper-left-content {
+    width: 25%;
+    float: left;
+    /*border: 1px solid #daf6ff;*/
+}
+
+#upper-right-content {
+    width: 70%;
+    
+    float: left;
+    /*border: 1px solid #daf6ff;*/
+}
+
+#lower-left-content {
+    width: 25%;
+    padding: 15px 0 0 0;
+    float: left;
+    /*border: 1px solid #daf6ff;*/
+}
+
+#app {
+    width: 70%;
+    height: 77vh;
+    float: left;
+    border-left: 1px solid #daf6ff;
+    padding: 15px 0 0 50px;
 }

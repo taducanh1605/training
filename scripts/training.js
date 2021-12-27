@@ -1,3 +1,83 @@
+var inputCSV = new Vue({
+    el: '#upper-left-content',
+    methods: {
+        //read file csv
+        onFileChange(e) {
+            var files = e.target.files || e.dataTransfer.files;
+            if (!files.length)
+                return;
+            this.createInput(files[0]);
+        },
+        createInput(file) {
+            //get name of program
+            vm.programName = file.name.replace('.csv','');
+
+            //wait for reading
+            let promise = new Promise((resolve, reject) => {
+                var reader = new FileReader();
+                reader.onload = e => {
+                  resolve((vm.fileInput = reader.result));
+                };
+                reader.readAsText(file);
+            });
+              
+            //get result
+            promise.then(
+                result => {
+                  /* handle a successful result */
+                    vm.init();
+                    this.csvToArray();
+                    console.log(vm.exLinkSearch);
+                    console.log(vm.exNameOnly);
+
+                    //Make list of exercises
+                    p = document.getElementById('myExList');
+                    p.innerHTML = "List of exercises:<br/>";
+                    for (let i=0; i< vm.exNameOnly.length; i++){
+                        let a = document.createElement('a');
+                        let br1 = document.createElement('br');
+                        //let br2 = document.createElement('br');
+                        p.appendChild(br1);
+                        //p.appendChild(br2);
+                        p.appendChild(a);
+                        a.innerHTML += vm.exNameOnly[i];
+                        a.href += vm.exLinkSearch[i];
+                        a.target="_blank";
+                    }
+                },
+                error => {
+                    /* handle an error */ 
+                    console.log(error);
+                }
+            );
+        },
+
+        //parse file csv from text
+        csvToArray(delimiter = ",") {
+            const rows = vm.fileInput.slice(vm.fileInput.indexOf("\n")+1).split("\r\n");
+            (rows[rows.length - 1] == '') ? rows.pop() : null;
+
+            //load data in each array
+            rows.forEach(row => {
+                temp = row.split(',');
+                tempName = temp[0].split('+');
+                
+                //make set of original name
+                tempName.forEach(name => {
+                    newName = name.split('').reverse().join('').replace('x','*').split('*')[1].split('').reverse().join('');
+                    vm.exNameOnly.push(newName);
+                    vm.exLinkSearch.push('https://www.google.com/search?q=gym+exercise+tutorial+'+ newName.split(' ').join('+'));
+                });
+
+                vm.exName.push(tempName.join('\n'));
+                vm.exSet.push(Number(temp[1]));
+                vm.exRest.push(Number(temp[2]));
+                vm.exSumSet += Number(temp[1]);
+            });
+        }
+    }
+});
+
 var vm = new Vue({
     el: '#app',
     data: {
@@ -16,7 +96,7 @@ var vm = new Vue({
         exOrder: 0,
         exRound: 0,
         leftColumn: 'Your exercises:',
-        row1 : 'Chose your training program',
+        row1 : 'Choose your training program',
         row2 : 'Welcome!',
         buttonStart : 'Start'
     },
@@ -36,81 +116,6 @@ var vm = new Vue({
             this.exOrder = 0;
             this.exRound = 0;
         },
-        //read file csv
-        onFileChange(e) {
-            var files = e.target.files || e.dataTransfer.files;
-            if (!files.length)
-                return;
-            this.createInput(files[0]);
-        },
-        createInput(file) {
-            //get name of program
-            this.programName = file.name.replace('.csv','');
-
-            //wait for reading
-            let promise = new Promise((resolve, reject) => {
-                var reader = new FileReader();
-                reader.onload = e => {
-                  resolve((this.fileInput = reader.result));
-                };
-                reader.readAsText(file);
-            });
-              
-            //get result
-            promise.then(
-                result => {
-                  /* handle a successful result */
-                    this.init();
-                    this.csvToArray();
-                    //console.log(this.exLinkSearch);
-                    //console.log(this.exNameOnly);
-
-                    //Make list of exercises
-                    p = document.getElementById('myExList');
-                    p.innerHTML = "List of exercises:";
-                    for (let i=0; i< this.exNameOnly.length; i++){
-                        let a = document.createElement('a');
-                        let br1 = document.createElement('br');
-                        //let br2 = document.createElement('br');
-                        p.appendChild(br1);
-                        //p.appendChild(br2);
-                        p.appendChild(a);
-                        a.innerHTML += this.exNameOnly[i];
-                        a.href += this.exLinkSearch[i];
-                        a.target="_blank";
-                    }
-                },
-                error => {
-                    /* handle an error */ 
-                    console.log(error);
-                }
-            );
-        },
-
-        //parse file csv from text
-        csvToArray(delimiter = ",") {
-            const rows = this.fileInput.slice(this.fileInput.indexOf("\n")+1).split("\r\n");
-            (rows[rows.length - 1] == '') ? rows.pop() : null;
-
-            //load data in each array
-            rows.forEach(row => {
-                temp = row.split(',');
-                tempName = temp[0].split('+');
-                
-                //make set of original name
-                tempName.forEach(name => {
-                    newName = name.split('').reverse().join('').replace('x','*').split('*')[1].split('').reverse().join('');
-                    this.exNameOnly.push(newName);
-                    this.exLinkSearch.push('https://www.google.com/search?q=gym+exercise+tutorial+'+ newName.split(' ').join('+'));
-                });
-
-                this.exName.push(tempName.join('\n'));
-                this.exSet.push(Number(temp[1]));
-                this.exRest.push(Number(temp[2]));
-                this.exSumSet += Number(temp[1]);
-            });
-        },
-
         handleStart(){
             if (this.flagStart == 0) {
                 this.flagStart = 1; 
@@ -211,7 +216,7 @@ function updateContext() {
         }
     }
     else {
-        vm.row1 = 'Chose your program';
+        vm.row1 = 'Choose your program';
         vm.row2 = 'Training with Njk';
     }
     //update Button Start

@@ -116,8 +116,8 @@ var vm = new Vue({
                 this.flagStart = 1; 
                 if ((this.rest == 0) && (this.count < this.exSumSet)){
                     this.count += 1;
+                    [this.exOrder, this.exRound] = getOrder(this.count);
                 }
-                [this.exOrder, this.exRound] = getOrder(this.count);
             }
             else if (this.rest > 0) {
                 this.flagStart = 0;
@@ -125,9 +125,12 @@ var vm = new Vue({
             else {
                 if (this.count < this.exSumSet){
                     this.count += 1;
+                    [this.exOrder, this.exRound] = getOrder(this.count);
+                    this.rest = this.exRest[this.exOrder];
                 }
-                [this.exOrder, this.exRound] = getOrder(this.count);
-                this.rest = this.exRest[this.exOrder];
+                else {
+                    this.flagStart = 2;
+                }
             }
         },
 
@@ -199,6 +202,9 @@ function updateContext() {
         if ((vm.flagStart == 0) && (vm.count == 0)) {
             vm.row1 = 'Training with Njk';
             vm.row2 = vm.programName + '\n ' + vm.exSet.length +' exercise(s)\nReady?';
+        }
+        else if (vm.flagStart == 2) {
+            vm.row2 = "Good job!";
         }
         else {
             vm.row1 = vm.programName+'                    '+(vm.exOrder+1)+'/'+vm.exSet.length+'                    '+vm.timeClock;

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Training with Njk</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+    
+
+    <p class="list" id="myExList">List of exercises: </p>
+
+    <div id="app">
+        <form class="input" enctype="multipart/form-data">
+            <input class="input" type="file" @change="onFileChange">
+        </form>
+        <p class="row1">{{row1}}</p>
+        <p><pre class="row2">{{row2}}</pre></p>
+        
+        <button class="back" v-on:click="handleBack">Back</button>
+        <button class="start" v-on:click="handleStart" v-on:space="handleStart">{{buttonStart}}</button>
+        <button class="next" v-on:click="handleNext">Next</button>
+        
+        <link rel="stylesheet" href="./css/training.css"/>
+    </div>
+</body>
+<script src="./scripts/training.js"></script>
+</html>

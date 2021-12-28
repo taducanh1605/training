@@ -1,6 +1,16 @@
 var inputCSV = new Vue({
     el: '#upper-left-content',
+    data: {
+        programName: '',
+        exLinkSearch: [],
+        fileInput: '',
+        exNameOnly: []
+    },
     methods: {
+        init() {
+            this.exLinkSearch = [];
+            this.exNameOnly = [];
+        },
         //read file csv
         onFileChange(e) {
             var files = e.target.files || e.dataTransfer.files;
@@ -10,13 +20,13 @@ var inputCSV = new Vue({
         },
         createInput(file) {
             //get name of program
-            vm.programName = file.name.replace('.csv','');
+            this.programName = file.name.replace('.csv','');
 
             //wait for reading
             let promise = new Promise((resolve, reject) => {
                 var reader = new FileReader();
                 reader.onload = e => {
-                  resolve((vm.fileInput = reader.result));
+                  resolve((this.fileInput = reader.result));
                 };
                 reader.readAsText(file);
             });
@@ -25,23 +35,24 @@ var inputCSV = new Vue({
             promise.then(
                 result => {
                   /* handle a successful result */
+                    this.init();
                     vm.init();
                     this.csvToArray();
-                    console.log(vm.exLinkSearch);
-                    console.log(vm.exNameOnly);
+                    console.log(this.exLinkSearch);
+                    console.log(this.exNameOnly);
 
                     //Make list of exercises
                     p = document.getElementById('myExList');
                     p.innerHTML = "List of exercises:<br/>";
-                    for (let i=0; i< vm.exNameOnly.length; i++){
+                    for (let i=0; i< this.exNameOnly.length; i++){
                         let a = document.createElement('a');
                         let br1 = document.createElement('br');
                         //let br2 = document.createElement('br');
                         p.appendChild(br1);
                         //p.appendChild(br2);
                         p.appendChild(a);
-                        a.innerHTML += vm.exNameOnly[i];
-                        a.href += vm.exLinkSearch[i];
+                        a.innerHTML += this.exNameOnly[i];
+                        a.href += this.exLinkSearch[i];
                         a.target="_blank";
                     }
                 },
@@ -54,7 +65,7 @@ var inputCSV = new Vue({
 
         //parse file csv from text
         csvToArray(delimiter = ",") {
-            const rows = vm.fileInput.slice(vm.fileInput.indexOf("\n")+1).split("\r\n");
+            const rows = this.fileInput.slice(this.fileInput.indexOf("\n")+1).split("\r\n");
             (rows[rows.length - 1] == '') ? rows.pop() : null;
 
             //load data in each array
@@ -65,8 +76,8 @@ var inputCSV = new Vue({
                 //make set of original name
                 tempName.forEach(name => {
                     newName = name.split('').reverse().join('').replace('x','*').split('*')[1].split('').reverse().join('');
-                    vm.exNameOnly.push(newName);
-                    vm.exLinkSearch.push('https://www.google.com/search?q=gym+exercise+tutorial+'+ newName.split(' ').join('+'));
+                    this.exNameOnly.push(newName);
+                    this.exLinkSearch.push('https://www.google.com/search?q=gym+exercise+tutorial+'+ newName.split(' ').join('+'));
                 });
 
                 vm.exName.push(tempName.join('\n'));
@@ -87,17 +98,15 @@ var vm = new Vue({
         rest: 0,
         flagLetDoIt: 0,
         flagStart: 0,
-        fileInput: '',
-        programName : '',
         exName: [],
         exRest: [],
         exSet: [],
         exSumSet: 0,
         exOrder: 0,
         exRound: 0,
-        leftColumn: 'Your exercises:',
-        row1 : 'Choose your training program',
-        row2 : 'Welcome!',
+        leftColumn: '',
+        row1 : '',
+        row2 : '',
         buttonStart : 'Start'
     },
     methods: {
@@ -107,9 +116,7 @@ var vm = new Vue({
             this.rest = 0;
             this.flagLetDoIt = 0;
             this.flagStart = 0;
-            this.exNameOnly = [];
             this.exName = [];
-            this.exLinkSearch = [];
             this.exRest = [];
             this.exSet = [];
             this.exSumSet = 0;
@@ -166,6 +173,7 @@ updateContext;
 setInterval(updateTime, 1000);
 updateTime();
 
+
 function ring(){
     var myRing = new Audio('./sound/ringGo.wav');
     myRing.play();
@@ -206,13 +214,13 @@ function updateContext() {
     if (vm.exSumSet > 0){
         if ((vm.flagStart == 0) && (vm.count == 0)) {
             vm.row1 = 'Training with Njk';
-            vm.row2 = vm.programName + '\n ' + vm.exSet.length +' exercise(s)\nReady?';
+            vm.row2 = inputCSV.programName + '\n ' + vm.exSet.length +' exercise(s)\nReady?';
         }
         else if (vm.flagStart == 2) {
             vm.row2 = "Good job!";
         }
         else {
-            vm.row1 = vm.programName+'                    '+(vm.exOrder+1)+'/'+vm.exSet.length+'                    '+vm.timeClock;
+            vm.row1 = inputCSV.programName+'                    '+(vm.exOrder+1)+'/'+vm.exSet.length+'                    '+vm.timeClock;
             if (vm.rest > 0) {
                 vm.row2 = vm.exName[vm.exOrder]+'\n\nRound: '+vm.exRound+'/'+vm.exSet[vm.exOrder]+'\n\nRest: '+ vm.rest;
             }
@@ -243,3 +251,18 @@ function getOrder(count){
     }
 }
 
+/*
+loadFolder();
+function loadFolder(){
+    item = './Training Program';
+    const directoryHandle = window.showDirectoryPicker();
+    for await (let handle of directoryHandle.values()) {
+        if (handle.type === "file") {
+            console.log("file");
+        }
+        if (handle.type === "directory") {
+            console.log("directory");
+        }
+    }
+}
+*/

@@ -30,7 +30,6 @@ a {
     width: 300px;
     letter-spacing: 0.1em;
     font-size: 18px;
-    padding: 20px 0 0;
 }
 
 .row1 {
@@ -108,8 +107,8 @@ a {
 
 
 #main-page {
-    width: 1388px;
-    height: 98vh;
+    /*width: 1388px;*/
+    height: 98%;
     margin: auto;
     /*border: 1px solid #daf6ff;*/
 }

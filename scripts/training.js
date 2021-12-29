@@ -139,8 +139,10 @@ var vm = new Vue({
                     this.count += 1;
                     [this.exOrder, this.exRound] = getOrder(this.count);
                     this.rest = this.exRest[this.exOrder];
+                    
                 }
-                else {
+                else if (this.count == this.exSumSet){
+                    this.count += 1;
                     this.flagStart = 2;
                 }
             }
@@ -159,9 +161,7 @@ var vm = new Vue({
                 if (this.flagStart == 2){
                     this.flagStart = 1;
                 }
-                else {
-                    this.count -= 1;
-                }
+                this.count -= 1;
                 this.rest = 0;
                 [this.exOrder, this.exRound] = getOrder(this.count);
                 //console.log(this.count);

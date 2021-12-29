@@ -27,7 +27,7 @@ a {
     text-align: center;
     color: #daf6ff;
     text-shadow: 0 0 20px rgba(10, 175, 230, 1),  0 0 20px rgba(10, 175, 230, 0);
-    width: 300px;
+    width: 25vw;
     letter-spacing: 0.1em;
     font-size: 18px;
 }
@@ -46,7 +46,6 @@ a {
     text-shadow: 0 0 20px rgb(10, 230, 175),  0 0 20px rgba(10, 230, 201, 0);
 }
 .list {
-    font-family: 'Share Tech Mono', monospace;
     text-align: center;
     color: #daf6ff;
     text-shadow: 0 0 20px rgba(10, 175, 230, 1),  0 0 20px rgba(10, 175, 230, 0);
@@ -55,50 +54,40 @@ a {
 }
 
 
-
+#button-back{
+    width: 15vw;
+    float: left;
+}
 .back {
     background: #0f3854;
-    font-family: 'Share Tech Mono', monospace;
     color: #daf6ff;
-    text-shadow: 0 0 20px rgba(10, 175, 230, 1),  0 0 20px rgba(10, 175, 230, 0);
     text-align: left;
     letter-spacing: 0.1em;
     font-size: 18px;
     padding: 10px 40px 10px 40px;
 }
 
-#button-back{
-    width: 15%;
-    float: left;
-}
-
 #button-start{
-    width: 70%;
+    width: 35vw;
     float: left;
     margin: auto;
 }
-
-#button-next{
-    width: 15%;
-    float: right;
-}
-
 .start {
     background: #0f3854;
-    font-family: 'Share Tech Mono', monospace;
     color: #daf6ff;
-    text-shadow: 0 0 20px rgba(10, 175, 230, 1),  0 0 20px rgba(10, 175, 230, 0);
     text-align: center;
     letter-spacing: 0.1em;
     font-size: 18px;
     padding: 10px 40px 10px 40px;
 }
 
+#button-next{
+    width: 15vw;
+    float: right;
+}
 .next {
     background: #0f3854;
-    font-family: 'Share Tech Mono', monospace;
     color: #daf6ff;
-    text-shadow: 0 0 20px rgba(10, 175, 230, 1),  0 0 20px rgba(10, 175, 230, 0);
     text-align: center;
     letter-spacing: 0.1em;
     font-size: 18px;

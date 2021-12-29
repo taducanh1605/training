@@ -156,6 +156,9 @@ var vm = new Vue({
 
         handleBack(){
             if ((this.exSumSet > 0) && (this.count > 1)){
+                if (this.flagStart == 2){
+                    this.flagStart = 1;
+                }
                 this.count -= 1;
                 this.rest = 0;
                 [this.exOrder, this.exRound] = getOrder(this.count);

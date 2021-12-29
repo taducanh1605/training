@@ -126,7 +126,7 @@ var vm = new Vue({
         handleStart(){
             if (this.flagStart == 0) {
                 this.flagStart = 1; 
-                if ((this.rest == 0) && (this.count < this.exSumSet)){
+                if ((this.rest == 0) && (this.count == 0)){
                     this.count += 1;
                     [this.exOrder, this.exRound] = getOrder(this.count);
                 }
@@ -159,7 +159,9 @@ var vm = new Vue({
                 if (this.flagStart == 2){
                     this.flagStart = 1;
                 }
-                this.count -= 1;
+                else {
+                    this.count -= 1;
+                }
                 this.rest = 0;
                 [this.exOrder, this.exRound] = getOrder(this.count);
                 //console.log(this.count);
@@ -199,7 +201,7 @@ function updateTime() {
             vm.rest=0;
         }
     }
-    else {
+    else if (vm.count < 2) {
         vm.time=0;
     }
 };

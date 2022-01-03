@@ -124,26 +124,28 @@ var vm = new Vue({
             this.exRound = 0;
         },
         handleStart(){
-            if (this.flagStart == 0) {
-                this.flagStart = 1; 
-                if ((this.rest == 0) && (this.count == 0)){
-                    this.count += 1;
-                    [this.exOrder, this.exRound] = getOrder(this.count);
+            if (this.exSumSet > 0){
+                if (this.flagStart == 0) {
+                    this.flagStart = 1; 
+                    if ((this.rest == 0) && (this.count == 0)){
+                        this.count += 1;
+                        [this.exOrder, this.exRound] = getOrder(this.count);
+                    }
                 }
-            }
-            else if (this.rest > 0) {
-                this.flagStart = 0;
-            }
-            else {
-                if (this.count < this.exSumSet){
-                    this.count += 1;
-                    [this.exOrder, this.exRound] = getOrder(this.count);
-                    this.rest = this.exRest[this.exOrder];
-                    
+                else if (this.rest > 0) {
+                    this.flagStart = 0;
                 }
-                else if (this.count == this.exSumSet){
-                    this.count += 1;
-                    this.flagStart = 2;
+                else {
+                    if (this.count < this.exSumSet){
+                        this.count += 1;
+                        [this.exOrder, this.exRound] = getOrder(this.count);
+                        this.rest = this.exRest[this.exOrder];
+                        
+                    }
+                    else if (this.count == this.exSumSet){
+                        this.count += 1;
+                        this.flagStart = 2;
+                    }
                 }
             }
         },

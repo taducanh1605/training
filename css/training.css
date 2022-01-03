@@ -40,7 +40,7 @@ a {
 }
 .row2 {
     letter-spacing: 0.05em;
-    font-size: 40px;
+    font-size: 50px;
     padding: 5px 0;
     color: #10fff3;
     text-shadow: 0 0 20px rgb(10, 230, 175),  0 0 20px rgba(10, 230, 201, 0);
@@ -78,7 +78,7 @@ a {
     text-align: center;
     letter-spacing: 0.1em;
     font-size: 18px;
-    padding: 10px 40px 10px 40px;
+    padding: 10px 80px 10px 80px;
 }
 
 #button-next{

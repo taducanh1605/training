@@ -21,6 +21,18 @@ a {
     text-decoration: inherit;
 }
 
+.tab li {
+    cursor: pointer;
+    display: inline-block;
+    padding: 10px 15px;
+}
+
+.mode-free {
+    color: #ebb0b0;
+}
+.mode-prime {
+    color: #daf6ff;
+}
 
 .input {
     font-family: 'Share Tech Mono', monospace;

@@ -1,6 +1,7 @@
 var inputCSV = new Vue({
-    el: '#upper-left-content',
+    el: '#upper-content',
     data: {
+        textMode: 'prime',
         select :'',
         data: [],
         listProg: [],
@@ -126,6 +127,17 @@ var inputCSV = new Vue({
                 a.innerHTML += this.exNameOnly[i];
                 a.href += this.exLinkSearch[i];
                 a.target="_blank";
+            }
+        },
+
+        handleMode(){
+            if(vm.count == 0){
+                if (this.textMode == "prime"){
+                    this.textMode = "free";
+                }
+                else {
+                    this.textMode = "prime";
+                }
             }
         }
     }

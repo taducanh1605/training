@@ -17,16 +17,20 @@
         <div id="upper-content">
 
             <div id="upper-left-content">
-                <form class="input" enctype="multipart/form-data">
+                <form v-if="textMode === 'prime'" class="input" enctype="multipart/form-data">
                     <input class="input" type="file" @change="onFileChange">
                 </form>
-                <select class="selectProg" v-model="select" name="program" @change="selectHandle">
+                <select v-if="textMode === 'free'" class="selectProg" v-model="select" name="program" @change="selectHandle">
                     <option value="">---Choose an demo program---</option>
                     <option  v-for="prog in listProg">{{prog}}</option>
                 </select>
             </div>
 
-            <div id="upper-right-content"><h1>Training with Njk"</h1></div>
+            <div id="upper-right-content" >
+                <ul class="tab">
+                    <li v-bind:class="'mode-'+textMode" v-on:click="handleMode"><h1>Training with Njk"</h1></li>
+                </ul>
+            </div>
         </div>
 
         <div id="lower-content">

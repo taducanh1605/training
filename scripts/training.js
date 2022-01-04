@@ -321,14 +321,3 @@ function getOrder(count){
     }
 }
 
-const body = document.body;
-const btn = document.querySelectorAll('.button')[0];
-if(btn){
-    btn.addEventListener('mouseenter', () => {
-        body.classList.add('show');
-    });
-
-    btn.addEventListener('mouseleave', () => {
-        body.classList.remove('show');
-    });
-}

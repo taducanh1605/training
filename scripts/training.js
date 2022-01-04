@@ -162,6 +162,7 @@ var vm = new Vue({
         leftColumn: '',
         row1 : '',
         row2 : '',
+        row3 : '',
         buttonStart : 'Start'
     },
     methods: {
@@ -279,24 +280,28 @@ function updateContext() {
     if (vm.exSumSet > 0){
         if ((vm.flagStart == 0) && (vm.count == 0)) {
             vm.row1 = 'Training with Njk';
-            vm.row2 = inputCSV.programName + '\n ' + vm.exSet.length +' exercise(s)\nReady?';
+            vm.row3 = inputCSV.programName + '\n ' + vm.exSet.length +' exercise(s)\nReady?';
+            vm.row2 = "";
         }
         else if (vm.flagStart == 2) {
-            vm.row2 = "Good job!";
+            vm.row3 = "Good job!";
+            vm.row2 = "";
         }
         else {
-            vm.row1 = inputCSV.programName+'                    '+(vm.exOrder+1)+'/'+vm.exSet.length+'                    '+vm.timeClock;
+            vm.row1 = inputCSV.programName+'\u00a0\u00a0\u00a0'+(vm.exOrder+1)+'/'+vm.exSet.length+'\u00a0\u00a0\u00a0'+vm.timeClock;
             if (vm.rest > 0) {
-                vm.row2 = vm.exName[vm.exOrder]+'\n\nRound: '+vm.exRound+'/'+vm.exSet[vm.exOrder]+'\n\nRest: '+ vm.rest;
+                vm.row2 = 'ROUND: '+vm.exRound+'/'+vm.exSet[vm.exOrder];
+                vm.row3 = vm.exName[vm.exOrder]+'\n\nRest: '+ vm.rest;
             }
             else {
-                vm.row2 = vm.exName[vm.exOrder]+'\n\nRound: '+vm.exRound+'/'+vm.exSet[vm.exOrder]+'\n\nLet\'s do it';
+                vm.row2 = 'ROUND: '+vm.exRound+'/'+vm.exSet[vm.exOrder];
+                vm.row3 = vm.exName[vm.exOrder]+'\n\nLet\'s do it';
             }
         }
     }
     else {
         vm.row1 = 'Choose your program';
-        vm.row2 = 'Training with Njk';
+        vm.row3 = 'Training with Njk';
     }
     //update Button Start
     (vm.flagStart == 0) ? vm.buttonStart = 'Start' :

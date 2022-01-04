@@ -26,10 +26,7 @@
                 </select>
             </div>
 
-            <div id="upper-right-content" >
-                <ul class="tab">
-                    <li v-bind:class="'mode-'+textMode" v-on:click="handleMode"><h1>Training with Njk"</h1></li>
-                </ul>
+            <div id="upper-right-content" v-bind:class="'mode-'+textMode" v-on:click="handleMode">
             </div>
         </div>
 
@@ -39,11 +36,44 @@
             </div>
 
             <div id="lower-right-content">
+
                 <p class="row1">{{row1}}</p>
                 <p><pre class="row2">{{row2}}</pre></p>
-                <div id="button-back" v-if="exSumSet > 0"><button class="back" v-on:click="handleBack">Back</button></div>
-                <div id="button-start" v-if="exSumSet > 0"><button class="start" v-on:click="handleStart" v-on:space="handleStart">{{buttonStart}}</button></div>
-                <div id="button-next" v-if="exSumSet > 0"><button class="next" v-on:click="handleNext">Next</button></div>
+                <p><pre class="row3">{{row3}}</pre></p>
+
+                <div id="frame_button">
+
+                    <div id="button-back">
+                        <div  v-if="exSumSet > 0" class="button" v-on:click="handleBack">
+                            <a href="#">
+                                Back
+                                <span class="shift"></span>
+                            </a>
+                            <div class="mask"></div>
+                        </div>
+                    </div>
+
+                    <div id="button-next">
+                        <div v-if="exSumSet > 0" class="button" v-on:click="handleNext">
+                            <a href="#">
+                                Next
+                                <span class="shift"></span>
+                            </a>
+                            <div class="mask"></div>
+                        </div>
+                    </div>
+
+                    <div id="button-start">
+                            <div  v-if="exSumSet > 0" class="button" v-on:click="handleStart" v-on:space="handleStart">
+                                <a href="#">
+                                    {{buttonStart}}
+                                    <span class="shift"></span>
+                                </a>
+                                <div class="mask"></div>
+                            </div>
+                    </div>
+
+                </div>
             </div>
         </div>
 
@@ -52,5 +82,17 @@
         </div>
     </div>
     <script src="./scripts/training.js"></script>
+    <script>
+        const body = document.body;
+        const btn = document.querySelectorAll('.button')[0];
+
+        btn.addEventListener('mouseenter', () => {
+            body.classList.add('show');
+        });
+
+        btn.addEventListener('mouseleave', () => {
+            body.classList.remove('show');
+        });
+    </script>
 </body>
 </html>

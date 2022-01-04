@@ -1,3 +1,7 @@
+@import url('http://fonts.cdnfonts.com/css/destroy');
+@import url('http://fonts.cdnfonts.com/css/old-stamper');
+@import url('https://fr.allfont.net/allfont.css?fonts=sportrop');
+
 html,body {
     height: 100%;
     font-family: 'Share Tech Mono', monospace;
@@ -21,16 +25,17 @@ a {
     text-decoration: inherit;
 }
 
-.tab li {
-    cursor: pointer;
-    display: inline-block;
-}
-
 .mode-free {
-    color: #ebb0b0;
+    cursor: pointer;
+    background: url(/images/banner_free2.png);
+    background-size: auto;
+    background-repeat: no-repeat;
 }
 .mode-prime {
-    color: #daf6ff;
+    cursor: pointer;
+    background: url(/images/banner_prime.png);
+    background-size: auto;
+    background-repeat: no-repeat;
 }
 
 .input {
@@ -56,14 +61,24 @@ a {
 }
 
 .row1 {
+    font-family: "Old Stamper";
     letter-spacing: 0.1em;
     font-size: 30px;
     color: #daf6ff;
     text-shadow: 0 0 20px rgba(10, 175, 230, 1),  0 0 20px rgba(10, 175, 230, 0);
 }
 .row2 {
+    font-family: "Destroy";
     letter-spacing: 0.05em;
-    font-size: 50px;
+    font-size: 30px;
+    padding: 5px 0;
+    color: #ffab10;
+    text-shadow: 0 0 20px rgb(230, 10, 10),  0 0 20px rgba(230, 10, 10, 0);
+}
+.row3 {
+    font-family: "Sportrop Regular";
+    letter-spacing: 0.05em;
+    font-size: 30px;
     padding: 5px 0;
     color: #10fff3;
     text-shadow: 0 0 20px rgb(10, 230, 175),  0 0 20px rgba(10, 230, 201, 0);
@@ -77,10 +92,15 @@ a {
 }
 
 
+#frame_button{
+    width: 100%;
+}
+
 #button-back{
-    width: 15vw;
+    width: 20%;
     float: left;
 }
+/*
 .back {
     background: #0f3854;
     color: #daf6ff;
@@ -89,12 +109,13 @@ a {
     font-size: 18px;
     padding: 10px 40px 10px 40px;
 }
-
+*/
 #button-start{
-    width: 35vw;
-    float: left;
+    width: 42%;
+    float: right;
     margin: auto;
 }
+/*
 .start {
     background: #0f3854;
     color: #daf6ff;
@@ -103,11 +124,12 @@ a {
     font-size: 18px;
     padding: 10px 80px 10px 80px;
 }
-
+*/
 #button-next{
-    width: 15vw;
+    width: 18%;
     float: right;
 }
+/*
 .next {
     background: #0f3854;
     color: #daf6ff;
@@ -116,7 +138,7 @@ a {
     font-size: 18px;
     padding: 10px 40px 10px 40px;
 }
-
+*/
 
 #main-page {
     /*width: 1388px;*/
@@ -128,7 +150,7 @@ a {
 #upper-content {
     width: 98%;
     height: 15vh;
-    border-bottom: 1px solid #daf6ff;
+    border-bottom: 1px solid #303030;
 }
 
 #lower-content {
@@ -154,8 +176,8 @@ a {
 }
 
 #upper-right-content {
-    width: 70%;
-    
+    width: 74%;
+    height: 110px;
     float: left;
     /*border: 1px solid #daf6ff;*/
 }
@@ -171,6 +193,87 @@ a {
     width: 70%;
     height: 77vh;
     float: left;
-    border-left: 1px solid #daf6ff;
+    border-left: 1px solid #303030;
     padding: 15px 0 0 50px;
+}
+
+
+
+
+/*
+
+BUTTON
+
+*/
+
+
+
+
+.button {
+    width: 35%;
+	background-color: transparent;
+	border: 2px solid #2e2e2e;
+	cursor: pointer;
+	letter-spacing: 0.2125rem;
+	line-height: 1;
+	overflow: hidden;
+	padding: 20px 30px;
+	position: relative;
+	text-align: center;
+	text-transform: uppercase;
+	transition: 
+		background-color 0.2s cubic-bezier(0.19, 1, 0.22, 1),
+		border 1s cubic-bezier(0.19, 1, 0.22, 1),
+		color 0.6s cubic-bezier(0.19, 1, 0.22, 1);
+	user-select: none;
+}
+
+.button a {
+	color: #969696;
+	font-family: "Varela Round";
+	text-decoration: none;
+	white-space: nowrap;
+}
+
+.button .mask {
+	background-color: #fff;
+	background-color: rgba(255, 255, 255, 0.5);
+	height: 100px;
+	position: absolute;
+	transform: translate3d(-120%, -50px, 0) rotate3d(0, 0, 1, 45deg);
+	transition: all 1.1s cubic-bezier(0.19, 1, 0.22, 1);
+	width: 200px;
+}
+
+.button .shift {
+	display: inline-block;
+	transition: all 1.1s cubic-bezier(0.19, 1, 0.22, 1);
+	vertical-align: text-top;
+}
+
+.button:hover {
+	background-color: rgba(255, 255, 255, 0.05);
+	border-color: #fff;
+	box-shadow: 0 0 5px rgba(255, 245, 245, 0.8);
+}
+
+.button:hover a {
+	color: #fff;
+}
+
+.button:hover .mask {
+	background-color: #fff;
+	transform: translate3d(120%, -100px, 0) rotate3d(0, 0, 1, 90deg);
+}
+
+.button:hover .shift {
+	transform: translateX(5px);
+}
+
+.button:active {
+	background-color: #fff;
+}
+
+.button:active a {
+	color: #202020;
 }

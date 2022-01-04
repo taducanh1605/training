@@ -2,6 +2,23 @@
 @import url('http://fonts.cdnfonts.com/css/old-stamper');
 @import url('https://fr.allfont.net/allfont.css?fonts=sportrop');
 */
+
+@font-face {
+    font-family: 'Destroy';
+    font-style: normal;
+    font-weight: 400;
+    src: local('Destroy'), url('https://fonts.cdnfonts.com/s/111/DESTROY_.woff') format('woff');
+}
+
+@font-face {
+    font-family: 'Old Stamper';
+    font-style: normal;
+    font-weight: 400;
+    src: local('Old Stamper'), url('https://fonts.cdnfonts.com/s/331/old_stamper.woff') format('woff');
+}
+
+@font-face{font-family:sportrop regular;font-style:normal;font-weight:400;src:local('Sportrop Regular'),local('Sportrop-Regular'),url(http://www.allfont.es/cache/fonts/sportrop_f0ad1188ea12551e526340362302355b.woff) format('woff'),url(http://www.allfont.es/cache/fonts/sportrop_f0ad1188ea12551e526340362302355b.ttf) format('truetype')}
+
 html,body {
     height: 100%;
     font-family: 'Share Tech Mono', monospace;

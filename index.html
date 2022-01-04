@@ -20,6 +20,10 @@
                 <form class="input" enctype="multipart/form-data">
                     <input class="input" type="file" @change="onFileChange">
                 </form>
+                <select class="selectProg" v-model="select" name="program" @change="selectHandle">
+                    <option value="">---Choose an demo program---</option>
+                    <option  v-for="prog in listProg">{{prog}}</option>
+                </select>
             </div>
 
             <div id="upper-right-content"><h1>Training with Njk"</h1></div>
@@ -30,14 +34,12 @@
                 <p class="list" id="myExList">List of exercises: </p>
             </div>
 
-            <div id="app">
-                
+            <div id="lower-right-content">
                 <p class="row1">{{row1}}</p>
                 <p><pre class="row2">{{row2}}</pre></p>
-                <div id="button-back"><button class="back" v-on:click="handleBack">Back</button></div>
-                <div id="button-start"><button class="start" v-on:click="handleStart" v-on:space="handleStart">{{buttonStart}}</button></div>
-                <div id="button-next"><button class="next" v-on:click="handleNext">Next</button></div>
-                </p>
+                <div id="button-back" v-if="exSumSet > 0"><button class="back" v-on:click="handleBack">Back</button></div>
+                <div id="button-start" v-if="exSumSet > 0"><button class="start" v-on:click="handleStart" v-on:space="handleStart">{{buttonStart}}</button></div>
+                <div id="button-next" v-if="exSumSet > 0"><button class="next" v-on:click="handleNext">Next</button></div>
             </div>
         </div>
 

@@ -32,6 +32,18 @@ a {
     font-size: 18px;
 }
 
+.selectProg {
+    font-family: 'Share Tech Mono', monospace;
+    text-align: center;
+    background: #0f3854;
+    color: #daf6ff;
+    text-shadow: 0 0 20px rgba(10, 175, 230, 1),  0 0 20px rgba(10, 175, 230, 0);
+    width: 23vw;
+    letter-spacing: 0.1em;
+    font-size: 18px;
+    padding: 10px 40px 10px 40px;
+}
+
 .row1 {
     letter-spacing: 0.1em;
     font-size: 30px;
@@ -144,7 +156,7 @@ a {
     /*border: 1px solid #daf6ff;*/
 }
 
-#app {
+#lower-right-content {
     width: 70%;
     height: 77vh;
     float: left;

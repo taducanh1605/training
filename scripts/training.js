@@ -1,6 +1,10 @@
 var inputCSV = new Vue({
     el: '#upper-left-content',
     data: {
+        select :'',
+        data: [],
+        listProg: [],
+        loadData : fetch("./demoTraining.json").then(response => {return response.json();}).then(jsondata => {inputCSV.data = jsondata; inputCSV.listProg = Object.keys(jsondata)}),
         programName: '',
         exLinkSearch: [],
         fileInput: '',
@@ -34,30 +38,22 @@ var inputCSV = new Vue({
             //get result
             promise.then(
                 result => {
-                  /* handle a successful result */
+
+                    //clear list
+                    p = document.getElementById('myExList');
+                    p.innerHTML = "List of exercises:<br/>";
+
+                    //handle a successful result
                     this.init();
                     vm.init();
                     this.csvToArray();
                     console.log(this.exLinkSearch);
                     console.log(this.exNameOnly);
 
-                    //Make list of exercises
-                    p = document.getElementById('myExList');
-                    p.innerHTML = "List of exercises:<br/>";
-                    for (let i=0; i< this.exNameOnly.length; i++){
-                        let a = document.createElement('a');
-                        let br1 = document.createElement('br');
-                        //let br2 = document.createElement('br');
-                        p.appendChild(br1);
-                        //p.appendChild(br2);
-                        p.appendChild(a);
-                        a.innerHTML += this.exNameOnly[i];
-                        a.href += this.exLinkSearch[i];
-                        a.target="_blank";
-                    }
+                    this.listExHandle();
                 },
                 error => {
-                    /* handle an error */ 
+                    //handle an error
                     console.log(error);
                 }
             );
@@ -85,12 +81,59 @@ var inputCSV = new Vue({
                 vm.exRest.push(Number(temp[2]));
                 vm.exSumSet += Number(temp[1]);
             });
+        },
+
+        selectHandle(){
+            
+            //clear list
+            p = document.getElementById('myExList');
+            p.innerHTML = "List of exercises:<br/>";
+
+            //parse data
+            this.programName = this.select;
+            this.init();
+            vm.init();
+
+            this.data[this.select][0].forEach(exercise => {
+                tempName = exercise.split('+');
+                tempName.forEach(name => {
+                    newName = name.split('').reverse().join('').replace('x','*').split('*')[1].split('').reverse().join('');
+                    this.exNameOnly.push(newName);
+                    this.exLinkSearch.push('https://www.google.com/search?q=gym+exercise+tutorial+'+ newName.split(' ').join('+'));
+                });
+                
+                vm.exName.push(tempName.join('\n'));
+            });
+
+            vm.exSet = this.data[this.select][1];
+            vm.exRest = this.data[this.select][2];
+            this.data[this.select][1].forEach(exercise => {vm.exSumSet += Number(exercise);});
+
+            this.listExHandle();
+        },
+
+        listExHandle(){
+            p = document.getElementById('myExList');
+            p.innerHTML = "List of exercises:<br/>";
+            //Make list of exercises
+            for (let i=0; i< this.exNameOnly.length; i++){
+                let a = document.createElement('a');
+                let br1 = document.createElement('br');
+                //let br2 = document.createElement('br');
+                p.appendChild(br1);
+                //p.appendChild(br2);
+                p.appendChild(a);
+                a.innerHTML += this.exNameOnly[i];
+                a.href += this.exLinkSearch[i];
+                a.target="_blank";
+            }
         }
     }
+    
 });
 
 var vm = new Vue({
-    el: '#app',
+    el: '#lower-content',
     data: {
         time: 0,
         timeClock: '',
@@ -191,7 +234,10 @@ function updateTime() {
     
     if (vm.flagStart > 0) {
         vm.time+=1;
-        vm.timeClock = zeroPadding((vm.time - vm.time%3600)/3600, 2) + ':' + zeroPadding((vm.time - vm.time%60)/60, 2) + ':' + zeroPadding(vm.time%60, 2);
+        hour = (vm.time - vm.time%3600)/3600;
+        min = (vm.time - vm.time%60 - hour*3600)/60;
+        sec = vm.time%60;
+        vm.timeClock = zeroPadding(hour, 2) + ':' + zeroPadding(min, 2) + ':' + zeroPadding(sec, 2);
         if (vm.rest > 0) {
             vm.rest-=1;
             vm.flagLetDoIt = 1;
@@ -258,18 +304,3 @@ function getOrder(count){
     }
 }
 
-/*
-loadFolder();
-function loadFolder(){
-    item = './Training Program';
-    const directoryHandle = window.showDirectoryPicker();
-    for await (let handle of directoryHandle.values()) {
-        if (handle.type === "file") {
-            console.log("file");
-        }
-        if (handle.type === "directory") {
-            console.log("directory");
-        }
-    }
-}
-*/

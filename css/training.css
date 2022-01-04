@@ -27,13 +27,13 @@ a {
 
 .mode-free {
     cursor: pointer;
-    background: url(./images/banner_free.png);
+    background: url(https://taducanh1605.github.io/training/images/banner_free.png);
     background-size: auto;
     background-repeat: no-repeat;
 }
 .mode-prime {
     cursor: pointer;
-    background: url(./images/banner_prime.png);
+    background: url(https://taducanh1605.github.io/training/images/banner_prime.png);
     background-size: auto;
     background-repeat: no-repeat;
 }

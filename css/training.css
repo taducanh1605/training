@@ -164,16 +164,18 @@ pre {
 
 #lower-right-content {
     /*width: 25%;*/
+    height: 77vh;
     padding: 15px 0 0 0;
     /*float: right;*/
     /*border: 1px solid #daf6ff;*/
+    border-left: 1px solid #303030;
 }
 
 #lower-left-content {
     /*width: 70%;*/
-    height: 77vh;
+    /*height: 77vh;*/
     /*float: left;*/
-    border-right: 1px solid #303030;
+    /*border-right: 1px solid #303030;*/
     padding: 15px 0 0 50px;
 }
 

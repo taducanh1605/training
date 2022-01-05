@@ -264,6 +264,13 @@ document.addEventListener('click', async () => {
     };
 });
 
+document.addEventListener('visibilitychange', async () => {
+    if (('wakeLock' in navigator) && (checkScreen == 1)) {
+        //alert("inside");
+        checkScreen = 0;
+    };
+});
+
 function ring(){
     var myRing = new Audio('./sound/ringGo.wav');
     myRing.play();

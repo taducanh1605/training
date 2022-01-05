@@ -2,6 +2,7 @@ var inputCSV = new Vue({
     el: '#upper-content',
     data: {
         textMode: 'free',
+        loaded: 0,
         select :'',
         data: [],
         listProg: [],
@@ -252,13 +253,19 @@ updateTime();
 window.onbeforeunload = function() {
     if (vm.time > 0){
         return "Do you want to reload page?";
-    }
+    };
 };
+
+document.addEventListener('visibilitychange', async () => {
+    if (('wakeLock' in navigator) && (document.visibilityState === 'visible')) {
+        let screenLock = await navigator.wakeLock.request('screen');
+    };
+});
 
 function ring(){
     var myRing = new Audio('./sound/ringGo.wav');
     myRing.play();
-}
+};
 
 function updateTime() {
     //update Time clock
@@ -282,6 +289,11 @@ function updateTime() {
     }
     else if (vm.count < 2) {
         vm.time=0;
+    }
+
+    //update loaded program
+    if ((inputCSV.loaded < 1) && (vm.time > 0)){
+        inputCSV.loaded = 1;
     }
 };
 

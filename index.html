@@ -28,15 +28,16 @@
 
             <!---<div id="upper-right-content">--->
             <div class="col-sm-3" id="upper-right-content">    
-                <form v-if="textMode === 'prime'" enctype="multipart/form-data">
+                <form v-if="textMode === 'prime' && loaded === 0" enctype="multipart/form-data">
                     <input class="input" name="file" id="file" type="file" @change="onFileChange">
                     <label for="file">Choose your Program File</label>
                 </form>
-                <select v-if="textMode === 'free'" class="selectProg" v-model="select" name="program" @change="selectHandle">
+                <select v-if="textMode === 'free' && loaded === 0" class="selectProg" v-model="select" name="program" @change="selectHandle">
                     <option value="">---Choose a demo program---</option>
                     <option  v-for="prog in listProg">{{prog}}</option>
                 </select>
-                <p><<< Or click on Banner to switch mode</p>
+                <p v-if="loaded === 0"><<< Or click on Banner to switch mode</p>
+                <p v-if="loaded > 0">Refresh page to chose an other program</p>
             </div>
             
         </div>

@@ -57,6 +57,9 @@ pre {
     border: None;
 }
 
+img {
+    max-width: 100%;
+}
 
 .input {
     /*font-family: 'Share Tech Mono', monospace;*/

@@ -108,7 +108,7 @@ pre {
 .row1 {
     font-family: "Old Stamper";
     letter-spacing: 0.1em;
-    font-size: 30px;
+    font-size: 25px;
     color: #daf6ff;
     text-shadow: 0 0 20px rgba(10, 175, 230, 1),  0 0 20px rgba(10, 175, 230, 0);
 }
@@ -228,6 +228,7 @@ pre {
     margin: 1px auto;
     border-left: 1px solid #303030;
     border-top: 1px solid #303030;
+    overflow-y: auto;
 }
 
 #lower-left-content {

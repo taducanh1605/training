@@ -46,7 +46,11 @@
 
             <div id="lower-left-content" class="col-sm-9">
 
-                <p class="row1">{{row1}}</p>
+                <div class="row">
+                    <div class="col-sm-3"><p class="row1">{{row1_1}}</p></div>
+                    <div class="col-sm-6"><p class="row1">{{row1_2}}</p></div>
+                    <div class="col-sm-3"><p class="row1">{{row1_3}}</p></div>
+                </div>
                 <p class="row2">{{row2}}</p>
                 <p><pre class="row3">{{row3}}</pre></p>
                 <p v-bind:class="'row4-'+textbreak">{{row4}}</p>
@@ -86,8 +90,8 @@
                 </div>
             </div>
 
-            <div id="lower-right-content" class="col-sm-3">
-                <p class="list" id="myExList">List of exercises: </p>
+            <div id="lower-right-content" class="col-sm-3" >
+                <p class="list" id="myExList" >List of exercises: </p>
             </div>
 
         </div>

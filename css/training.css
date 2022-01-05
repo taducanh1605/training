@@ -103,6 +103,7 @@ pre {
     color: #daf6ff;
     border-radius: 18px;
     padding: 10px 20px 10px 10px;
+    margin: 14px auto;
 }
 
 .row1 {
@@ -188,7 +189,7 @@ pre {
 }
 
 #upper-right-content {
-    margin: 0 auto;
+    margin: 10px auto;
     /*width: 25%;*/
     /*height: 110px;*/
     /*float: right;*/

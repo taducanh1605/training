@@ -167,24 +167,24 @@ pre {
 }
 
 #upper-content {
-    width: 98%;
+    width: 99%;
     /*height: 110px;*/
     /*border-bottom: 1px solid #303030;*/
 }
 
 #lower-content {
-    width: 98%;
+    width: 99%;
     /*border: 1px solid #daf6ff;*/
 }
 
 #footer-content {
-    width: 100%;
+    width: 99%;
     height: 5vh;
     clear: both;
     /*border: 1px solid #daf6ff;*/
 }
 #footer-content p {
-    width: 98%;
+    width: 99%;
     text-align: right;
 }
 

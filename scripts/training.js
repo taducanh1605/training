@@ -265,9 +265,9 @@ document.addEventListener('click', async () => {
 });
 
 document.addEventListener('visibilitychange', async () => {
-    if (('wakeLock' in navigator) && (checkScreen == 1)) {
+    if ('wakeLock' in navigator) {
         //alert("inside");
-        checkScreen = 0;
+        let screenLock = await navigator.wakeLock.request('screen');
     };
 });
 

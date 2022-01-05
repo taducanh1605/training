@@ -257,6 +257,10 @@ window.onbeforeunload = function() {
 };
 
 document.addEventListener('visibilitychange', async () => {
+    alert("inside");
+    if ('wakeLock' in navigator){
+        alert("yes");
+    };
     if (('wakeLock' in navigator) && (document.visibilityState === 'visible')) {
         let screenLock = await navigator.wakeLock.request('screen');
     };

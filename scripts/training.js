@@ -1,7 +1,7 @@
 var inputCSV = new Vue({
     el: '#upper-content',
     data: {
-        textMode: 'prime',
+        textMode: 'free',
         select :'',
         data: [],
         listProg: [],
@@ -158,7 +158,7 @@ var vm = new Vue({
     el: '#lower-content',
     data: {
         time: 0,
-        timeClock: '',
+        timeClock: '00:00:00',
         count: 0,
         rest: 0,
         flagLetDoIt: 0,
@@ -173,11 +173,14 @@ var vm = new Vue({
         row1 : '',
         row2 : '',
         row3 : '',
+        row4 : '',
+        textbreak: 'doit',
         buttonStart : 'Start'
     },
     methods: {
         init(){
             this.time = 0;
+            this.timeClock = '00:00:00';
             this.count = 0;
             this.rest = 0;
             this.flagLetDoIt = 0;
@@ -246,6 +249,11 @@ updateContext;
 setInterval(updateTime, 1000);
 updateTime();
 
+window.onbeforeunload = function() {
+    if (vm.time > 0){
+        return "Do you want to reload page?";
+    }
+};
 
 function ring(){
     var myRing = new Audio('./sound/ringGo.wav');
@@ -288,25 +296,34 @@ function zeroPadding(num, digit) {
 function updateContext() {
     //update Time clock
     if (vm.exSumSet > 0){
-        if ((vm.flagStart == 0) && (vm.count == 0)) {
+        if ((vm.flagStart == 0) && (vm.count == 0)){
             vm.row1 = 'Training with Njk';
-            vm.row3 = inputCSV.programName + '\n ' + vm.exSet.length +' exercise(s)\nReady?';
             vm.row2 = "";
+            vm.row3 = inputCSV.programName + '\n' + vm.exSet.length +' exercise(s)';
+            vm.row4 = "Ready?";
         }
         else if (vm.flagStart == 2) {
-            vm.row3 = "Good job!";
             vm.row2 = "";
+            vm.row3 = "Good job!";
+            vm.row4 = "";
         }
         else {
             vm.row1 = inputCSV.programName+'\u00a0\u00a0\u00a0'+(vm.exOrder+1)+'/'+vm.exSet.length+'\u00a0\u00a0\u00a0'+vm.timeClock;
             if (vm.rest > 0) {
                 vm.row2 = 'ROUND: '+vm.exRound+'/'+vm.exSet[vm.exOrder];
-                vm.row3 = vm.exName[vm.exOrder]+'\n\nRest: '+ vm.rest;
+                vm.row3 = vm.exName[vm.exOrder];
+                vm.row4 = 'Break: '+ vm.rest;
+                vm.textbreak = 'break';
             }
             else {
                 vm.row2 = 'ROUND: '+vm.exRound+'/'+vm.exSet[vm.exOrder];
-                vm.row3 = vm.exName[vm.exOrder]+'\n\nLet\'s do it';
+                vm.row3 = vm.exName[vm.exOrder];
+                vm.row4 = 'Let\'s do it';
+                vm.textbreak = 'doit';
             }
+        }
+        if (vm.flagStart == 0){
+            vm.row4 = "Ready?";
         }
     }
     else {
@@ -330,4 +347,5 @@ function getOrder(count){
         }
     }
 }
+
 

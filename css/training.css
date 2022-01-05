@@ -17,7 +17,12 @@
     src: local('Old Stamper'), url('https://fonts.cdnfonts.com/s/331/old_stamper.woff') format('woff');
 }
 
-@font-face{font-family:sportrop regular;font-style:normal;font-weight:400;src:local('Sportrop Regular'),local('Sportrop-Regular'),url(https://www.allfont.es/cache/fonts/sportrop_f0ad1188ea12551e526340362302355b.woff) format('woff'),url(http://www.allfont.es/cache/fonts/sportrop_f0ad1188ea12551e526340362302355b.ttf) format('truetype')}
+@font-face{
+    font-family:sportrop regular;
+    font-style:normal;
+    font-weight:400;
+    src:local('Sportrop Regular'),local('Sportrop-Regular'),url(https://www.allfont.es/cache/fonts/sportrop_f0ad1188ea12551e526340362302355b.woff) format('woff'),url(http://www.allfont.es/cache/fonts/sportrop_f0ad1188ea12551e526340362302355b.ttf) format('truetype')
+}
 
 html,body {
     height: 100%;
@@ -30,8 +35,9 @@ html,body {
 body {
     /*background: #0f3854;*/
     background: #010203;
-    background: radial-gradient(ellipse at center,  #0a2e38  0%, #000000 70%);
-    background-size: 100%;
+    background: radial-gradient(ellipse at center,  #082127  0%, #000000 70%);
+    /*background: url(/images/black-dark-background.png);
+    background-size: auto;*/
 }
 p {
     margin: 0;
@@ -53,22 +59,44 @@ pre {
     font-family: 'Share Tech Mono', monospace;
     text-align: center;
     color: #daf6ff;
-    text-shadow: 0 0 20px rgba(10, 175, 230, 1),  0 0 20px rgba(10, 175, 230, 0);
-    width: 25vw;
+    width: 0.1px;
+	height: 0.1px;
+    /*width: 25vw;
     letter-spacing: 0.1em;
-    font-size: 18px;
+    font-size: 18px;*/
+    overflow: hidden;
+    opacity: 0;
+    z-index: -1;
 }
+.input label {
+    color: #daf6ff;
+    display: inline-block;
+    cursor: pointer;
+    
+}
+.input:focus + label,
+.input + label:hover {
+    background-color: #0f4654;
+}
+.input + label {
+    cursor: pointer;
+    background-color: #0f3854;
+    border-radius: 18px;
+    padding: 10px 20px 10px 20px;
+}
+.input:focus + label {
+	outline: 1px dotted rgb(255, 255, 255);
+	outline: -webkit-focus-ring-color auto 5px;
+}
+
 
 .selectProg {
     font-family: 'Share Tech Mono', monospace;
     text-align: center;
     background: #0f3854;
     color: #daf6ff;
-    text-shadow: 0 0 20px rgba(10, 175, 230, 1),  0 0 20px rgba(10, 175, 230, 0);
-    width: 23vw;
-    letter-spacing: 0.1em;
-    font-size: 15px;
-    padding: 10px 40px 10px 40px;
+    border-radius: 18px;
+    padding: 10px 20px 10px 10px;
 }
 
 .row1 {
@@ -79,6 +107,7 @@ pre {
     text-shadow: 0 0 20px rgba(10, 175, 230, 1),  0 0 20px rgba(10, 175, 230, 0);
 }
 .row2 {
+    margin: 25px auto;
     font-family: "Destroy";
     letter-spacing: 0.05em;
     font-size: 30px;
@@ -87,6 +116,7 @@ pre {
     text-shadow: 0 0 20px rgb(230, 10, 10),  0 0 20px rgba(230, 10, 10, 0);
 }
 .row3 {
+    margin: 25px auto;
     font-family: "Sportrop Regular";
     letter-spacing: 0.05em;
     font-size: 30px;
@@ -94,12 +124,31 @@ pre {
     color: #10fff3;
     text-shadow: 0 0 20px rgb(10, 230, 175),  0 0 20px rgba(10, 230, 201, 0);
 }
+.row4-break {
+    margin: 25px auto;
+    font-family: "Sportrop Regular";
+    letter-spacing: 0.05em;
+    font-size: 30px;
+    padding: 5px 0;
+    color: #ff1044;
+    text-shadow: 0 0 20px rgb(230, 10, 65),  0 0 20px rgba(230, 10, 65, 0);
+}
+.row4-doit {
+    margin: 25px auto;
+    font-family: "Sportrop Regular";
+    letter-spacing: 0.05em;
+    font-size: 30px;
+    padding: 5px 0;
+    color: #10ff24;
+    text-shadow: 0 0 20px rgb(10, 230, 10),  0 0 20px rgba(10, 230, 58, 0);
+}
 .list {
     text-align: center;
     color: #daf6ff;
     text-shadow: 0 0 20px rgba(10, 175, 230, 1),  0 0 20px rgba(10, 175, 230, 0);
     letter-spacing: 0.1em;
     font-size: 18px;
+    font-family: "sportrop regular";
 }
 
 
@@ -113,7 +162,7 @@ pre {
 #upper-content {
     width: 98%;
     /*height: 110px;*/
-    border-bottom: 1px solid #303030;
+    /*border-bottom: 1px solid #303030;*/
 }
 
 #lower-content {
@@ -157,6 +206,7 @@ pre {
 #upper-left-content {
     /*width: 74%;*/
     cursor: pointer;
+    margin: 0 0 0 0;
     /*height: 110px;*/
     /*float: left;*/
     /*border: 1px solid #daf6ff;*/
@@ -165,10 +215,12 @@ pre {
 #lower-right-content {
     /*width: 25%;*/
     height: 77vh;
-    padding: 15px 0 0 0;
+    padding: 25px 0 0 0;
     /*float: right;*/
     /*border: 1px solid #daf6ff;*/
+    margin: 1px auto;
     border-left: 1px solid #303030;
+    border-top: 1px solid #303030;
 }
 
 #lower-left-content {
@@ -176,7 +228,9 @@ pre {
     /*height: 77vh;*/
     /*float: left;*/
     /*border-right: 1px solid #303030;*/
-    padding: 15px 0 0 50px;
+    padding: 25px 0 0 50px;
+    margin: 1px auto;
+    border-top: 1px solid #303030;
 }
 
 /*
@@ -202,6 +256,7 @@ BUTTON
 
 #frame_button{
     width: 100%;
+    margin: 25px auto;
 }
 
 #button-back{

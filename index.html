@@ -21,21 +21,22 @@
 
             <!---<div id="upper-left-content" v-bind:class="'mode-'+textMode" v-on:click="handleMode"></div>--->
             <div class="col-sm-9" id="upper-left-content" v-on:click="handleMode">
-                <img v-if="textMode === 'free'" src="./images/banner_free.png" class="img-responsive" alt="Change free prime">
-                <img v-if="textMode === 'prime'" src="./images/banner_prime.png" class="img-responsive" alt="Change free free">
+                <img v-if="textMode === 'free'" src="./images/banner_free2.png" class="img-responsive" alt="Change free prime">
+                <img v-if="textMode === 'prime'" src="./images/banner_prime1.png" class="img-responsive" alt="Change free free">
             </div>
             
 
             <!---<div id="upper-right-content">--->
             <div class="col-sm-3" id="upper-right-content">    
-                <form v-if="textMode === 'prime'" class="input" enctype="multipart/form-data">
-                    <input class="input" type="file" @change="onFileChange">
+                <form v-if="textMode === 'prime'" enctype="multipart/form-data">
+                    <input class="input" name="file" id="file" type="file" @change="onFileChange">
+                    <label for="file">Choose your Program File</label>
                 </form>
                 <select v-if="textMode === 'free'" class="selectProg" v-model="select" name="program" @change="selectHandle">
-                    <option value="">---Choose an demo program---</option>
+                    <option value="">---Choose a demo program---</option>
                     <option  v-for="prog in listProg">{{prog}}</option>
                 </select>
-                <p>Click on Banner to change mode</p>
+                <p><<< Or click on Banner to switch mode</p>
             </div>
             
         </div>
@@ -45,8 +46,9 @@
             <div id="lower-left-content" class="col-sm-9">
 
                 <p class="row1">{{row1}}</p>
-                <p><pre class="row2">{{row2}}</pre></p>
+                <p class="row2">{{row2}}</p>
                 <p><pre class="row3">{{row3}}</pre></p>
+                <p v-bind:class="'row4-'+textbreak">{{row4}}</p>
 
                 <div id="frame_button">
 

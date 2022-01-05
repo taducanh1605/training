@@ -244,7 +244,7 @@ var vm = new Vue({
 });
 
 //console.log(vm.fileInput)
-
+let checkScreen = 0;
 setInterval(updateContext, 10);
 updateContext;
 setInterval(updateTime, 1000);
@@ -256,12 +256,9 @@ window.onbeforeunload = function() {
     };
 };
 
-document.addEventListener('visibilitychange', async () => {
-    alert("inside");
-    if ('wakeLock' in navigator){
-        alert("yes");
-    };
-    if (('wakeLock' in navigator) && (document.visibilityState === 'visible')) {
+document.addEventListener('click', async () => {
+    if (('wakeLock' in navigator) && (checkScreen == 0)) {
+        checkScreen = 1
         let screenLock = await navigator.wakeLock.request('screen');
     };
 });

@@ -33,12 +33,12 @@ html,body {
 }
 body {
     /*background: #0f3854;*/
-    background: #010203;
-    background: radial-gradient(ellipse at center,  #303030  0%, #000000 70%);
     /*background: url(/images/black-dark-background.jpg);
     background-size: auto;
-    background-repeat: repeat;
-    z-index: -1;
+    background-repeat: repeat;*/
+    /*background: #010203;*/
+    background: radial-gradient(ellipse at center,  #242424  0%, #0e0e0e 70%);
+    /*z-index: -1;
     opacity: 0.5;
     filter: alpha(opacity=50);*/
 }
@@ -189,7 +189,7 @@ pre {
 }
 
 #upper-right-content {
-    margin: 10px auto;
+    /*margin: 10px auto;*/
     /*width: 25%;*/
     /*height: 110px;*/
     /*float: right;*/

@@ -258,7 +258,7 @@ window.onbeforeunload = function() {
 
 document.addEventListener('click', async () => {
     if (('wakeLock' in navigator) && (checkScreen == 0)) {
-        alert("inside");
+        //alert("inside");
         checkScreen = 1;
         let screenLock = await navigator.wakeLock.request('screen');
     };

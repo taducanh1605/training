@@ -27,17 +27,20 @@
 html,body {
     height: 100%;
     font-family: 'Share Tech Mono', monospace;
-    color: #ffffff;
     text-align: center;
-    color: #daf6ff;
+    color: #ffffff;
     text-shadow: 0 0 20px rgb(217, 221, 223),  0 0 20px rgba(217, 221, 223, 0);
 }
 body {
     /*background: #0f3854;*/
     background: #010203;
-    background: radial-gradient(ellipse at center,  #082127  0%, #000000 70%);
-    /*background: url(/images/black-dark-background.png);
-    background-size: auto;*/
+    background: radial-gradient(ellipse at center,  #303030  0%, #000000 70%);
+    /*background: url(/images/black-dark-background.jpg);
+    background-size: auto;
+    background-repeat: repeat;
+    z-index: -1;
+    opacity: 0.5;
+    filter: alpha(opacity=50);*/
 }
 p {
     margin: 0;
@@ -56,7 +59,8 @@ pre {
 
 
 .input {
-    font-family: 'Share Tech Mono', monospace;
+    /*font-family: 'Share Tech Mono', monospace;*/
+    /*font-family: 'Sportrop Regular';*/
     text-align: center;
     color: #daf6ff;
     width: 0.1px;
@@ -76,13 +80,14 @@ pre {
 }
 .input:focus + label,
 .input + label:hover {
-    background-color: #0f4654;
+    background-color: #6d6d6d;
 }
 .input + label {
     cursor: pointer;
-    background-color: #0f3854;
+    background-color: #454646;
     border-radius: 18px;
-    padding: 10px 20px 10px 20px;
+    padding: 10px 30px 10px 30px;
+    margin: auto;
 }
 .input:focus + label {
 	outline: 1px dotted rgb(255, 255, 255);
@@ -91,9 +96,10 @@ pre {
 
 
 .selectProg {
-    font-family: 'Share Tech Mono', monospace;
+    /*font-family: 'Sportrop Regular';*/
+    /*font-family: 'Share Tech Mono', monospace;*/
     text-align: center;
-    background: #0f3854;
+    background: #454646;
     color: #daf6ff;
     border-radius: 18px;
     padding: 10px 20px 10px 10px;

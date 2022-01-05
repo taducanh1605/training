@@ -308,7 +308,7 @@ function updateContext() {
             vm.row4 = "";
         }
         else {
-            vm.row1 = inputCSV.programName+'\u00a0\u00a0\u00a0'+(vm.exOrder+1)+'/'+vm.exSet.length+'\u00a0\u00a0\u00a0'+vm.timeClock;
+            vm.row1 = inputCSV.programName+'\u00a0\u00a0\u00a0\u00a0'+(vm.exOrder+1)+'/'+vm.exSet.length+'\u00a0\u00a0\u00a0\u00a0'+vm.timeClock;
             if (vm.rest > 0) {
                 vm.row2 = 'ROUND: '+vm.exRound+'/'+vm.exSet[vm.exOrder];
                 vm.row3 = vm.exName[vm.exOrder];

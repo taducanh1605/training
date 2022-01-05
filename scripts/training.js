@@ -48,8 +48,8 @@ var inputCSV = new Vue({
                     this.init();
                     vm.init();
                     this.csvToArray();
-                    console.log(this.exLinkSearch);
-                    console.log(this.exNameOnly);
+                    //console.log(this.exLinkSearch);
+                    //console.log(this.exNameOnly);
 
                     this.listExHandle();
                 },
@@ -69,14 +69,16 @@ var inputCSV = new Vue({
             rows.forEach(row => {
                 temp = row.split(',');
                 tempName = temp[0].split('+');
-                
+                tempNameOnly = [];
+                tempLinkSearch = [];
                 //make set of original name
                 tempName.forEach(name => {
                     newName = name.split('').reverse().join('').replace('x','*').split('*')[1].split('').reverse().join('');
-                    this.exNameOnly.push(newName);
-                    this.exLinkSearch.push('https://www.google.com/search?q=gym+exercise+tutorial+'+ newName.split(' ').join('+'));
+                    tempNameOnly.push(newName);
+                    tempLinkSearch.push('https://www.google.com/search?q=gym+exercise+tutorial+'+ newName.split(' ').join('+'));
                 });
-
+                this.exNameOnly.push(tempNameOnly);
+                this.exLinkSearch.push(tempLinkSearch);
                 vm.exName.push(tempName.join('\n'));
                 vm.exSet.push(Number(temp[1]));
                 vm.exRest.push(Number(temp[2]));
@@ -97,12 +99,15 @@ var inputCSV = new Vue({
 
             this.data[this.select][0].forEach(exercise => {
                 tempName = exercise.split('+');
+                tempNameOnly = [];
+                tempLinkSearch = [];
                 tempName.forEach(name => {
                     newName = name.split('').reverse().join('').replace('x','*').split('*')[1].split('').reverse().join('');
-                    this.exNameOnly.push(newName);
-                    this.exLinkSearch.push('https://www.google.com/search?q=gym+exercise+tutorial+'+ newName.split(' ').join('+'));
+                    tempNameOnly.push(newName);
+                    tempLinkSearch.push('https://www.google.com/search?q=gym+exercise+tutorial+'+ newName.split(' ').join('+'));
                 });
-                
+                this.exNameOnly.push(tempNameOnly);
+                this.exLinkSearch.push(tempLinkSearch);
                 vm.exName.push(tempName.join('\n'));
             });
 
@@ -115,18 +120,23 @@ var inputCSV = new Vue({
 
         listExHandle(){
             p = document.getElementById('myExList');
-            p.innerHTML = "List of exercises:<br/>";
+            p.innerHTML = "List of exercises:";
             //Make list of exercises
-            for (let i=0; i< this.exNameOnly.length; i++){
-                let a = document.createElement('a');
-                let br1 = document.createElement('br');
-                //let br2 = document.createElement('br');
-                p.appendChild(br1);
-                //p.appendChild(br2);
-                p.appendChild(a);
-                a.innerHTML += this.exNameOnly[i];
-                a.href += this.exLinkSearch[i];
-                a.target="_blank";
+            for (let j=0; j< this.exNameOnly.length; j++){
+                let br = document.createElement('br');
+                p.appendChild(br);
+                for (let i=0; i< this.exNameOnly[j].length; i++){
+                    let a = document.createElement('a');
+                    let br1 = document.createElement('br');
+                    //let br2 = document.createElement('br');
+                    p.appendChild(br1);
+                    //p.appendChild(br2);
+                    p.appendChild(a);
+                    a.innerHTML += this.exNameOnly[j][i];
+                    a.href += this.exLinkSearch[j][i];
+                    a.target="_blank";
+                }
+
             }
         },
 

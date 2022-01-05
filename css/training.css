@@ -25,10 +25,11 @@ html,body {
     color: #ffffff;
     text-align: center;
     color: #daf6ff;
-    text-shadow: 0 0 20px rgba(10, 175, 230, 1),  0 0 20px rgba(10, 175, 230, 0);
+    text-shadow: 0 0 20px rgb(217, 221, 223),  0 0 20px rgba(217, 221, 223, 0);
 }
 body {
-    background: #0f3854;
+    /*background: #0f3854;*/
+    background: #010203;
     background: radial-gradient(ellipse at center,  #0a2e38  0%, #000000 70%);
     background-size: 100%;
 }
@@ -42,18 +43,11 @@ a {
     text-decoration: inherit;
 }
 
-.mode-free {
-    cursor: pointer;
-    background: url(https://taducanh1605.github.io/training/images/banner_free.png);
-    background-size: auto;
-    background-repeat: no-repeat;
+pre {
+    background-color: transparent;
+    border: None;
 }
-.mode-prime {
-    cursor: pointer;
-    background: url(https://taducanh1605.github.io/training/images/banner_prime.png);
-    background-size: auto;
-    background-repeat: no-repeat;
-}
+
 
 .input {
     font-family: 'Share Tech Mono', monospace;
@@ -109,64 +103,16 @@ a {
 }
 
 
-#frame_button{
-    width: 100%;
-}
-
-#button-back{
-    width: 20%;
-    float: left;
-}
-/*
-.back {
-    background: #0f3854;
-    color: #daf6ff;
-    text-align: left;
-    letter-spacing: 0.1em;
-    font-size: 18px;
-    padding: 10px 40px 10px 40px;
-}
-*/
-#button-start{
-    width: 42%;
-    float: right;
-    margin: auto;
-}
-/*
-.start {
-    background: #0f3854;
-    color: #daf6ff;
-    text-align: center;
-    letter-spacing: 0.1em;
-    font-size: 18px;
-    padding: 10px 80px 10px 80px;
-}
-*/
-#button-next{
-    width: 18%;
-    float: right;
-}
-/*
-.next {
-    background: #0f3854;
-    color: #daf6ff;
-    text-align: center;
-    letter-spacing: 0.1em;
-    font-size: 18px;
-    padding: 10px 40px 10px 40px;
-}
-*/
-
 #main-page {
     /*width: 1388px;*/
-    height: 98%;
+    /*height: 100%;*/
     margin: auto;
     /*border: 1px solid #daf6ff;*/
 }
 
 #upper-content {
     width: 98%;
-    height: 15vh;
+    /*height: 110px;*/
     border-bottom: 1px solid #303030;
 }
 
@@ -176,46 +122,75 @@ a {
 }
 
 #footer-content {
-    width: 98%;
+    width: 100%;
     height: 5vh;
     clear: both;
     /*border: 1px solid #daf6ff;*/
 }
 #footer-content p {
-    width: 100%;
+    width: 98%;
     text-align: right;
 }
 
-#upper-left-content {
-    width: 25%;
-    float: left;
-    /*border: 1px solid #daf6ff;*/
-}
-
 #upper-right-content {
-    width: 74%;
-    height: 110px;
-    float: left;
+    margin: 0 auto;
+    /*width: 25%;*/
+    /*height: 110px;*/
+    /*float: right;*/
     /*border: 1px solid #daf6ff;*/
 }
+#upper-right-content form,select {
+    display:flex;
+	align-items: center;
+	justify-content:center;
+    margin: 14px auto;
+}
 
-#lower-left-content {
-    width: 25%;
-    padding: 15px 0 0 0;
-    float: left;
+#upper-right-content p {
+    display:flex;
+	align-items: center;
+	justify-content:center;
+    margin: 14px auto;
+}
+
+
+#upper-left-content {
+    /*width: 74%;*/
+    cursor: pointer;
+    /*height: 110px;*/
+    /*float: left;*/
     /*border: 1px solid #daf6ff;*/
 }
 
 #lower-right-content {
-    width: 70%;
+    /*width: 25%;*/
+    padding: 15px 0 0 0;
+    /*float: right;*/
+    /*border: 1px solid #daf6ff;*/
+}
+
+#lower-left-content {
+    /*width: 70%;*/
     height: 77vh;
-    float: left;
-    border-left: 1px solid #303030;
+    /*float: left;*/
+    border-right: 1px solid #303030;
     padding: 15px 0 0 50px;
 }
 
-
-
+/*
+.mode-free {
+    cursor: pointer;
+    background: url(https://taducanh1605.github.io/training/images/banner_free.png);
+    background-size: auto;
+    background-repeat: no-repeat;
+}
+.mode-prime {
+    cursor: pointer;
+    background: url(https://taducanh1605.github.io/training/images/banner_prime.png);
+    background-size: auto;
+    background-repeat: no-repeat;
+}
+*/
 
 /*
 
@@ -223,11 +198,35 @@ BUTTON
 
 */
 
+#frame_button{
+    width: 100%;
+}
 
+#button-back{
+    width: 20%;
+    float: left;
+}
 
+#button-start{
+    width: 35%;
+    display:flex;
+	align-items: center;
+	justify-content:center;
+    margin: auto;
+}
+
+#button-next{
+    width: 20%;
+    float: right;
+    margin: 0 25px 0 0;
+    display:flex;
+	align-items: right;
+	justify-content:right;
+    float: right;
+}
 
 .button {
-    width: 35%;
+    width: 80%;
 	background-color: transparent;
 	border: 2px solid #2e2e2e;
 	cursor: pointer;

@@ -351,6 +351,9 @@ function updateTime() {
     }
 };
 
+/*----------------------------------------------------------------------
+Format time to hh:mm:ss
+----------------------------------------------------------------------*/
 function zeroPadding(num, digit) {
     var zero = '';
     for(var i = 0; i < digit; i++) {
@@ -359,6 +362,10 @@ function zeroPadding(num, digit) {
     return (zero + num).slice(-digit);
 }
 
+
+/*----------------------------------------------------------------------
+Update context for each row
+----------------------------------------------------------------------*/
 function updateContext() {
     //update Time clock
     if (vm.exSumSet > 0){

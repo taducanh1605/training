@@ -124,7 +124,7 @@ pre {
     color: #daf6ff;
     border-radius: 18px;
     padding: 10px 20px 10px 10px;
-    margin: 14px auto;
+    margin: 1.5rem auto;
 }
 
 .row1 {
@@ -135,7 +135,7 @@ pre {
     text-shadow: 0 0 20px rgba(10, 175, 230, 1),  0 0 20px rgba(10, 175, 230, 0);
 }
 .row2 {
-    margin: 25px auto;
+    margin: 2rem auto;
     font-family: "Destroy";
     letter-spacing: 0.05em;
     font-size: 3rem;
@@ -144,7 +144,7 @@ pre {
     text-shadow: 0 0 20px rgb(230, 10, 10),  0 0 20px rgba(230, 10, 10, 0);
 }
 .row3 {
-    margin: 25px auto;
+    margin: 0.5rem auto;
     font-family: "Sportrop Regular";
     letter-spacing: 0.05em;
     font-size: 3.5rem;
@@ -153,7 +153,7 @@ pre {
     text-shadow: 0 0 20px rgb(10, 230, 175),  0 0 20px rgba(10, 230, 201, 0);
 }
 .row4-break {
-    margin: 25px auto;
+    margin: 2rem auto;
     font-family: "Sportrop Regular";
     letter-spacing: 0.05em;
     font-size: 3.5rem;
@@ -162,7 +162,7 @@ pre {
     text-shadow: 0 0 20px rgb(230, 10, 65),  0 0 20px rgba(230, 10, 65, 0);
 }
 .row4-doit {
-    margin: 25px auto;
+    margin: 2rem auto;
     font-family: "Sportrop Regular";
     letter-spacing: 0.05em;
     font-size: 3rem;

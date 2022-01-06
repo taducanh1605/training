@@ -34,7 +34,9 @@
                 </form>
                 <select v-if="textMode === 'free' && loaded === 0" class="selectProg" v-model="select" name="program" @change="selectHandle">
                     <option value="">---Choose a demo program---</option>
-                    <option  v-for="prog in listProg">{{prog}}</option>
+                    <optgroup v-for="group in listProg" v-bind:label="group[0]">
+                        <option  v-for="prog in group[1]">{{prog}}</option>
+                    </optgroup>
                 </select>
                 <p v-if="loaded === 0"><<< Or click on Banner to switch mode</p>
                 <p v-if="loaded > 0">Refresh page to chose an other program</p>

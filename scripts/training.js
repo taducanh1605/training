@@ -6,7 +6,36 @@ var inputCSV = new Vue({
         select :'',
         data: [],
         listProg: [],
-        loadData : fetch("./demoTraining.json").then(response => {return response.json();}).then(jsondata => {inputCSV.data = jsondata; inputCSV.listProg = Object.keys(jsondata)}),
+        loadData : fetch("./demoTraining.json").
+                    then(response => {
+                        return response.json();
+                    }).
+                    then(jsondata => {
+                        inputCSV.data = jsondata;
+                        tempGroup = [];
+                        tempEx = [];
+                        flag = 0;
+                        Object.keys(jsondata).forEach(prog => {
+                            if (jsondata[prog].length > 0){
+                                tempEx.push(prog);
+                            }
+                            else if (flag > 0) {
+                                tempGroup.push(tempEx);
+                                inputCSV.listProg.push(tempGroup);
+
+                                tempGroup = [];
+                                tempEx = [];
+
+                                tempGroup.push(prog);
+                            }
+                            else {
+                                tempGroup.push(prog);
+                                flag = 1;
+                            }
+                        });
+                        tempGroup.push(tempEx);
+                        inputCSV.listProg.push(tempGroup);
+                    }),
         programName: '',
         exLinkSearch: [],
         fileInput: '',
@@ -259,9 +288,14 @@ window.onbeforeunload = function() {
     };
 };
 
+
+/*----------------------------------------------------------------------
+Prevent Lock Screen on mobile
+- first event: click
+- second event: hide tab
+----------------------------------------------------------------------*/
 document.addEventListener('click', async () => {
     if (('wakeLock' in navigator) && (checkScreen == 0)) {
-        //alert("inside");
         checkScreen = 1;
         let screenLock = await navigator.wakeLock.request('screen');
     };
@@ -269,16 +303,24 @@ document.addEventListener('click', async () => {
 
 document.addEventListener('visibilitychange', async () => {
     if ('wakeLock' in navigator) {
-        //alert("inside");
         let screenLock = await navigator.wakeLock.request('screen');
     };
 });
 
+
+
+/*----------------------------------------------------------------------
+Play sound for website
+----------------------------------------------------------------------*/
 function ring(nameRing){
     var myRing = new Audio('./sound/'+nameRing);
     myRing.play();
 };
 
+
+/*----------------------------------------------------------------------
+Update time and break time each 1 sec
+----------------------------------------------------------------------*/
 function updateTime() {
     //update Time clock
     
@@ -338,7 +380,7 @@ function updateContext() {
             if (vm.rest > 0) {
                 vm.row2 = 'ROUND: '+vm.exRound+'/'+vm.exSet[vm.exOrder];
                 vm.row3_exs = vm.exName[vm.exOrder];
-                vm.row4 = 'Break: '+ vm.rest;
+                vm.row4 = 'Break time: '+ vm.rest;
                 vm.textbreak = 'break';
             }
             else {
@@ -355,6 +397,8 @@ function updateContext() {
     else {
         vm.row1_2 = 'Training with Njk';
         vm.row2 = 'CHOOSE YOUR PROGRAM';
+        vm.row3 = "";
+        vm.row4 = "";
     }
     //update Button Start
     (vm.flagStart == 0) ? vm.buttonStart = 'Start' :

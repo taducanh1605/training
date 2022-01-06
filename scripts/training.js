@@ -295,14 +295,14 @@ Prevent Lock Screen on mobile
 - second event: hide tab
 ----------------------------------------------------------------------*/
 document.addEventListener('click', async () => {
-    if (('wakeLock' in navigator) && (checkScreen == 0)) {
+    if (('wakeLock' in navigator) && (checkScreen == 0) && (vm.flagStart == 1)) {
         checkScreen = 1;
         let screenLock = await navigator.wakeLock.request('screen');
     };
 });
 
 document.addEventListener('visibilitychange', async () => {
-    if ('wakeLock' in navigator) {
+    if (('wakeLock' in navigator) && (vm.flagStart == 1)) {
         let screenLock = await navigator.wakeLock.request('screen');
     };
 });

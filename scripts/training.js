@@ -80,7 +80,7 @@ var inputCSV = new Vue({
                 });
                 this.exNameOnly.push(tempNameOnly);
                 this.exLinkSearch.push(tempLinkSearch);
-                vm.exName.push(tempName.join('\n'));
+                vm.exName.push(tempName);
                 vm.exSet.push(Number(temp[1]));
                 vm.exRest.push(Number(temp[2]));
                 vm.exSumSet += Number(temp[1]);
@@ -109,7 +109,7 @@ var inputCSV = new Vue({
                 });
                 this.exNameOnly.push(tempNameOnly);
                 this.exLinkSearch.push(tempLinkSearch);
-                vm.exName.push(tempName.join('\n'));
+                vm.exName.push(tempName);
             });
 
             vm.exSet = this.data[this.select][1];
@@ -176,6 +176,7 @@ var vm = new Vue({
         row1_3 : '',
         row2 : '',
         row3 : '',
+        row3_exs: [],
         row4 : '',
         textbreak: 'doit',
         buttonStart : 'Start'
@@ -322,8 +323,8 @@ function updateContext() {
         if ((vm.flagStart == 0) && (vm.count == 0)){
             vm.row1_2 = 'Training with Njk';
             vm.row2 = "";
-            vm.row3 = inputCSV.programName + '\n' + vm.exSet.length +' exercise(s)';
-            vm.row4 = "Ready?";
+            vm.row3 = "" + inputCSV.programName + '\n' + vm.exSet.length +' exercise(s)';
+            vm.row4 = "";
         }
         else if (vm.flagStart == 2) {
             vm.row2 = "";
@@ -336,13 +337,13 @@ function updateContext() {
             vm.row1_3 = vm.timeClock;
             if (vm.rest > 0) {
                 vm.row2 = 'ROUND: '+vm.exRound+'/'+vm.exSet[vm.exOrder];
-                vm.row3 = vm.exName[vm.exOrder];
+                vm.row3_exs = vm.exName[vm.exOrder];
                 vm.row4 = 'Break: '+ vm.rest;
                 vm.textbreak = 'break';
             }
             else {
                 vm.row2 = 'ROUND: '+vm.exRound+'/'+vm.exSet[vm.exOrder];
-                vm.row3 = vm.exName[vm.exOrder];
+                vm.row3_exs = vm.exName[vm.exOrder];
                 vm.row4 = 'Let\'s do it';
                 vm.textbreak = 'doit';
             }
@@ -352,8 +353,8 @@ function updateContext() {
         }
     }
     else {
-        vm.row1_2 = 'Choose your program';
-        vm.row3 = 'Training with Njk';
+        vm.row1_2 = 'Training with Njk';
+        vm.row2 = 'CHOOSE YOUR PROGRAM';
     }
     //update Button Start
     (vm.flagStart == 0) ? vm.buttonStart = 'Start' :

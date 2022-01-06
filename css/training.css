@@ -239,7 +239,6 @@ pre {
 #upper-left-content {
     /*width: 74%;*/
     cursor: pointer;
-    margin: 0 0 0 0;
     padding: 0 0 0 10px;
     /*height: 110px;*/
     /*float: left;*/
@@ -263,7 +262,7 @@ pre {
     /*height: 77vh;*/
     /*float: left;*/
     /*border-right: 1px solid #303030;*/
-    padding: 25px 0 0 50px;
+    padding: 25px 0 0 0;
     margin: 1px auto;
     border-top: 1px solid #303030;
 }

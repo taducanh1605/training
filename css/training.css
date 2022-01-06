@@ -151,6 +151,7 @@ pre {
     padding: 5px 0;
     color: #10fff3;
     text-shadow: 0 0 20px rgb(10, 230, 175),  0 0 20px rgba(10, 230, 201, 0);
+    overflow-x: visible;
 }
 .row4-break {
     margin: 25px auto;

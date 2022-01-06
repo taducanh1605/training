@@ -189,21 +189,21 @@ pre {
 }
 
 #upper-content {
-    /*width: 98%;
-    margin: 0 auto;*/
+    /*width: 98%;*/
+    margin: 0 auto;
     /*height: 110px;*/
     /*border-bottom: 1px solid #303030;*/
 }
 
 #lower-content {
-    /*width: 98%;
+    /*width: 98%;*/
     margin: 0 auto;
-    border: 1px solid #daf6ff;*/
+    /*border: 1px solid #daf6ff;*/
 }
 
 #footer-content {
     /*width: 98%;*/
-    height: 5vh;
+    height: 1vh;
     clear: both;
     margin: 0 auto;
     /*border: 1px solid #daf6ff;*/

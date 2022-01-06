@@ -56,9 +56,9 @@
                 <p v-if="(count > 0) && (flagStart < 2)" v-for="exer in row3_exs" class="row3" >{{exer}}</p>
                 <p v-bind:class="'row4-'+textbreak">{{row4}}</p>
 
-                <div id="frame_button">
+                <div id="frame_button" class="row">
 
-                    <div id="button-back">
+                    <div id="button-back" class="col-sm-3">
                         <div  v-if="exSumSet > 0" class="button" v-on:click="handleBack">
                             <a href="#">
                                 Back
@@ -68,7 +68,17 @@
                         </div>
                     </div>
 
-                    <div id="button-next">
+                    <div id="button-start" class="col-sm-6">
+                        <div  v-if="exSumSet > 0" class="button" v-on:click="handleStart" v-on:space="handleStart">
+                            <a href="#">
+                                {{buttonStart}}
+                                <span class="shift"></span>
+                            </a>
+                            <div class="mask"></div>
+                        </div>
+                    </div>
+
+                    <div id="button-next" class="col-sm-3">
                         <div v-if="exSumSet > 0" class="button" v-on:click="handleNext">
                             <a href="#">
                                 Next
@@ -76,16 +86,6 @@
                             </a>
                             <div class="mask"></div>
                         </div>
-                    </div>
-
-                    <div id="button-start">
-                            <div  v-if="exSumSet > 0" class="button" v-on:click="handleStart" v-on:space="handleStart">
-                                <a href="#">
-                                    {{buttonStart}}
-                                    <span class="shift"></span>
-                                </a>
-                                <div class="mask"></div>
-                            </div>
                     </div>
 
                 </div>

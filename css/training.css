@@ -130,7 +130,7 @@ pre {
 .row1 {
     font-family: "Armalite Rifle";
     letter-spacing: 0.1em;
-    font-size: 25px;
+    font-size: 3rem;
     color: #daf6ff;
     text-shadow: 0 0 20px rgba(10, 175, 230, 1),  0 0 20px rgba(10, 175, 230, 0);
 }
@@ -138,7 +138,7 @@ pre {
     margin: 25px auto;
     font-family: "Destroy";
     letter-spacing: 0.05em;
-    font-size: 30px;
+    font-size: 3rem;
     padding: 5px 0;
     color: #ffab10;
     text-shadow: 0 0 20px rgb(230, 10, 10),  0 0 20px rgba(230, 10, 10, 0);
@@ -147,7 +147,7 @@ pre {
     margin: 25px auto;
     font-family: "Sportrop Regular";
     letter-spacing: 0.05em;
-    font-size: 30px;
+    font-size: 3.5rem;
     padding: 5px 0;
     color: #10fff3;
     text-shadow: 0 0 20px rgb(10, 230, 175),  0 0 20px rgba(10, 230, 201, 0);
@@ -156,7 +156,7 @@ pre {
     margin: 25px auto;
     font-family: "Sportrop Regular";
     letter-spacing: 0.05em;
-    font-size: 30px;
+    font-size: 3.5rem;
     padding: 5px 0;
     color: #ff1044;
     text-shadow: 0 0 20px rgb(230, 10, 65),  0 0 20px rgba(230, 10, 65, 0);
@@ -165,7 +165,7 @@ pre {
     margin: 25px auto;
     font-family: "Sportrop Regular";
     letter-spacing: 0.05em;
-    font-size: 30px;
+    font-size: 3rem;
     padding: 5px 0;
     color: #10ff24;
     text-shadow: 0 0 20px rgb(10, 230, 10),  0 0 20px rgba(10, 230, 58, 0);
@@ -175,7 +175,7 @@ pre {
     color: #daf6ff;
     text-shadow: 0 0 20px rgba(10, 175, 230, 1),  0 0 20px rgba(10, 175, 230, 0);
     letter-spacing: 0.1em;
-    font-size: 18px;
+    font-size: 2rem;
     font-family: "sportrop regular";
 }
 
@@ -290,26 +290,37 @@ BUTTON
 }
 
 #button-back{
-    width: 20%;
-    float: left;
-}
-
-#button-start{
-    width: 35%;
     display:flex;
 	align-items: center;
 	justify-content:center;
     margin: auto;
+    /*width: 20%;
+    float: left;
+    */
+}
+
+#button-start{
+    /*width: 35%;*/
+    display:flex;
+	align-items: center;
+	justify-content:center;
+    margin: auto;
+    
 }
 
 #button-next{
-    width: 20%;
+    display:flex;
+	align-items: center;
+	justify-content:center;
+    margin: auto;
+    /*width: 20%;
     float: right;
     margin: 0 25px 0 0;
     display:flex;
 	align-items: right;
 	justify-content:right;
     float: right;
+    */
 }
 
 .button {

@@ -33,7 +33,7 @@
                     <label for="file">Choose your Program File</label>
                 </form>
                 <select v-if="textMode === 'free' && loaded === 0" class="selectProg" v-model="select" name="program" @change="selectHandle">
-                    <option value="">---Choose a demo program---</option>
+                    <option value="">Choose a workout program</option>
                     <optgroup v-for="group in listProg" v-bind:label="group[0]">
                         <option  v-for="prog in group[1]">{{prog}}</option>
                     </optgroup>
@@ -60,34 +60,19 @@
 
                 <div id="frame_button" class="row">
 
-                    <div id="button-back" class="col-sm-3">
-                        <div  v-if="exSumSet > 0" class="button" v-on:click="handleBack">
-                            <a href="#">
-                                Back
-                                <span class="shift"></span>
-                            </a>
-                            <div class="mask"></div>
-                        </div>
+                    <div id="button-back" v-if="exSumSet > 0" class="button" v-on:click="handleBack">
+                        <a href="#"><<<<</a>
                     </div>
 
-                    <div id="button-start" class="col-sm-6">
-                        <div  v-if="exSumSet > 0" class="button" v-on:click="handleStart" v-on:space="handleStart">
-                            <a href="#">
-                                {{buttonStart}}
-                                <span class="shift"></span>
-                            </a>
-                            <div class="mask"></div>
-                        </div>
+                    <div id="button-start" v-if="exSumSet > 0" v-on:click="handleStart" v-on:space="handleStart">
+                        <img v-if="buttonStart === 'Start'" width="45%" src="./images/start.png" class="img-responsive button-img">
+                        <img v-if="buttonStart === 'Done'" width="45%" src="./images/done.png" class="img-responsive button-img">
+                        <img v-if="buttonStart === 'Pause'" width="45%" src="./images/pause.png" class="img-responsive button-img">
+                        <img v-if="buttonStart === 'Finish'" width="45%" src="./images/finish.png" class="img-responsive button-img">
                     </div>
 
-                    <div id="button-next" class="col-sm-3">
-                        <div v-if="exSumSet > 0" class="button" v-on:click="handleNext">
-                            <a href="#">
-                                Next
-                                <span class="shift"></span>
-                            </a>
-                            <div class="mask"></div>
-                        </div>
+                    <div id="button-next" v-if="exSumSet > 0" class="button" v-on:click="handleNext">
+                        <a href="#">>>>></a>
                     </div>
 
                 </div>

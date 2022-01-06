@@ -410,7 +410,8 @@ function updateContext() {
     //update Button Start
     (vm.flagStart == 0) ? vm.buttonStart = 'Start' :
         (vm.rest > 0) ? vm.buttonStart = 'Pause' :
-            vm.buttonStart = 'Done';
+            (vm.count < vm.exSumSet) ? vm.buttonStart = 'Done' :
+                vm.buttonStart = 'Finish';
 };
 
 function getOrder(count){

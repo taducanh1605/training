@@ -209,10 +209,10 @@ var vm = new Vue({
                 }
                 else {
                     if (this.count < this.exSumSet){
+                        ring("breaktime.wav");
                         this.count += 1;
                         [this.exOrder, this.exRound] = getOrder(this.count);
                         this.rest = this.exRest[this.exOrder];
-                        
                     }
                     else if (this.count == this.exSumSet){
                         this.count += 1;
@@ -273,8 +273,8 @@ document.addEventListener('visibilitychange', async () => {
     };
 });
 
-function ring(){
-    var myRing = new Audio('./sound/ringGo.wav');
+function ring(nameRing){
+    var myRing = new Audio('./sound/'+nameRing);
     myRing.play();
 };
 
@@ -291,7 +291,7 @@ function updateTime() {
             vm.rest-=1;
             vm.flagLetDoIt = 1;
             if (vm.rest == 0){
-                ring();
+                ring("ringGo.wav");
             }
         }
         else {

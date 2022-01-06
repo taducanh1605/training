@@ -130,7 +130,7 @@ pre {
 .row1 {
     font-family: "Armalite Rifle";
     letter-spacing: 0.1em;
-    font-size: 3rem;
+    font-size: 2.7rem;
     color: #daf6ff;
     text-shadow: 0 0 20px rgba(10, 175, 230, 1),  0 0 20px rgba(10, 175, 230, 0);
 }
@@ -142,6 +142,7 @@ pre {
     padding: 5px 0;
     color: #ffab10;
     text-shadow: 0 0 20px rgb(230, 10, 10),  0 0 20px rgba(230, 10, 10, 0);
+    overflow-y: auto;
 }
 .row3 {
     margin: 0.5rem auto;

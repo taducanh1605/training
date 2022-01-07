@@ -301,6 +301,10 @@ BUTTON
     width: 59%;
     float: left;
 }
+#button-start img {
+    height: auto;
+    width: calc(182px + (260 - 182) * ((100vw - 300px) / (1200 - 300)));
+}
 
 #button-next{
     width: 20%;

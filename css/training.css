@@ -123,7 +123,7 @@ pre {
 
 .row1 {
     font-family: "Armalite Rifle";
-    letter-spacing: 0.1em;
+    letter-spacing: 0.05em;
     /*font-size: 2.7rem;*/
     font-size: calc(20px + (28 - 20) * ((100vw - 300px) / (1200 - 300)));
     color: #daf6ff;
@@ -132,8 +132,8 @@ pre {
 .row2 {
     margin: 2rem auto;
     font-family: "Destroy";
-    letter-spacing: 0.05em;
-    /*font-size: 3rem;*/
+    /*letter-spacing: 0.05em;
+    font-size: 3rem;*/
     font-size: calc(20px + (28 - 20) * ((100vw - 300px) / (1200 - 300)));
     padding: 5px 0;
     color: #ffab10;
@@ -163,8 +163,8 @@ pre {
 .row4-doit {
     margin: 2rem auto;
     font-family: "Sportrop Regular";
-    letter-spacing: 0.05em;
-    /*font-size: 3rem;*/
+    /*letter-spacing: 0.05em;
+    font-size: 3rem;*/
     font-size: calc(22px + (32 - 22) * ((100vw - 300px) / (1200 - 300)));
     padding: 5px 0;
     color: #10ff24;
@@ -174,8 +174,8 @@ pre {
     text-align: center;
     color: #daf6ff;
     text-shadow: 0 0 20px rgba(10, 175, 230, 1),  0 0 20px rgba(10, 175, 230, 0);
-    letter-spacing: 0.1em;
-    /*font-size: 2rem;*/
+    /*letter-spacing: 0.1em;
+    font-size: 2rem;*/
     font-size: calc(13px + (18 - 13) * ((100vw - 300px) / (1200 - 300)));
     font-family: "sportrop regular";
 }
@@ -328,6 +328,7 @@ BUTTON
 .button a {
 	color: #d6da0c;
 	font-family: "sportrop regular";
+    letter-spacing: 0.05em;
     font-size: calc(25px + (40 - 25) * ((100vw - 300px) / (1200 - 300)));
 	text-decoration: none;
 	white-space: nowrap;

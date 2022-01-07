@@ -170,16 +170,24 @@ pre {
     color: #10ff24;
     text-shadow: 0 0 20px rgb(10, 230, 10),  0 0 20px rgba(10, 230, 58, 0);
 }
-.list {
+#myExList {
     text-align: center;
     color: #daf6ff;
     text-shadow: 0 0 20px rgba(10, 175, 230, 1),  0 0 20px rgba(10, 175, 230, 0);
-    /*letter-spacing: 0.1em;
-    font-size: 2rem;*/
+    letter-spacing: 0.03em;
+    /*font-size: 2rem;*/
     font-size: calc(13px + (18 - 13) * ((100vw - 300px) / (1200 - 300)));
     font-family: "sportrop regular";
 }
 
+.list{
+    font-family: "Armalite Rifle";
+    letter-spacing: 0.05em;
+    /*font-size: 2.7rem;*/
+    font-size: calc(16px + (23 - 16) * ((100vw - 300px) / (1200 - 300)));
+    color: #fffbda;
+    text-shadow: 0 0 20px rgba(10, 175, 230, 1),  0 0 20px rgba(10, 175, 230, 0);
+}
 
 #main-page {
     width: 98%;
@@ -214,7 +222,7 @@ pre {
 }
 
 #upper-right-content {
-    /*margin: 10px auto;*/
+    margin: auto;
     /*width: 25%;*/
     /*height: 110px;*/
     /*float: right;*/

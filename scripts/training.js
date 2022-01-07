@@ -3,39 +3,74 @@ var inputCSV = new Vue({
     data: {
         textMode: 'free',
         loaded: 0,
+        selectSex :'',
+        selectLvl :'',
         select :'',
-        data: [],
-        listProg: [],
-        loadData : fetch("./demoTraining.json").
-                    then(response => {
-                        return response.json();
-                    }).
-                    then(jsondata => {
-                        inputCSV.data = jsondata;
-                        tempGroup = [];
-                        tempEx = [];
-                        flag = 0;
-                        Object.keys(jsondata).forEach(prog => {
-                            if (jsondata[prog].length > 0){
-                                tempEx.push(prog);
-                            }
-                            else if (flag > 0) {
-                                tempGroup.push(tempEx);
-                                inputCSV.listProg.push(tempGroup);
+        dataMale: [],
+        dataFemale: [],
+        listProgMale: [],
+        listProgFemale: [],
+        loadDataMale :  fetch("./FullBodyMale.json").
+                        then(response => {
+                            return response.json();
+                        }).
+                        then(jsondata => {
+                            inputCSV.dataMale = jsondata;
+                            tempGroup = [];
+                            tempEx = [];
+                            flag = 0;
+                            Object.keys(jsondata).forEach(prog => {
+                                if (jsondata[prog].length > 0){
+                                    tempEx.push(prog);
+                                }
+                                else if (flag > 0) {
+                                    tempGroup.push(tempEx);
+                                    inputCSV.listProgMale.push(tempGroup);
 
-                                tempGroup = [];
-                                tempEx = [];
+                                    tempGroup = [];
+                                    tempEx = [];
 
-                                tempGroup.push(prog);
-                            }
-                            else {
-                                tempGroup.push(prog);
-                                flag = 1;
-                            }
-                        });
-                        tempGroup.push(tempEx);
-                        inputCSV.listProg.push(tempGroup);
-                    }),
+                                    tempGroup.push(prog);
+                                }
+                                else {
+                                    tempGroup.push(prog);
+                                    flag = 1;
+                                }
+                            });
+                            tempGroup.push(tempEx);
+                            inputCSV.listProgMale.push(tempGroup);
+                        }),
+
+        loadDataFemale: fetch("./FullBodyFemale.json").
+                        then(response => {
+                            return response.json();
+                        }).
+                        then(jsondata => {
+                            inputCSV.dataFemale = jsondata;
+                            tempGroup = [];
+                            tempEx = [];
+                            flag = 0;
+                            Object.keys(jsondata).forEach(prog => {
+                                if (jsondata[prog].length > 0){
+                                    tempEx.push(prog);
+                                }
+                                else if (flag > 0) {
+                                    tempGroup.push(tempEx);
+                                    inputCSV.listProgFemale.push(tempGroup);
+
+                                    tempGroup = [];
+                                    tempEx = [];
+
+                                    tempGroup.push(prog);
+                                }
+                                else {
+                                    tempGroup.push(prog);
+                                    flag = 1;
+                                }
+                            });
+                            tempGroup.push(tempEx);
+                            inputCSV.listProgFemale.push(tempGroup);
+                        }),
         programName: '',
         exLinkSearch: [],
         fileInput: '',
@@ -72,7 +107,7 @@ var inputCSV = new Vue({
 
                     //clear list
                     p = document.getElementById('myExList');
-                    p.innerHTML = "List of exercises:<br/>";
+                    p.innerHTML = "";
 
                     //handle a successful result
                     this.init();
@@ -116,18 +151,25 @@ var inputCSV = new Vue({
             });
         },
 
-        selectHandle(){
+        selectHandle(selectSex){
             
+            if (selectSex == "Male"){
+                data = this.dataMale;
+            }
+            else if (selectSex == "Female"){
+                data = this.dataFemale;
+            }
+
             //clear list
             p = document.getElementById('myExList');
-            p.innerHTML = "List of exercises:<br/>";
+            p.innerHTML = "";
 
             //parse data
             this.programName = this.select;
             this.init();
             vm.init();
 
-            this.data[this.select][0].forEach(exercise => {
+            data[this.select][0].forEach(exercise => {
                 tempName = exercise.split('+');
                 tempNameOnly = [];
                 tempLinkSearch = [];
@@ -141,20 +183,18 @@ var inputCSV = new Vue({
                 vm.exName.push(tempName);
             });
 
-            vm.exSet = this.data[this.select][1];
-            vm.exRest = this.data[this.select][2];
-            this.data[this.select][1].forEach(exercise => {vm.exSumSet += Number(exercise);});
+            vm.exSet = data[this.select][1];
+            vm.exRest = data[this.select][2];
+            data[this.select][1].forEach(exercise => {vm.exSumSet += Number(exercise);});
 
             this.listExHandle();
         },
 
         listExHandle(){
             p = document.getElementById('myExList');
-            p.innerHTML = "List of exercises:";
+            p.innerHTML = "";
             //Make list of exercises
             for (let j=0; j< this.exNameOnly.length; j++){
-                let br = document.createElement('br');
-                p.appendChild(br);
                 for (let i=0; i< this.exNameOnly[j].length; i++){
                     let a = document.createElement('a');
                     let br1 = document.createElement('br');
@@ -166,7 +206,8 @@ var inputCSV = new Vue({
                     a.href += this.exLinkSearch[j][i];
                     a.target="_blank";
                 }
-
+                let br = document.createElement('br');
+                p.appendChild(br);
             }
         },
 

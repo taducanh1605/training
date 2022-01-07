@@ -27,17 +27,38 @@
             
 
             <!---<div id="upper-right-content">--->
-            <div class="col-sm-3" id="upper-right-content">    
+            <div class="col-sm-3" id="upper-right-content">   
+
                 <form v-if="textMode === 'prime' && loaded === 0" enctype="multipart/form-data">
                     <input class="input" name="file" id="file" type="file" @change="onFileChange">
                     <label for="file">Choose your Program File</label>
                 </form>
-                <select v-if="textMode === 'free' && loaded === 0" class="selectProg" v-model="select" name="program" @change="selectHandle">
-                    <option value="">Choose a workout program</option>
-                    <optgroup v-for="group in listProg" v-bind:label="group[0]">
-                        <option  v-for="prog in group[1]">{{prog}}</option>
-                    </optgroup>
-                </select>
+
+                <div class="row">
+                    <select v-if="textMode === 'free' && loaded === 0" class="selectProg col-sm-3" v-model="selectSex" name="sex">
+                        <option value="">Sex</option>
+                        <option>Male</option>
+                        <option>Female</option>
+                    </select>
+
+                    <select v-if="textMode === 'free' && loaded === 0" class="selectProg col-sm-3" v-model="selectLvl" name="lvl">
+                        <option value="">Level</option>
+                        <option v-for="group in listProgMale" v-if="selectSex === 'Male'">{{group[0]}}</option>
+                        <option v-for="group in listProgFemale" v-if="selectSex === 'Female'">{{group[0]}}</option>
+                    </select>
+
+                    <select v-if="(textMode === 'free') && (loaded === 0)" class="selectProg col-sm-6" v-model="select" name="program" @change="selectHandle(selectSex)">
+                        <option value="">Choose a workout</option>
+                        <optgroup v-for="group in listProgMale" v-if="(group[0] === selectLvl) && (selectSex === 'Male')" v-bind:label="group[0]">
+                            <option  v-for="prog in group[1]">{{prog}}</option>
+                        </optgroup>
+                        <optgroup v-for="group in listProgFemale" v-if="(group[0] === selectLvl) && (selectSex === 'Female')" v-bind:label="group[0]">
+                            <option  v-for="prog in group[1]">{{prog}}</option>
+                        </optgroup>
+                    </select>
+
+                </div>
+
                 <p v-if="loaded === 0"><<< Or click on Banner to switch mode</p>
                 <p v-if="loaded > 0">Refresh page to chose an other program</p>
             </div>
@@ -79,7 +100,8 @@
             </div>
 
             <div id="lower-right-content" class="col-sm-3" >
-                <p class="list" id="myExList" >List of exercises: </p>
+                <p class="list">List of exercises: </p>
+                <p id="myExList"></p>
             </div>
 
         </div>

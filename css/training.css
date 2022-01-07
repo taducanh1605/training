@@ -54,15 +54,7 @@ html,body {
     text-shadow: 0 0 20px rgb(217, 221, 223),  0 0 20px rgba(217, 221, 223, 0);
 }
 body {
-    /*background: #0f3854;*/
-    /*background: url(/images/black-dark-background.jpg);
-    background-size: auto;
-    background-repeat: repeat;*/
-    /*background: #010203;*/
     background: radial-gradient(ellipse at center,  #242424  0%, #0c0c0e 70%);
-    /*z-index: -1;
-    opacity: 0.5;
-    filter: alpha(opacity=50);*/
 }
 p {
     margin: 0;
@@ -101,7 +93,7 @@ pre {
     cursor: pointer;
     background-color: #454646;
     border-radius: 18px;
-    padding: 10px 30px 10px 30px;
+    padding: 5px 30px 5px 30px;
     margin: auto;
 }
 .input:focus + label {
@@ -111,14 +103,11 @@ pre {
 
 
 .selectProg {
-    /*font-family: 'Sportrop Regular';*/
-    /*font-family: 'Share Tech Mono', monospace;*/
-    /*text-align: center;*/
     background: #454646;
     color: #daf6ff;
     border-radius: 18px;
-    padding: 10px 10px 10px 10px;
-    margin: 1.5rem auto;
+    padding: 5px 10px 5px 10px;
+    /*margin: 1.5rem auto;*/
 }
 
 .row1 {

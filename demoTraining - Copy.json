@@ -1,0 +1,136 @@
+{
+    "For man":[],
+
+    "Full Body Week 1": [
+        [
+            "Shoulder tap x15",
+            "Negative push-up x8 +Asymmetric push x10-5-5",
+            "Dumbbell Shoulder Press x12",
+            "Row with bar x10",
+            "Plank x30s\"",
+            "Leg: Squat to Tiptoe x20",
+            "Leg: Step-up onto chair x10",
+            "Cobra Pose x3"
+        ],
+        [
+            2,
+            3,
+            3,
+            3,
+            3,
+            3,
+            3,
+            1
+        ],
+        [
+            30,
+            90,
+            60,
+            60,
+            60,
+            60,
+            60,
+            30
+        ]
+    ],
+    
+    "For woman":[],
+
+    "Full Body lvl_0 week_1": [
+        [
+            "Jump jack x15",
+            "Leg: Squat to Tiptoe x20",
+            "Leg: Wide Squat x10-5-5",
+            "Row with bar x8",
+            "Plank to Push-up x10",
+            "Plank x30s",
+            "Hip thrust x10",
+            "Cobra Pose x3"
+        ],
+        [
+            2,
+            3,
+            3,
+            3,
+            3,
+            3,
+            3,
+            1
+        ],
+        [
+            20,
+            60,
+            50,
+            60,
+            60,
+            30,
+            60,
+            30
+        ]
+    ],
+
+    "Full Body lvl_0 week_2": [
+        [
+            "Jump jack x15",
+            "Leg: Jump Squat x10",
+            "Leg: Wide Squat x10-10-5",
+            "Standing Snow Angels x8",
+            "Plank to Push-up x10",
+            "In and Out Plank x30s",
+            "Hip thrust x10",
+            "Cobra Pose x3"
+        ],
+        [
+            2,
+            3,
+            3,
+            3,
+            3,
+            3,
+            3,
+            1
+        ],
+        [
+            20,
+            90,
+            50,
+            60,
+            60,
+            30,
+            60,
+            30
+        ]
+    ],
+
+    "Full Body lvl_0 week_3": [
+        [
+            "Jump jack x15",
+            "Leg: Jump Squat x10 +Tiptoe x30",
+            "Leg: Wide Squat x10-10-5",
+            "Row with bar x8 +Standing Snow Angels x8",
+            "Plank to Push-up x10 +In and Out Plank x10 +Plank x30s",
+            "Hip thrust single-leg x10",
+            "Cobra Pose x3"
+        ],
+        [
+            2,
+            3,
+            3,
+            3,
+            3,
+            3,
+            1
+        ],
+        [
+            20,
+            40,
+            50,
+            40,
+            60,
+            60,
+            30
+        ]
+    ]
+
+
+}

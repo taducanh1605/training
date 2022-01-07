@@ -8,7 +8,10 @@ from csv import reader
 filePath = sys.argv[-1]
 
 if filePath!='':
-    nameGer = filePath
+    nameGer = filePath.split("\\")[-1]
+    namePath = "\\".join(filePath.split("\\")[:-1])
+    retval = os.getcwd()
+    os.chdir(retval+"\\"+namePath)
     retval = os.getcwd()
     #print(retval)
     output = {}
@@ -16,7 +19,7 @@ if filePath!='':
 
     for lvl in listLvl:
         output[lvl] = [] 
-        os.chdir(retval+"\\"+filePath+"\\"+lvl)
+        os.chdir(retval+"\\"+nameGer+"\\"+lvl)
         listProg = os.listdir()
         for prog in listProg:
             nameProg = ntpath.basename(prog)[:-4]
@@ -33,7 +36,7 @@ if filePath!='':
                     round.append(int(row[1]))
                     timeRest.append(int(row[2]))
             output[nameProg] = [ex,round,timeRest]
-        os.chdir(retval+"\\"+filePath)
+        os.chdir(retval+"\\"+nameGer)
     
     #print(output)
     outputName = "\\".join(os.getcwd().split("\\")[:-2]) + "\\" + nameGer + ".json"

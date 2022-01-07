@@ -80,15 +80,10 @@ pre {
 }
 
 .input {
-    /*font-family: 'Share Tech Mono', monospace;*/
-    /*font-family: 'Sportrop Regular';*/
     text-align: center;
     color: #daf6ff;
     width: 0.1px;
 	height: 0.1px;
-    /*width: 25vw;
-    letter-spacing: 0.1em;
-    font-size: 18px;*/
     opacity: 0;
     z-index: -1;
 }
@@ -129,7 +124,8 @@ pre {
 .row1 {
     font-family: "Armalite Rifle";
     letter-spacing: 0.1em;
-    font-size: 2.7rem;
+    /*font-size: 2.7rem;*/
+    font-size: calc(20px + (28 - 20) * ((100vw - 300px) / (1200 - 300)));
     color: #daf6ff;
     text-shadow: 0 0 20px rgba(10, 175, 230, 1),  0 0 20px rgba(10, 175, 230, 0);
 }
@@ -137,7 +133,8 @@ pre {
     margin: 2rem auto;
     font-family: "Destroy";
     letter-spacing: 0.05em;
-    font-size: 3rem;
+    /*font-size: 3rem;*/
+    font-size: calc(20px + (28 - 20) * ((100vw - 300px) / (1200 - 300)));
     padding: 5px 0;
     color: #ffab10;
     text-shadow: 0 0 20px rgb(230, 10, 10),  0 0 20px rgba(230, 10, 10, 0);
@@ -147,7 +144,8 @@ pre {
     margin: 0.5rem auto;
     font-family: "Sportrop Regular";
     letter-spacing: 0.05em;
-    font-size: 3.5rem;
+    /*font-size: 3.5rem;*/
+    font-size: calc(24px + (34 - 24) * ((100vw - 300px) / (1200 - 300)));
     padding: 5px 0;
     color: #10fff3;
     text-shadow: 0 0 20px rgb(10, 230, 175),  0 0 20px rgba(10, 230, 201, 0);
@@ -156,7 +154,8 @@ pre {
     margin: 2rem auto;
     font-family: "Sportrop Regular";
     letter-spacing: 0.05em;
-    font-size: 3.5rem;
+    /*font-size: 3.5rem;*/
+    font-size: calc(22px + (32 - 22) * ((100vw - 300px) / (1200 - 300)));
     padding: 5px 0;
     color: #ff1044;
     text-shadow: 0 0 20px rgb(230, 10, 65),  0 0 20px rgba(230, 10, 65, 0);
@@ -165,7 +164,8 @@ pre {
     margin: 2rem auto;
     font-family: "Sportrop Regular";
     letter-spacing: 0.05em;
-    font-size: 3rem;
+    /*font-size: 3rem;*/
+    font-size: calc(22px + (32 - 22) * ((100vw - 300px) / (1200 - 300)));
     padding: 5px 0;
     color: #10ff24;
     text-shadow: 0 0 20px rgb(10, 230, 10),  0 0 20px rgba(10, 230, 58, 0);
@@ -175,7 +175,8 @@ pre {
     color: #daf6ff;
     text-shadow: 0 0 20px rgba(10, 175, 230, 1),  0 0 20px rgba(10, 175, 230, 0);
     letter-spacing: 0.1em;
-    font-size: 2rem;
+    /*font-size: 2rem;*/
+    font-size: calc(13px + (18 - 13) * ((100vw - 300px) / (1200 - 300)));
     font-family: "sportrop regular";
 }
 
@@ -235,20 +236,13 @@ pre {
 
 
 #upper-left-content {
-    /*width: 74%;*/
     cursor: pointer;
     padding: 0 0 0 10px;
-    /*height: 110px;*/
-    /*float: left;*/
-    /*border: 1px solid #daf6ff;*/
 }
 
 #lower-right-content {
-    /*width: 25%;*/
     height: 77vh;
     padding: 25px 0 0 0;
-    /*float: right;*/
-    /*border: 1px solid #daf6ff;*/
     margin: 1px auto;
     border-left: 1px solid #303030;
     border-top: 1px solid #303030;
@@ -256,10 +250,6 @@ pre {
 }
 
 #lower-left-content {
-    /*width: 70%;*/
-    /*height: 77vh;*/
-    /*float: left;*/
-    /*border-right: 1px solid #303030;*/
     padding: 25px 0 0 0;
     margin: 1px auto;
     border-top: 1px solid #303030;
@@ -292,6 +282,14 @@ BUTTON
     margin: 25px auto;
     align-items: center;
     vertical-align: middle;
+    
+    display: -webkit-flex;    
+    display: -ms-flexbox;
+    display: flex;
+        
+    -webkit-align-items: center;    
+    -ms-flex-align: center;
+    align-items: center;  
 }
 
 #button-back{
@@ -325,32 +323,21 @@ BUTTON
 	cursor: pointer;
 	text-align: center;
 	text-transform: uppercase;
-    margin: 0rem 0 0 0;
-    vertical-align: middle;
-    display: flex;
-    justify-content: center;
-    height: 100px;
-    /*
-    position: relative;
-    top: -50%;
-    transform: translateY(50%);
-    */
 }
 
 .button a {
-	color: #e5e90c;
+	color: #d6da0c;
 	font-family: "sportrop regular";
-    font-size: 4rem;
+    font-size: calc(25px + (40 - 25) * ((100vw - 300px) / (1200 - 300)));
 	text-decoration: none;
 	white-space: nowrap;
     text-shadow: 0 0 20px rgb(230, 226, 10),  0 0 20px rgba(226, 230, 10, 0);
-    height: 100%;
 }
 
 .button:hover a {
-	color: #fff;
+	color: rgb(255, 251, 0);
 }
 
 .button:active a {
-	color: #ff0000;
+	color: #fff;
 }

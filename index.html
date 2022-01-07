@@ -35,19 +35,17 @@
                 </form>
 
                 <div class="row">
-                    <select v-if="textMode === 'free' && loaded === 0" class="selectProg col-sm-3" v-model="selectSex" name="sex">
-                        <option value="">Gender</option>
-                        <option>Male</option>
-                        <option>Female</option>
+                    <select v-if="textMode === 'free' && loaded === 0" v-on:change="handleGendreLvl($event)" class="selectProg col-sm-6" name="gendre_lvl">
+                        <option value="">Chose your level</option>
+                        <optgroup label="For Male">
+                            <option v-for="group in listProgMale" v-bind:value="'Male:'+group[0]">{{group[0]}}</option>
+                        </optgroup>
+                        <optgroup label="For Female">
+                            <option v-for="group in listProgFemale" v-bind:value="'Female:'+group[0]">{{group[0]}}</option>
+                        </optgroup>
                     </select>
 
-                    <select v-if="textMode === 'free' && loaded === 0" class="selectProg col-sm-3" v-model="selectLvl" name="lvl">
-                        <option value="">Level</option>
-                        <option v-for="group in listProgMale" v-if="selectSex === 'Male'">{{group[0]}}</option>
-                        <option v-for="group in listProgFemale" v-if="selectSex === 'Female'">{{group[0]}}</option>
-                    </select>
-
-                    <select v-if="(textMode === 'free') && (loaded === 0)" class="selectProg col-sm-6" v-model="select" name="program" @change="selectHandle(selectSex)">
+                    <select v-if="(textMode === 'free') && (loaded === 0)" class="selectProg col-sm-6" v-model="select" name="program" v-on:change="selectHandle(selectSex)">
                         <option value="">Choose a workout</option>
                         <optgroup v-for="group in listProgMale" v-if="(group[0] === selectLvl) && (selectSex === 'Male')" v-bind:label="group[0]">
                             <option  v-for="prog in group[1]">{{prog}}</option>
@@ -74,16 +72,28 @@
                     <div class="col-sm-6"><p class="row1">{{row1_2}}</p></div>
                     <div class="col-sm-3"><p class="row1">{{row1_3}}</p></div>
                 </div>
-                <p class="row2">{{row2}}</p>
+
+                <div id="frame_row2" class="row">
+                    <div id="button-back" v-if="row2.length > 0" class="button" v-on:click="handleBack">
+                        <a href="#"><<<<</a>
+                    </div>
+
+                    <div id="row2">
+                        <p class="row2">{{row2}}</p>
+                    </div>
+
+                    <div id="button-next" v-if="row2.length > 0" class="button" v-on:click="handleNext">
+                        <a href="#">>>>></a>
+                    </div>
+                </div>
+
                 <p v-if="count === 0 || (flagStart === 2)" class="row3" style="white-space: pre-line">{{row3}}</p>
                 <p v-if="(count > 0) && (flagStart < 2)" v-for="exer in row3_exs" class="row3" >{{exer}}</p>
                 <p v-bind:class="'row4-'+textbreak">{{row4}}</p>
 
                 <div id="frame_button" class="row">
 
-                    <div id="button-back" v-if="exSumSet > 0" class="button" v-on:click="handleBack">
-                        <a href="#"><<<<</a>
-                    </div>
+                    
 
                     <div id="button-start" v-if="exSumSet > 0" v-on:click="handleStart" v-on:space="handleStart">
                         <img v-if="buttonStart === 'Start'" src="./images/start.png" class="img-responsive button-img">
@@ -92,9 +102,7 @@
                         <img v-if="buttonStart === 'Finish'" src="./images/finish.png" class="img-responsive button-img">
                     </div>
 
-                    <div id="button-next" v-if="exSumSet > 0" class="button" v-on:click="handleNext">
-                        <a href="#">>>>></a>
-                    </div>
+                    
 
                 </div>
             </div>

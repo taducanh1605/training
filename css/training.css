@@ -118,17 +118,47 @@ pre {
     color: #daf6ff;
     text-shadow: 0 0 20px rgba(10, 175, 230, 1),  0 0 20px rgba(10, 175, 230, 0);
 }
+
+#frame_row2 {
+    width:100%;
+	text-align:center;
+    align-items: center;
+    vertical-align: middle;
+    
+    display: -webkit-flex;    
+    display: -ms-flexbox;
+    display: flex;
+        
+    -webkit-align-items: center;    
+    -ms-flex-align: center;
+    align-items: center; 
+}
+
+#row2 {
+    width:60%;
+	float:left;
+}
+
+#button-back{
+    padding: 5px 0;
+    width: 24%;
+    float: left;
+}
+#button-next{
+    padding: 5px 0;
+    width: 20%;
+    float: right;
+}
+
 .row2 {
     margin: 2rem auto;
     font-family: "Destroy";
-    /*letter-spacing: 0.05em;
-    font-size: 3rem;*/
     font-size: calc(20px + (28 - 20) * ((100vw - 300px) / (1200 - 300)));
-    padding: 5px 0;
+    padding: 12px 0 0 0;
     color: #ffab10;
     text-shadow: 0 0 20px rgb(230, 10, 10),  0 0 20px rgba(230, 10, 10, 0);
-    overflow-y: auto;
 }
+
 .row3 {
     margin: 0.5rem auto;
     font-family: "Sportrop Regular";
@@ -290,24 +320,18 @@ BUTTON
     align-items: center;  
 }
 
-#button-back{
-    width: 20%;
-    float: left;
-}
 
 #button-start{
-    width: 59%;
-    float: left;
+    /*width: 59%;
+    float: left;*/
+    margin: auto;
 }
 #button-start img {
     height: auto;
     width: calc(164px + (260 - 164) * ((100vw - 300px) / (1200 - 300)));
 }
 
-#button-next{
-    width: 20%;
-    float: right;
-}
+
 
 .button-img{
     cursor: pointer;

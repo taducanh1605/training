@@ -168,8 +168,9 @@ var inputCSV = new Vue({
             this.programName = this.select;
             this.init();
             vm.init();
-
+            
             data[this.select][0].forEach(exercise => {
+                //console.log(exercise);
                 tempName = exercise.split('+');
                 tempNameOnly = [];
                 tempLinkSearch = [];
@@ -220,8 +221,12 @@ var inputCSV = new Vue({
                     this.textMode = "prime";
                 }
             }
+        },
+
+        handleGendreLvl(event){
+            [this.selectSex, this.selectLvl] = event.target.value.split(':');
         }
-    }
+    },
     
 });
 

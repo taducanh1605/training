@@ -303,7 +303,7 @@ BUTTON
 }
 #button-start img {
     height: auto;
-    width: calc(172px + (260 - 172) * ((100vw - 300px) / (1200 - 300)));
+    width: calc(164px + (260 - 164) * ((100vw - 300px) / (1200 - 300)));
 }
 
 #button-next{

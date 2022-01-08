@@ -208,6 +208,12 @@ pre {
     text-shadow: 0 0 20px rgb(216, 221, 223),  0 0 20px rgba(185, 224, 224, 0);
 }
 
+.manual {
+    font-size: calc(12px + (17 - 12) * ((100vw - 300px) / (1200 - 300)));
+    text-align: left;
+    margin: auto;
+}
+
 #main-page {
     width: 98%;
     /*height: 100%;*/

@@ -92,23 +92,41 @@
                 <p v-bind:class="'row4-'+textbreak">{{row4}}</p>
 
                 <div id="frame_button" class="row">
-
-                    
-
                     <div id="button-start" v-if="exSumSet > 0" v-on:click="handleStart" v-on:space="handleStart">
                         <img v-if="buttonStart === 'Start'" src="./images/start.png" class="img-responsive button-img">
                         <img v-if="buttonStart === 'Done'" src="./images/done.png" class="img-responsive button-img">
                         <img v-if="buttonStart === 'Pause'" src="./images/pause.png" class="img-responsive button-img">
                         <img v-if="buttonStart === 'Finish'" src="./images/finish.png" class="img-responsive button-img">
                     </div>
-
-                    
-
                 </div>
             </div>
 
             <div id="lower-right-content" class="col-sm-3" >
-                <p class="list">List of exercises: </p>
+                <p class="list" v-if="exSumSet > 0">List of exercises: </p>
+                <p class="list" v-else>User manual:</p>
+                <div class="manual" v-if="exSumSet === 0">
+                    <br/>
+                    <dl>
+                        <dt>Two modes of training:</dt>
+                        <dd>- You can click on banner to change between 2 modes.</dd>
+                        <dd>- At the first mode, you can select an existing exercise program.</dd>
+                        <dd>- At the second mode, you can load an exercise program from CSV file.</dd>
+                        <br/>
+                        <dt>How to practice:</dt>
+                        <dd>1. Click "Start" button to start the workout.</dd>
+                        <dd>2. After finish the exercise, click "Done" button to take a break.</dd>
+                        <dd>3. You can pause, skip or backward the rounds if you need.</dd>
+                        <br/>
+                        <dt>For each exercise:</dt>
+                        <dd>- The exercises are placed in the list, you can click on them to find the movement instructions.</dd>
+                        <dd>- The x10 symbol indicates that you must do 10 reps for that move.</dd>
+                        <dd>- The symbol x10-5-5 indicates that you have to do 10 reps, then hold that move for 5 seconds, and finally do 5 more reps for that move.</dd>
+                        <dd>- The symbol x30s indicates that you have to hold that move for 30 seconds</dd>
+                        <br/>
+                        <dt>For more training programs:</dt>
+                        <dd>- You can contact to me to have more training programs. Then I can design a workout program for you.</dd>
+                    </dl>
+                </div>
                 <p id="myExList"></p>
             </div>
 

@@ -449,8 +449,8 @@ function updateContext() {
     }
     else {
         vm.row1_2 = 'Training with Njk';
-        vm.row2 = 'CHOOSE YOUR PROGRAM';
-        vm.row3 = "";
+        vm.row2 = '';
+        vm.row3 = "CHOOSE YOUR PROGRAM";
         vm.row4 = "";
     }
     //update Button Start

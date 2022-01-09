@@ -36,7 +36,7 @@
 
                 <div class="row">
 
-                    <div v-if="textMode === 'free' && loaded === 0" class="col-sm-6" style="padding: 0 3px 0 3px;">
+                    <div v-if="textMode === 'free' && loaded === 0" class="col-sm-6" style="padding: 0 3px 0 9px;">
                         <select  v-on:change="handleGendreLvl($event)" name="gendre_lvl" class="selectProg">
                             <option value="">Choose your level</option>
                             <optgroup label="For Male">
@@ -48,7 +48,7 @@
                         </select>
                     </div>
 
-                    <div v-if="(textMode === 'free') && (loaded === 0)" class="col-sm-6" style="padding: 0 2px 0 2px;" >
+                    <div v-if="(textMode === 'free') && (loaded === 0)" class="col-sm-6" style="padding: 0 2px 0 9px;" >
                         <select v-model="select" name="program" v-on:change="selectHandle(selectSex)" class="selectProg">
                             <option value="">Choose a workout</option>
                             <optgroup v-for="group in listProgMale" v-if="(group[0] === selectLvl) && (selectSex === 'Male')" v-bind:label="group[0]">

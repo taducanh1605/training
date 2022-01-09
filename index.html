@@ -36,9 +36,9 @@
 
                 <div class="row">
 
-                    <div v-if="textMode === 'free' && loaded === 0" class="col-sm-6">
+                    <div v-if="textMode === 'free' && loaded === 0" class="col-sm-6" style="padding: 0 3px 0 10px;">
                         <select  v-on:change="handleGendreLvl($event)" name="gendre_lvl" class="selectProg">
-                            <option value="">Chose your level</option>
+                            <option value="">Choose your level</option>
                             <optgroup label="For Male">
                                 <option v-for="group in listProgMale" v-bind:value="'Male:'+group[0]">{{group[0]}}</option>
                             </optgroup>
@@ -48,7 +48,7 @@
                         </select>
                     </div>
 
-                    <div v-if="(textMode === 'free') && (loaded === 0)" class="col-sm-6" >
+                    <div v-if="(textMode === 'free') && (loaded === 0)" class="col-sm-6" style="padding: 0 3px 0 10px;" >
                         <select v-model="select" name="program" v-on:change="selectHandle(selectSex)" class="selectProg">
                             <option value="">Choose a workout</option>
                             <optgroup v-for="group in listProgMale" v-if="(group[0] === selectLvl) && (selectSex === 'Male')" v-bind:label="group[0]">
@@ -63,7 +63,7 @@
                 </div>
 
                 <p v-if="loaded === 0"><<< Or click on Banner to switch mode</p>
-                <p v-if="loaded > 0">Refresh page to chose an other program</p>
+                <p v-if="loaded > 0">Refresh page to choose an other program</p>
             </div>
             
         </div>
@@ -138,7 +138,7 @@
         </div>
 
         <div id="footer-content" class="row">
-            <p><a href="https://taducanh1605.github.io/site/" target="_blank">Made by Pika</a></p>
+            <p><a href="https://taducanh1605.github.io/site/" target="_blank">Copyright ©2022 | Designed by Pika</a></p>
         </div>
     </div>
     <script src="./scripts/training.js"></script>

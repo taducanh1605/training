@@ -276,6 +276,7 @@ var vm = new Vue({
                 if (this.flagStart == 0) {
                     this.flagStart = 1; 
                     if ((this.rest == 0) && (this.count == 0)){
+                        ring("start.wav");
                         this.count += 1;
                         [this.exOrder, this.exRound] = getOrder(this.count);
                     }
@@ -291,6 +292,7 @@ var vm = new Vue({
                         this.rest = this.exRest[this.exOrder];
                     }
                     else if (this.count == this.exSumSet){
+                        ring("finish.wav");
                         this.count += 1;
                         this.flagStart = 2;
                     }

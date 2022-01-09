@@ -35,26 +35,31 @@
                 </form>
 
                 <div class="row">
-                    <select v-if="textMode === 'free' && loaded === 0" v-on:change="handleGendreLvl($event)" class="selectProg col-sm-6" name="gendre_lvl">
-                        <option value="">Chose your level</option>
-                        <optgroup label="For Male">
-                            <option v-for="group in listProgMale" v-bind:value="'Male:'+group[0]">{{group[0]}}</option>
-                        </optgroup>
-                        <optgroup label="For Female">
-                            <option v-for="group in listProgFemale" v-bind:value="'Female:'+group[0]">{{group[0]}}</option>
-                        </optgroup>
-                    </select>
 
-                    <select v-if="(textMode === 'free') && (loaded === 0)" class="selectProg col-sm-6" v-model="select" name="program" v-on:change="selectHandle(selectSex)">
-                        <option value="">Choose a workout</option>
-                        <optgroup v-for="group in listProgMale" v-if="(group[0] === selectLvl) && (selectSex === 'Male')" v-bind:label="group[0]">
-                            <option  v-for="prog in group[1]">{{prog}}</option>
-                        </optgroup>
-                        <optgroup v-for="group in listProgFemale" v-if="(group[0] === selectLvl) && (selectSex === 'Female')" v-bind:label="group[0]">
-                            <option  v-for="prog in group[1]">{{prog}}</option>
-                        </optgroup>
-                    </select>
+                    <div v-if="textMode === 'free' && loaded === 0" class="col-sm-6">
+                        <select  v-on:change="handleGendreLvl($event)" name="gendre_lvl" class="selectProg">
+                            <option value="">Chose your level</option>
+                            <optgroup label="For Male">
+                                <option v-for="group in listProgMale" v-bind:value="'Male:'+group[0]">{{group[0]}}</option>
+                            </optgroup>
+                            <optgroup label="For Female">
+                                <option v-for="group in listProgFemale" v-bind:value="'Female:'+group[0]">{{group[0]}}</option>
+                            </optgroup>
+                        </select>
+                    </div>
 
+                    <div v-if="(textMode === 'free') && (loaded === 0)" class="col-sm-6" >
+                        <select v-model="select" name="program" v-on:change="selectHandle(selectSex)" class="selectProg">
+                            <option value="">Choose a workout</option>
+                            <optgroup v-for="group in listProgMale" v-if="(group[0] === selectLvl) && (selectSex === 'Male')" v-bind:label="group[0]">
+                                <option  v-for="prog in group[1]">{{prog}}</option>
+                            </optgroup>
+                            <optgroup v-for="group in listProgFemale" v-if="(group[0] === selectLvl) && (selectSex === 'Female')" v-bind:label="group[0]">
+                                <option  v-for="prog in group[1]">{{prog}}</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    
                 </div>
 
                 <p v-if="loaded === 0"><<< Or click on Banner to switch mode</p>

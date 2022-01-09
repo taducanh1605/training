@@ -47,6 +47,8 @@
 }
 
 html,body {
+    width: 98%;
+    margin: auto;
     height: 100%;
     font-family: 'Share Tech Mono', monospace;
     text-align: center;
@@ -121,7 +123,7 @@ pre {
 }
 
 #frame_row2 {
-    width:100%;
+    width: 100%;
 	text-align:center;
     align-items: center;
     vertical-align: middle;
@@ -267,13 +269,13 @@ pre {
     display:flex;
 	align-items: center;
 	justify-content:center;
-    margin: 14px auto;
+    margin: 5px auto;
 }
 
 
 #upper-left-content {
     cursor: pointer;
-    padding: 0 0 0 5px;
+    padding: 0 0 0 0px;
 }
 
 #lower-right-content {
@@ -313,7 +315,7 @@ BUTTON
 */
 
 #frame_button{
-    width: 100%;
+    width: 98%;
     height: calc(60px + (100 - 60) * ((100vw - 300px) / (1200 - 300)));
     margin: 25px auto;
     align-items: center;

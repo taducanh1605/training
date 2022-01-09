@@ -263,6 +263,8 @@ pre {
 	align-items: center;
 	justify-content:center;
     margin: 14px auto;
+    
+    font-size: 12px;
 }
 
 #upper-right-content p {

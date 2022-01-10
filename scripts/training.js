@@ -330,6 +330,10 @@ updateContext;
 setInterval(updateTime, 1000);
 updateTime();
 
+
+/*----------------------------------------------------------------------
+Prevent Reload page when workout
+----------------------------------------------------------------------*/
 window.onbeforeunload = function() {
     if (vm.time > 0){
         return "Do you want to reload page?";
@@ -462,6 +466,10 @@ function updateContext() {
                 vm.buttonStart = 'Finish';
 };
 
+
+/*----------------------------------------------------------------------
+Get position of exercise at the moment
+----------------------------------------------------------------------*/
 function getOrder(count){
     tempCount = count;
     for (let i = 0; i < vm.exSet.length; i++) {

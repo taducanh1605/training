@@ -25,9 +25,9 @@
     font-style:normal;
     font-weight:400;
     src:local('Sportrop Regular'),local('Sportrop-Regular'),
-    url("https://dafonttop.com/wp-data/s/393/2393/file/sportrop.regular.ttf") format("woff"),
-    url("https://dafonttop.com/wp-data/s/393/2393/file/sportrop.regular.ttf") format("opentype"),
-    url("https://dafonttop.com/wp-data/s/393/2393/file/sportrop.regular.ttf") format("truetype");
+    url("fonts/sportrop.regular.ttf") format("woff"),
+    url("fonts/sportrop.regular.ttf") format("opentype"),
+    url("fonts/sportrop.regular.ttf") format("truetype");
 }
 
 @font-face{

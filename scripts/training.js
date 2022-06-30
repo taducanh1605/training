@@ -8,8 +8,10 @@ var inputCSV = new Vue({
         select :'',
         dataMale: [],
         dataFemale: [],
+        dataPers: [],
         listProgMale: [],
         listProgFemale: [],
+        listProgPers: [],
         loadDataMale :  fetch("./FullBodyMale.json").
                         then(response => {
                             return response.json();
@@ -70,6 +72,36 @@ var inputCSV = new Vue({
                             });
                             tempGroup.push(tempEx);
                             inputCSV.listProgFemale.push(tempGroup);
+                        }),
+        loadDataPers: fetch("./FullBodyPers.json").
+                        then(response => {
+                            return response.json();
+                        }).
+                        then(jsondata => {
+                            inputCSV.dataPers = jsondata;
+                            tempGroup = [];
+                            tempEx = [];
+                            flag = 0;
+                            Object.keys(jsondata).forEach(prog => {
+                                if (jsondata[prog].length > 0){
+                                    tempEx.push(prog);
+                                }
+                                else if (flag > 0) {
+                                    tempGroup.push(tempEx);
+                                    inputCSV.listProgPers.push(tempGroup);
+
+                                    tempGroup = [];
+                                    tempEx = [];
+
+                                    tempGroup.push(prog);
+                                }
+                                else {
+                                    tempGroup.push(prog);
+                                    flag = 1;
+                                }
+                            });
+                            tempGroup.push(tempEx);
+                            inputCSV.listProgPers.push(tempGroup);
                         }),
         programName: '',
         exLinkSearch: [],
@@ -158,6 +190,9 @@ var inputCSV = new Vue({
             }
             else if (selectSex == "Female"){
                 data = this.dataFemale;
+            }
+            else if (selectSex == "Pers"){
+                data = this.dataPers;
             }
 
             //clear list

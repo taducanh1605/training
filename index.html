@@ -45,6 +45,9 @@
                             <optgroup label="For Female">
                                 <option v-for="group in listProgFemale" v-bind:value="'Female:'+group[0]">{{group[0]}}</option>
                             </optgroup>
+                            <optgroup label="For Personal">
+                                <option v-for="group in listProgPers" v-bind:value="'Pers:'+group[0]">{{group[0]}}</option>
+                            </optgroup>
                         </select>
                     </div>
 
@@ -55,6 +58,9 @@
                                 <option  v-for="prog in group[1]">{{prog}}</option>
                             </optgroup>
                             <optgroup v-for="group in listProgFemale" v-if="(group[0] === selectLvl) && (selectSex === 'Female')" v-bind:label="group[0]">
+                                <option  v-for="prog in group[1]">{{prog}}</option>
+                            </optgroup>
+                            <optgroup v-for="group in listProgPers" v-if="(group[0] === selectLvl) && (selectSex === 'Pers')" v-bind:label="group[0]">
                                 <option  v-for="prog in group[1]">{{prog}}</option>
                             </optgroup>
                         </select>

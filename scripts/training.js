@@ -6,14 +6,17 @@ var inputCSV = new Vue({
         selectSex :'',
         selectLvl :'',
         select :'',
+
         dataMale: [],
         dataFemale: [],
         dataPers: [],
         dataCal: [],
+
         listProgMale: [],
         listProgFemale: [],
         listProgPers: [],
         listProgCal: [],
+        
         loadDataMale :  fetch("./FullBodyMale.json").
                         then(response => {
                             return response.json();

@@ -174,6 +174,14 @@ pre {
     color: #10fff3;
     text-shadow: 0 0 20px rgb(10, 230, 175),  0 0 20px rgba(10, 230, 201, 0);
 }
+
+.inHIIT {
+    background-color: transparent;
+    width: auto;
+    max-width: calc(53px + (73 - 53) * ((100vw - 300px) / (1200 - 300)));
+    border: none;
+}
+
 .row4-break {
     margin: 2rem auto;
     font-family: "Sportrop Regular";

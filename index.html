@@ -103,7 +103,7 @@
                 </div>
 
                 <p v-if="count === 0 || (flagStart === 2)" class="row3" style="white-space: pre-line">{{row3}}</p>
-                <p v-if="(count > 0) && (flagStart < 2)" v-for="exer in row3_exs" class="row3" >{{exer}}</p>
+                <p v-if="(count > 0) && (flagStart < 2)" v-for="exer in row3_exs" class="row3" >{{(exer.indexOf('input') > 0) ? exer.slice(0, exer.indexOf(' x')+2) : exer}}<span v-if="exer.indexOf('input') > 0" v-html="exer.slice(exer.indexOf(' x')+2)"></span></p>
                 <p v-bind:class="'row4-'+textbreak">{{row4}}</p>
 
                 <div id="frame_button" class="row">

@@ -372,6 +372,9 @@ var vm = new Vue({
                         [this.exOrder, this.exRound] = getOrder(this.count);
                     }
                 }
+                else if ((this.flagStart == 2) && (inputCSV.checkHIIT == 1)) {
+                    exportCSV();
+                }
                 else if (this.rest > 0) {
                     this.flagStart = 0;
                 }
@@ -612,8 +615,9 @@ function exportCSV() {
     }
     var date = new Date(),
         blob = new Blob([csvContext], { type: 'text/csv;encoding:utf-8' });
-        link = document.createElement("a");
+        link = document.createElement("a"),
+        nameProg = inputCSV.programName.split(' @')[0];
     link.setAttribute("href", URL.createObjectURL(blob));
-    link.setAttribute("download", `${inputCSV.programName.split(' @')[0]} @${date.getDay()}-${date.getMonth()}-${date.getFullYear()}.csv`);
+    link.setAttribute("download", `${nameProg} @${date.getDay()}-${date.getMonth()}-${date.getFullYear()}.csv`);
     link.click();
 }

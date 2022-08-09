@@ -389,7 +389,7 @@ var vm = new Vue({
                         ring("finish.wav");
                         this.count += 1;
                         this.flagStart = 2;
-                        if (inputCSV.checkHIIT == 1) {exportCSV()};
+                        // if (inputCSV.checkHIIT == 1) {exportCSV()};
                     }
                 }
             }

@@ -614,6 +614,6 @@ function exportCSV() {
         blob = new Blob([csvContext], { type: 'text/csv;encoding:utf-8' });
         link = document.createElement("a");
     link.setAttribute("href", URL.createObjectURL(blob));
-    link.setAttribute("download", `${inputCSV.programName} ${date.getDay()}-${date.getMonth()}-${date.getFullYear()}.csv`);
+    link.setAttribute("download", `${inputCSV.programName.split(' @')[0]} @${date.getDay()}-${date.getMonth()}-${date.getFullYear()}.csv`);
     link.click();
 }

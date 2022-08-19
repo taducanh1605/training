@@ -618,6 +618,6 @@ function exportCSV() {
         link = document.createElement("a"),
         nameProg = inputCSV.programName.split(' @')[0];
     link.setAttribute("href", URL.createObjectURL(blob));
-    link.setAttribute("download", `${nameProg} @${date.getDay()}-${date.getMonth()}-${date.getFullYear()}.csv`);
+    link.setAttribute("download", `${nameProg} @${date.getDate()}-${date.getMonth()+1}-${date.getFullYear()}.csv`);
     link.click();
 }

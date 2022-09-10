@@ -205,10 +205,22 @@ var inputCSV = new Vue({
                 for (var i = 0, nameI; (nameI = tempName[i]); i++) {
                     if (nameI.indexOf('?') > -1) {
                         this.checkHIIT = 1;
+
+                        // [2022-09-10-DA] pour replacer x?[-?-?]
+                        var nbrIn = (nameI.match(/[?]-/g) || []).length;
+                        for (var y = nbrIn; y > 0; y--) {
+                            var repS = nameI.length - nameI.split("").reverse().join("").indexOf('-?'),
+                                repE = nameI.indexOf('?', repS),
+                                rep = parseInt(nameI.slice(repS, repE));
+                            nameI = nameI.substring(0, repS - 1) + ' -' + nameI.substring(repS + nameI.substring(repS).indexOf('?')).replace('?', `<input class="inHIIT" onInput="goal(${rows.indexOf(row)},${i}, this.value, ${y})" type="number" min="0" value="${rep}">`);
+                        }
+
+                        // [2022-09-10-DA] pour replacer [x?]-?-?
                         var repS = nameI.indexOf(' x') + 2,
                             repE = nameI.indexOf('?'),
                             rep = parseInt(nameI.slice(repS, repE));
-                        tempName[i] = nameI.substr(0, repS).replace(' x', ` x<input class="inHIIT" onInput="goal(${rows.indexOf(row)},${i}, this.value)" type="number" min="0" value="${rep}">`);
+                        nameI = nameI.substring(0, repS) + nameI.substring(repS + nameI.substring(repS).indexOf('?')).replace('?', `<input class="inHIIT" onInput="goal(${rows.indexOf(row)},${i}, this.value)" type="number" min="0" value="${rep}">`);
+                        tempName[i] = nameI.replaceAll(' -', '-');
                     }
                 }
                 tempNameOnly = [];
@@ -257,10 +269,22 @@ var inputCSV = new Vue({
                 for (var i = 0, nameI; (nameI = tempName[i]); i++) {
                     if (nameI.indexOf('?') > -1) {
                         this.checkHIIT = 1;
+
+                        // [2022-09-10-DA] pour replacer x?[-?-?]
+                        var nbrIn = (nameI.match(/[?]-/g) || []).length;
+                        for (var y = nbrIn; y > 0; y--) {
+                            var repS = nameI.length - nameI.split("").reverse().join("").indexOf('-?'),
+                                repE = nameI.indexOf('?', repS),
+                                rep = parseInt(nameI.slice(repS, repE));
+                            nameI = nameI.substring(0, repS - 1) + ' -' + nameI.substring(repS + nameI.substring(repS).indexOf('?')).replace('?', `<input class="inHIIT" onInput="goal(${data[this.select][0].indexOf(exercise)},${i}, this.value, ${y})" type="number" min="0" value="${rep}">`);
+                        }
+
+                        // [2022-09-10-DA] pour replacer [x?]-?-?
                         var repS = nameI.indexOf(' x') + 2,
                             repE = nameI.indexOf('?'),
                             rep = parseInt(nameI.slice(repS, repE));
-                        tempName[i] = nameI.substr(0, repS).replace(' x', ` x<input class="inHIIT" onInput="goal(${data[this.select][0].indexOf(exercise)},${i}, this.value)" type="number" value="${rep}">`);
+                        nameI = nameI.substring(0, repS) + nameI.substring(repS + nameI.substring(repS).indexOf('?')).replace('?', `<input class="inHIIT" onInput="goal(${data[this.select][0].indexOf(exercise)},${i}, this.value)" type="number" min="0" value="${rep}">`);
+                        tempName[i] = nameI.replaceAll(' -', '-');
                     }
                 }
                 tempNameOnly = [];
@@ -587,11 +611,14 @@ function getOrder(count) {
 /*----------------------------------------------------------------------
 Change goal
 ----------------------------------------------------------------------*/
-function goal(x, y, z) {
+function goal(x, y, z, sub) {
+    var bias = vm.exName[x][y].indexOf("value=", bias) + 7;
+    for (var i = 0; i < parseInt(sub); i++) bias = vm.exName[x][y].indexOf("value=", bias) + 7;
+
     if (vm.delayInputHIIT) clearTimeout(vm.delayInputHIIT);
-    vm.delayInputHIIT = setTimeout(function() {
-        if ((z != '') && (z!= 0)) {
-            vm.exName[x][y] = vm.exName[x][y].substr(0,vm.exName[x][y].indexOf("value=")+7) + z + "\">";
+    vm.delayInputHIIT = setTimeout(function () {
+        if (z != '') {
+            vm.exName[x][y] = vm.exName[x][y].substring(0, bias) + z + vm.exName[x][y].substring(vm.exName[x][y].indexOf("\"", bias));
         }
     }, 500);
 }
@@ -607,7 +634,16 @@ function exportCSV() {
         exs.forEach(ex => {
             con += (exs.indexOf(ex) > 0 ? '+' : '');
             if (ex.indexOf('input') > -1) {
-                ex = ex.substr(0, ex.indexOf("<input")) + ex.slice(ex.indexOf("value=") +7, -2) + '? ';
+                var nbrIn = (ex.match(/input/g) || []).length;
+                for (var y = 0; y < nbrIn; y++) {
+                    var posRep = ex.indexOf("\"", ex.indexOf("value=") + 7);
+
+                    console.log(ex.substring(0, ex.indexOf("<input")));
+                    console.log(ex.substring(ex.indexOf("value=") + 7, posRep));
+                    console.log(ex.substr(ex.indexOf("<input", posRep)));
+                    ex = ex.substring(0, ex.indexOf("<input")) + ex.substring(ex.indexOf("value=") + 7, posRep) + '?' +  ((ex.indexOf("<input", posRep) > -1) ? ex.substr(ex.indexOf("<input", posRep) - 1) : ' ');
+                }
+                console.log(ex);
             }
             con += ex;
         });
@@ -615,9 +651,9 @@ function exportCSV() {
     }
     var date = new Date(),
         blob = new Blob([csvContext], { type: 'text/csv;encoding:utf-8' });
-        link = document.createElement("a"),
+    link = document.createElement("a"),
         nameProg = inputCSV.programName.split(' @')[0];
     link.setAttribute("href", URL.createObjectURL(blob));
-    link.setAttribute("download", `${nameProg} @${date.getDate()}-${date.getMonth()+1}-${date.getFullYear()}.csv`);
+    link.setAttribute("download", `${nameProg} @${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}.csv`);
     link.click();
 }

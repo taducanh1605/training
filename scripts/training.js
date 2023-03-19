@@ -360,6 +360,7 @@ var vm = new Vue({
         exSumSet: 0,
         exOrder: 0,
         exRound: 0,
+        exHold: 0,
         leftColumn: '',
         row1_1: '',
         row1_2: '',
@@ -387,6 +388,7 @@ var vm = new Vue({
             this.exRound = 0;
         },
         handleStart() {
+            var that = this;
             if (this.exSumSet > 0) {
                 if (this.flagStart == 0) {
                     this.flagStart = 1;
@@ -408,6 +410,14 @@ var vm = new Vue({
                         this.count += 1;
                         [this.exOrder, this.exRound] = getOrder(this.count);
                         this.rest = this.exRest[this.exOrder];
+                        this.exName[this.exOrder].forEach(function(exer) {
+                            if (exer.split(' x')[1].indexOf('s') > -1) that.exHold = 1;
+                        });
+                        if (this.exHold == 1) {
+                            // [2023-03-19-DA] pause for counting hold time
+                            this.flagStart = 0;
+                            this.exHold = 0;
+                        }
                     }
                     else if (this.count == this.exSumSet) {
                         ring("finish.wav");

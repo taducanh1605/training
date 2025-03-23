@@ -263,6 +263,9 @@ var inputCSV = new Vue({
             this.programName = this.select;
             this.init();
             vm.init();
+            vm.selectSex = selectSex;
+            vm.programName = this.select;
+            vm.selectLvl = this.selectLvl;
 
             data[this.select][0].forEach(exercise => {
                 tempName = exercise.split('+');
@@ -304,6 +307,9 @@ var inputCSV = new Vue({
             data[this.select][1].forEach(exercise => { vm.exSumSet += Number(exercise); });
 
             this.listExHandle();
+            
+            // Add button to switch programs after a program is selected
+            addSwitchProgramButton();
         },
 
         listExHandle() {
@@ -370,7 +376,10 @@ var vm = new Vue({
         row3_exs: [],
         row4: '',
         textbreak: 'doit',
-        buttonStart: 'Start'
+        buttonStart: 'Start',
+        selectSex: '',
+        selectLvl: '',
+        programName: ''
     },
     methods: {
         init() {
@@ -389,6 +398,14 @@ var vm = new Vue({
         },
         handleStart() {
             var that = this;
+            // [2024-12-08-DA] save state of training
+            localStorage.setItem('resume', [that.selectSex, that.selectLvl, that.programName, that.time, that.count].join('***'));
+            
+            // Add button to switch programs when starting a workout
+            if (this.count === 0) {
+                addSwitchProgramButton();
+            }
+            
             if (this.exSumSet > 0) {
                 if (this.flagStart == 0) {
                     this.flagStart = 1;
@@ -423,6 +440,7 @@ var vm = new Vue({
                         ring("finish.wav");
                         this.count += 1;
                         this.flagStart = 2;
+                        if (localStorage.getItem('resume')) delete localStorage['resume'];
                         // if (inputCSV.checkHIIT == 1) {exportCSV()};
                     }
                 }
@@ -434,6 +452,7 @@ var vm = new Vue({
                 this.count += 1;
                 this.rest = 0;
                 [this.exOrder, this.exRound] = getOrder(this.count);
+                localStorage.setItem('resume', [this.selectSex, this.selectLvl, this.programName, this.time, this.count].join('***'));
             }
         },
 
@@ -445,7 +464,7 @@ var vm = new Vue({
                 this.count -= 1;
                 this.rest = 0;
                 [this.exOrder, this.exRound] = getOrder(this.count);
-                //console.log(this.count);
+                localStorage.setItem('resume', [this.selectSex, this.selectLvl, this.programName, this.time, this.count].join('***'));
             }
         },
 
@@ -666,4 +685,140 @@ function exportCSV() {
     link.setAttribute("href", URL.createObjectURL(blob));
     link.setAttribute("download", `${nameProg} @${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}.csv`);
     link.click();
+}
+
+// Server URL
+const serverUrl = 'http://localhost:3000';
+/*----------------------------------------------------------------------
+Call API getTrain with credentials
+----------------------------------------------------------------------*/
+async function callGetTrainAPI() {
+  try {
+    // [2025-03-23-DA] call API getTrain
+    const response = await fetch(`${serverUrl}/getTrain`, {
+      method: 'POST',
+      credentials: 'include', // with cookie
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({})
+    });
+
+    // [2025-03-23-DA] login required
+    if (!response.ok) {
+      const data = await response.json();
+      if (data.redirectUrl) {
+        // [2025-03-23-DA] redirect to login page
+        window.location.href = `${serverUrl}${data.redirectUrl}`;
+      }
+      throw new Error(data.message || 'ERROR');
+    }
+
+    // [2025-03-23-DA] return data
+    const data = await response.json();
+    return data;
+    
+  } catch (error) {
+    console.error('ERROR: ', error);
+  }
+}
+
+/*----------------------------------------------------------------------
+Check for saved workout when the page loads
+----------------------------------------------------------------------*/
+document.addEventListener('DOMContentLoaded', function() {
+  checkSavedWorkout();
+});
+
+/*----------------------------------------------------------------------
+Check if there's a saved workout and restore it
+----------------------------------------------------------------------*/
+function checkSavedWorkout() {
+  const savedWorkout = localStorage.getItem('resume');
+  if (savedWorkout) {
+    const [sex, level, program, time, count] = savedWorkout.split('***');
+    
+    // Add button to switch programs
+    addSwitchProgramButton();
+    
+    // Restore the workout after a short delay
+    setTimeout(() => {
+      restoreSavedWorkout(sex, level, program, parseInt(time), parseInt(count));
+    }, 500);
+  }
+}
+
+/*----------------------------------------------------------------------
+Restore the saved workout state
+----------------------------------------------------------------------*/
+function restoreSavedWorkout(sex, level, program, time, count) {
+  // Set the sex and level
+  inputCSV.selectSex = sex;
+  inputCSV.selectLvl = level;
+  
+  // Find the corresponding program in the dropdown
+  const selectElement = document.querySelector('select');
+  if (selectElement) {
+    for (let i = 0; i < selectElement.options.length; i++) {
+      if (selectElement.options[i].value === `${sex}:${level}`) {
+        selectElement.selectedIndex = i;
+        break;
+      }
+    }
+  }
+  
+  // Set the program
+  inputCSV.select = program;
+  
+  // Load the program data
+  inputCSV.selectHandle(sex);
+  
+  // Set the time and count
+  vm.time = time;
+  
+  // Update the clock
+  const hour = Math.floor(time / 3600);
+  const min = Math.floor((time % 3600) / 60);
+  const sec = time % 60;
+  vm.timeClock = zeroPadding(hour, 2) + ':' + zeroPadding(min, 2) + ':' + zeroPadding(sec, 2);
+  
+  // Set the count and exercise order
+  for (let i = 1; i <= count; i++) {
+    vm.count = i;
+    [vm.exOrder, vm.exRound] = getOrder(i);
+  }
+  
+  // Pause the workout
+  vm.flagStart = 0;
+  
+  // Update context
+  updateContext();
+}
+
+/*----------------------------------------------------------------------
+Clear the saved workout and refresh the page
+----------------------------------------------------------------------*/
+function clearSavedWorkoutAndRefresh() {
+  localStorage.removeItem('resume');
+  window.location.reload();
+}
+
+/*----------------------------------------------------------------------
+Add a button to choose another program
+----------------------------------------------------------------------*/
+function addSwitchProgramButton() {
+  // Check if button already exists to avoid duplicates
+  if (document.querySelector('.switch-program-btn')) return;
+  
+  // Add a button to choose another program
+  const upperContent = document.getElementById('upper-content');
+  const switchProgramBtn = document.createElement('button');
+  switchProgramBtn.innerText = 'Click to choose an other program';
+  switchProgramBtn.className = 'btn btn-warning mb-3 mt-3 switch-program-btn';
+  switchProgramBtn.onclick = clearSavedWorkoutAndRefresh;
+  
+  // Insert the button at the top of the upper content
+  if (upperContent.firstChild) {
+    upperContent.insertBefore(switchProgramBtn, upperContent.firstChild);
+  } else {
+    upperContent.appendChild(switchProgramBtn);
+  }
 }

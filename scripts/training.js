@@ -242,6 +242,7 @@ var inputCSV = new Vue({
 
         selectHandle(selectSex) {
 
+
             if (selectSex == "Male") {
                 data = this.dataMale;
             }
@@ -346,6 +347,9 @@ var inputCSV = new Vue({
 
         handleGendreLvl(event) {
             [this.selectSex, this.selectLvl] = event.target.value.split(':');
+            
+            // save to localStorage
+            localStorage.setItem('selectedLvl', [this.selectSex, this.selectLvl].join('***'));
         }
     },
 
@@ -398,13 +402,9 @@ var vm = new Vue({
         },
         handleStart() {
             var that = this;
-            // [2024-12-08-DA] save state of training
-            localStorage.setItem('resume', [that.selectSex, that.selectLvl, that.programName, that.time, that.count].join('***'));
 
             // Add button to switch programs when starting a workout
-            if (this.count === 0) {
-                addSwitchProgramButton();
-            }
+            if (this.count == 0) addSwitchProgramButton();
 
             if (this.exSumSet > 0) {
                 if (this.flagStart == 0) {
@@ -445,6 +445,9 @@ var vm = new Vue({
                     }
                 }
             }
+
+            // [2025-05-11-DA] save state of training
+            localStorage.setItem('resume', [that.selectSex, that.selectLvl, that.programName, that.time, that.count].join('***'));
         },
 
         handleNext() {
@@ -722,10 +725,13 @@ async function callGetTrainAPI() {
 }
 
 /*----------------------------------------------------------------------
-Check for saved workout when the page loads
+Check for saved workout / saved sex when the page loads
 ----------------------------------------------------------------------*/
 document.addEventListener('DOMContentLoaded', function () {
-    checkSavedWorkout();
+    if (!checkSavedWorkout()) {
+        // choose lvl if found
+        checkSavedLvl();
+    }
 });
 
 /*----------------------------------------------------------------------
@@ -742,6 +748,33 @@ function checkSavedWorkout() {
         // Restore the workout after a short delay
         setTimeout(() => {
             restoreSavedWorkout(sex, level, program, parseInt(time), parseInt(count));
+        }, 500);
+        return true;
+    }
+    return false;
+}
+
+/*----------------------------------------------------------------------
+Check if there's a saved lvl and choose it
+----------------------------------------------------------------------*/
+function checkSavedLvl() {
+    const savedLvl = localStorage.getItem('selectedLvl');
+    if (savedLvl) {
+        const [sex, level] = savedLvl.split('***');
+        inputCSV.selectSex = sex;
+        inputCSV.selectLvl = level;
+
+        // Find the corresponding program in the dropdown
+        setTimeout(() => {
+            const selectElement = document.querySelector('select');
+            if (selectElement) {
+                for (let i = 0; i < selectElement.options.length; i++) {
+                    if (selectElement.options[i].value === `${sex}:${level}`) {
+                        selectElement.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
         }, 500);
     }
 }

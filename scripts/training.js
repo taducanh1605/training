@@ -440,7 +440,24 @@ var vm = new Vue({
                         ring("finish.wav");
                         this.count += 1;
                         this.flagStart = 2;
-                        if (localStorage.getItem('resume')) delete localStorage['resume'];
+                        if (localStorage.getItem('resume')) {
+                            // [2025-05-14-DA] clear saved workout
+                            localStorage.removeItem('resume');
+
+                            // [2025-05-14-DA] find the next program
+                            // var allProg = document.querySelectorAll(`optgroup[label="${that.selectLvl}"]>option`), lenProg = allProg.length;
+                            // var nxt = 0;
+                            // for (var i = 0; i < lenProg; i++) {
+                            //     if (allProg[i].value == that.programName) {
+                            //         nxt = i + 1;
+                            //         break;
+                            //     }
+                            // }
+                            // if (nxt == lenProg) nxt = 0;
+                            // var nxtProg = allProg[nxt].value;
+                            // localStorage.setItem('resume', [that.selectSex, that.selectLvl, nxtProg, 0, 1].join('***'));
+                        }
+                        return;
                         // if (inputCSV.checkHIIT == 1) {exportCSV()};
                     }
                 }

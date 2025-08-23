@@ -245,37 +245,39 @@ var inputCSV = new Vue({
         },
 
         selectHandle(selectGen) {
-
+            var dataEx = [];
 
             if (selectGen == "Male") {
-                data = this.dataMale;
+                dataEx = this.dataMale;
             }
             else if (selectGen == "Female") {
-                data = this.dataFemale;
+                dataEx = this.dataFemale;
             }
             else if (selectGen == "Pers") {
-                data = this.dataPers;
+                dataEx = this.dataPers;
             }
             else if (selectGen == "Cal") {
-                data = this.dataCal;
+                dataEx = this.dataCal;
             }
             else if (selectGen == "Users") {
-                data = this.dataCal;
+                dataEx = this.dataUsers;
             }
 
             //clear list
             p = document.getElementById('myExList');
             p.innerHTML = "";
 
-            //parse data
+            //parse Exercise data
             this.programName = this.select;
             this.init();
             vm.init();
+            vm.textMode = this.textMode;
+            localStorage.setItem('training.textMode', this.textMode);
             vm.selectGen = selectGen;
             vm.programName = this.select;
             vm.selectLvl = this.selectLvl;
 
-            data[this.select][0].forEach(exercise => {
+            dataEx[this.select][0].forEach(exercise => {
                 tempName = exercise.split('+');
                 for (var i = 0, nameI; (nameI = tempName[i]); i++) {
                     if (nameI.indexOf('?') > -1) {
@@ -310,9 +312,9 @@ var inputCSV = new Vue({
                 this.exLinkSearch.push(tempLinkSearch);
                 vm.exName.push(tempName);
             });
-            vm.exSet = data[this.select][1];
-            vm.exRest = data[this.select][2];
-            data[this.select][1].forEach(exercise => { vm.exSumSet += Number(exercise); });
+            vm.exSet = dataEx[this.select][1];
+            vm.exRest = dataEx[this.select][2];
+            dataEx[this.select][1].forEach(exercise => { vm.exSumSet += Number(exercise); });
 
             this.listExHandle();
 
@@ -343,12 +345,7 @@ var inputCSV = new Vue({
 
         handleMode() {
             if (vm.count == 0) {
-                if (this.textMode == "prime") {
-                    this.textMode = "free";
-                }
-                else {
-                    this.textMode = "prime";
-                }
+                this.textMode = this.textMode == "prime" ? "free" : "prime";
                 // Save to localStorage when user manually changes mode
                 localStorage.setItem('training.textMode', this.textMode);
             }
@@ -358,7 +355,7 @@ var inputCSV = new Vue({
             [this.selectGen, this.selectLvl] = event.target.value.split(':');
             
             // save to localStorage
-            localStorage.setItem('training.selectedLvl', [this.selectGen, this.selectLvl].join('***'));
+            localStorage.setItem('training.selectedLvl', [this.textMode, this.selectGen, this.selectLvl].join('***'));
         }
     },
 
@@ -390,6 +387,7 @@ var vm = new Vue({
         row4: '',
         textbreak: 'doit',
         buttonStart: 'Start',
+        textMode: 'free',
         selectGen: '',
         selectLvl: '',
         programName: ''
@@ -461,7 +459,7 @@ var vm = new Vue({
             }
 
             // [2025-05-11-DA] save state of training
-            localStorage.setItem('resume', [that.selectGen, that.selectLvl, that.programName, that.time, that.count].join('***'));
+            localStorage.setItem('resume', [that.textMode, that.selectGen, that.selectLvl, that.programName, that.time, that.count].join('***'));
         },
 
         handleNext() {
@@ -469,7 +467,7 @@ var vm = new Vue({
                 this.count += 1;
                 this.rest = 0;
                 [this.exOrder, this.exRound] = getOrder(this.count);
-                localStorage.setItem('resume', [this.selectGen, this.selectLvl, this.programName, this.time, this.count].join('***'));
+                localStorage.setItem('resume', [this.textMode, this.selectGen, this.selectLvl, this.programName, this.time, this.count].join('***'));
             }
         },
 
@@ -481,7 +479,7 @@ var vm = new Vue({
                 this.count -= 1;
                 this.rest = 0;
                 [this.exOrder, this.exRound] = getOrder(this.count);
-                localStorage.setItem('resume', [this.selectGen, this.selectLvl, this.programName, this.time, this.count].join('***'));
+                localStorage.setItem('resume', [this.textMode, this.selectGen, this.selectLvl, this.programName, this.time, this.count].join('***'));
             }
         },
 
@@ -707,9 +705,9 @@ function exportCSV() {
 /*----------------------------------------------------------------------
 Check for saved workout / saved gen when the page loads
 ----------------------------------------------------------------------*/
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', async function () {
     // Check login and update textMode first
-    checkLoginAndUpdateTextMode();
+    await checkLoginAndUpdateTextMode();
     
     if (!checkSavedWorkout()) {
         // choose lvl if found
@@ -723,14 +721,14 @@ Check if there's a saved workout and restore it
 function checkSavedWorkout() {
     const savedWorkout = localStorage.getItem('resume');
     if (savedWorkout) {
-        const [gen, level, program, time, count] = savedWorkout.split('***');
+        const [textMode, gen, level, program, time, count] = savedWorkout.split('***');
 
         // Add button to switch programs
         addSwitchProgramButton();
 
         // Restore the workout after a short delay
         setTimeout(() => {
-            restoreSavedWorkout(gen, level, program, parseInt(time), parseInt(count));
+            restoreSavedWorkout(textMode, gen, level, program, parseInt(time), parseInt(count));
         }, 500);
         return true;
     }
@@ -743,7 +741,8 @@ Check if there's a saved lvl and choose it
 function checkSavedLvl() {
     const savedLvl = localStorage.getItem('training.selectedLvl');
     if (savedLvl) {
-        const [gen, level] = savedLvl.split('***');
+        const [textMode, gen, level] = savedLvl.split('***');
+        inputCSV.textMode = textMode;
         inputCSV.selectGen = gen;
         inputCSV.selectLvl = level;
 
@@ -772,7 +771,7 @@ function checkSavedLvl() {
                     }
                 }
                 if (nxt == -1) nxt = lenProg - 1;
-                if (nxt < lenProg) restoreSavedWorkout(gen, level, allProg[nxt].value, 1, 0);
+                if (nxt < lenProg) restoreSavedWorkout(textMode, gen, level, allProg[nxt].value, 1, 0);
             }
         }, 500);
     }
@@ -781,8 +780,9 @@ function checkSavedLvl() {
 /*----------------------------------------------------------------------
 Restore the saved workout state
 ----------------------------------------------------------------------*/
-function restoreSavedWorkout(gen, level, program, time, count) {
+function restoreSavedWorkout(textMode, gen, level, program, time, count) {
     // Set the gen and level
+    inputCSV.textMode = textMode;
     inputCSV.selectGen = gen;
     inputCSV.selectLvl = level;
 
@@ -871,8 +871,7 @@ async function checkLoginAndUpdateTextMode() {
 
         if (response && user) {
             // User is logged in, set textMode to 'prime'
-            localStorage.setItem('training.textMode', 'prime');
-            inputCSV.textMode = 'prime';
+            // localStorage.setItem('training.textMode', 'prime');
             
             // Save user info to localStorage for training app
             localStorage.setItem('training.user_id', user.id);
@@ -881,8 +880,7 @@ async function checkLoginAndUpdateTextMode() {
             inputCSV.user_name = user.name;
         } else {
             // User not logged in, set textMode to 'free'
-            localStorage.setItem('training.textMode', 'free');
-            inputCSV.textMode = 'free';
+            // localStorage.setItem('training.textMode', 'free');
             
             // Clear user info from localStorage
             localStorage.removeItem('training.user_id');
@@ -917,11 +915,16 @@ async function checkLoginAndUpdateTextMode() {
         }
     } catch (error) {
         console.log('Login check failed, setting to free mode:', error);
-        localStorage.setItem('training.textMode', 'free');
-        inputCSV.textMode = 'free';
-        
         // Clear user info from localStorage
         localStorage.removeItem('training.user_id');
         localStorage.removeItem('training.user_name');
+        if (localStorage.getItem('training.selectedLvl')?.[0] == 'p') {
+            localStorage.removeItem('training.selectedLvl');
+        }
+        if (localStorage.getItem('resume')?.[0] == 'p') {
+            localStorage.removeItem('resume');
+        }
+        localStorage.setItem('training.textMode', 'free');
+        inputCSV.textMode = 'free';
     }
 }

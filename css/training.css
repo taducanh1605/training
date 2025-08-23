@@ -270,7 +270,7 @@ pre {
     display:flex;
 	align-items: center;
 	justify-content:center;
-    margin: 9px auto;
+    margin: 7px auto;
     font-size: 12.5px;
 }
 
@@ -386,4 +386,12 @@ BUTTON
 
 .button:active a {
 	color: #fff;
+}
+
+.butLog {
+    background: #454646;
+    color: #fff;
+    border-radius: 18px;
+    margin-block: 5px;
+    padding: 0px 10px 0px 10px;
 }

@@ -26,11 +26,36 @@
 
             <!---<div id="upper-right-content">--->
             <div class="col-sm-3" id="upper-right-content">   
-
-                <form v-if="textMode === 'prime' && loaded === 0" enctype="multipart/form-data">
+                
+                <button v-if="textMode === 'prime' && loaded === 0 && user_id == null" onclick="googleLogin()" class="butLog">Login</button>
+                <form v-if="textMode === 'prime' && loaded === 0 && user_id == null" enctype="multipart/form-data">
                     <input class="input" name="file" id="file" type="file" @change="onFileChange">
                     <label for="file">Choose your Program File</label>
                 </form>
+
+                <p v-if="textMode === 'prime' && loaded === 0 && user_id != null" style="font-size: 13px;">Welcome {{user_name}}</p>
+                <button v-if="textMode === 'prime' && loaded === 0 && user_id != null" onclick="logout()" class="butLog">Logout</button>
+                
+                <div v-if="textMode === 'prime' && loaded === 0 && user_id != null" class="row">
+                    <div class="col-sm-6" style="padding: 0 3px 0 9px;">
+                        <select v-on:change="handleGendreLvl($event)" name="gendre_lvl" class="selectProg">
+                            <option value="">Choose your level</option>
+                            <optgroup label="For User">
+                                <option v-for="group in listProgUsers" v-bind:value="'Users:'+group[0]">{{group[0]}}</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    
+                    <div class="col-sm-6" style="padding: 0 2px 0 9px;" >
+                        <select v-model="select" name="program" v-on:change="selectHandle(selectGen)" class="selectProg">
+                            <option value="">Choose a workout</option>
+                            <optgroup v-for="group in listProgUsers" v-if="(group[0] === selectLvl) && (selectGen === 'Users')" v-bind:label="group[0]">
+                                <option  v-for="prog in group[1]">{{prog}}</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                </div>
+                
 
                 <div class="row">
 
@@ -53,18 +78,18 @@
                     </div>
 
                     <div v-if="(textMode === 'free') && (loaded === 0)" class="col-sm-6" style="padding: 0 2px 0 9px;" >
-                        <select v-model="select" name="program" v-on:change="selectHandle(selectSex)" class="selectProg">
+                        <select v-model="select" name="program" v-on:change="selectHandle(selectGen)" class="selectProg">
                             <option value="">Choose a workout</option>
-                            <optgroup v-for="group in listProgMale" v-if="(group[0] === selectLvl) && (selectSex === 'Male')" v-bind:label="group[0]">
+                            <optgroup v-for="group in listProgMale" v-if="(group[0] === selectLvl) && (selectGen === 'Male')" v-bind:label="group[0]">
                                 <option  v-for="prog in group[1]">{{prog}}</option>
                             </optgroup>
-                            <optgroup v-for="group in listProgFemale" v-if="(group[0] === selectLvl) && (selectSex === 'Female')" v-bind:label="group[0]">
+                            <optgroup v-for="group in listProgFemale" v-if="(group[0] === selectLvl) && (selectGen === 'Female')" v-bind:label="group[0]">
                                 <option  v-for="prog in group[1]">{{prog}}</option>
                             </optgroup>
-                            <optgroup v-for="group in listProgPers" v-if="(group[0] === selectLvl) && (selectSex === 'Pers')" v-bind:label="group[0]">
+                            <optgroup v-for="group in listProgPers" v-if="(group[0] === selectLvl) && (selectGen === 'Pers')" v-bind:label="group[0]">
                                 <option  v-for="prog in group[1]">{{prog}}</option>
                             </optgroup>
-                            <optgroup v-for="group in listProgCal" v-if="(group[0] === selectLvl) && (selectSex === 'Cal')" v-bind:label="group[0]">
+                            <optgroup v-for="group in listProgCal" v-if="(group[0] === selectLvl) && (selectGen === 'Cal')" v-bind:label="group[0]">
                                 <option  v-for="prog in group[1]">{{prog}}</option>
                             </optgroup>
                         </select>
@@ -151,6 +176,7 @@
             <p style="padding-top: 13px; font-size: 12px;">Copyright ©2022 | <a href="https://taducanh1605.github.io/site/" target="_blank">Designed by Pika</a> | <a href="https://taducanh1605.github.io/cardio/" target="_blank">Cardio</a></p>
         </div>
     </div>
+    <script src="./scripts/oauth.js"></script>
     <script src="./scripts/training.js"></script>
     <script>
         const body = document.body;

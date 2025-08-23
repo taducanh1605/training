@@ -85,5 +85,11 @@ function logout() {
     localStorage.removeItem('authToken');
     localStorage.removeItem('training.user_id');
     localStorage.removeItem('training.user_name');
+    if (localStorage.getItem('training.selectedLvl')?.[0] == 'p') {
+        localStorage.removeItem('training.selectedLvl');
+    }
+    if (localStorage.getItem('training.resume')?.[0] == 'p') {
+        localStorage.removeItem('training.resume');
+    }
     window.location.reload();
 }

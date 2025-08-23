@@ -447,9 +447,9 @@ var vm = new Vue({
                         ring("finish.wav");
                         this.count += 1;
                         this.flagStart = 2;
-                        if (localStorage.getItem('resume')) {
+                        if (localStorage.getItem('training.resume')) {
                             // [2025-05-14-DA] clear saved workout
-                            localStorage.removeItem('resume');
+                            localStorage.removeItem('training.resume');
                             localStorage.setItem('training.done', that.programName);
                         }
                         return;
@@ -459,7 +459,7 @@ var vm = new Vue({
             }
 
             // [2025-05-11-DA] save state of training
-            localStorage.setItem('resume', [that.textMode, that.selectGen, that.selectLvl, that.programName, that.time, that.count].join('***'));
+            localStorage.setItem('training.resume', [that.textMode, that.selectGen, that.selectLvl, that.programName, that.time, that.count].join('***'));
         },
 
         handleNext() {
@@ -467,7 +467,7 @@ var vm = new Vue({
                 this.count += 1;
                 this.rest = 0;
                 [this.exOrder, this.exRound] = getOrder(this.count);
-                localStorage.setItem('resume', [this.textMode, this.selectGen, this.selectLvl, this.programName, this.time, this.count].join('***'));
+                localStorage.setItem('training.resume', [this.textMode, this.selectGen, this.selectLvl, this.programName, this.time, this.count].join('***'));
             }
         },
 
@@ -479,7 +479,7 @@ var vm = new Vue({
                 this.count -= 1;
                 this.rest = 0;
                 [this.exOrder, this.exRound] = getOrder(this.count);
-                localStorage.setItem('resume', [this.textMode, this.selectGen, this.selectLvl, this.programName, this.time, this.count].join('***'));
+                localStorage.setItem('training.resume', [this.textMode, this.selectGen, this.selectLvl, this.programName, this.time, this.count].join('***'));
             }
         },
 
@@ -719,7 +719,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 Check if there's a saved workout and restore it
 ----------------------------------------------------------------------*/
 function checkSavedWorkout() {
-    const savedWorkout = localStorage.getItem('resume');
+    const savedWorkout = localStorage.getItem('training.resume');
     if (savedWorkout) {
         const [textMode, gen, level, program, time, count] = savedWorkout.split('***');
 
@@ -829,7 +829,7 @@ function restoreSavedWorkout(textMode, gen, level, program, time, count) {
 Clear the saved workout and refresh the page
 ----------------------------------------------------------------------*/
 function clearSavedWorkoutAndRefresh() {
-    localStorage.removeItem('resume');
+    localStorage.removeItem('training.resume');
     window.location.reload();
 }
 
@@ -921,8 +921,8 @@ async function checkLoginAndUpdateTextMode() {
         if (localStorage.getItem('training.selectedLvl')?.[0] == 'p') {
             localStorage.removeItem('training.selectedLvl');
         }
-        if (localStorage.getItem('resume')?.[0] == 'p') {
-            localStorage.removeItem('resume');
+        if (localStorage.getItem('training.resume')?.[0] == 'p') {
+            localStorage.removeItem('training.resume');
         }
         localStorage.setItem('training.textMode', 'free');
         inputCSV.textMode = 'free';

@@ -1,0 +1,21 @@
+{
+  "name": "training-server",
+  "version": "1.0.0",
+  "description": "Training app server with OAuth authentication",
+  "main": "training-server.js",
+  "scripts": {
+    "start": "node training-server.js",
+    "dev": "nodemon training-server.js",
+    "test": "node test-api.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "sqlite3": "^5.1.6"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}

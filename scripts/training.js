@@ -6,8 +6,8 @@ var inputCSV = new Vue({
         selectGen: '',
         selectLvl: '',
         select: '',
-        user_id: localStorage.getItem('training.user_id') || null,
         user_name: localStorage.getItem('training.user_name') || null,
+        user_email: localStorage.getItem('training.user_email') || null,
 
         checkHIIT: 0,
 
@@ -864,7 +864,7 @@ Check login and update textMode on app start
 ----------------------------------------------------------------------*/
 async function checkLoginAndUpdateTextMode() {
     try {
-        const response = await callAPI('/api/app/training/exercise');
+        const response = await callAPI('/api/training/exercises');
         data = response.data;
         user = data.user;
         exercises = data.exercises;
@@ -873,18 +873,22 @@ async function checkLoginAndUpdateTextMode() {
             // User is logged in, set textMode to 'prime'
             // localStorage.setItem('training.textMode', 'prime');
             
-            // Save user info to localStorage for training app
-            localStorage.setItem('training.user_id', user.id);
+            // Save user info to localStorage for training app (without user_id for security)
             localStorage.setItem('training.user_name', user.name || '');
-            inputCSV.user_id = user.id;
+            localStorage.setItem('training.user_email', user.email || '');
             inputCSV.user_name = user.name;
+            inputCSV.user_email = user.email;
+            
+            console.log('User logged in:', user.name, user.email);
         } else {
             // User not logged in, set textMode to 'free'
             // localStorage.setItem('training.textMode', 'free');
             
             // Clear user info from localStorage
-            localStorage.removeItem('training.user_id');
             localStorage.removeItem('training.user_name');
+            localStorage.removeItem('training.user_email');
+            
+            console.log('User not logged in');
         }
 
         if (response && exercises) {
@@ -915,9 +919,10 @@ async function checkLoginAndUpdateTextMode() {
         }
     } catch (error) {
         console.log('Login check failed, setting to free mode:', error);
+        console.log('Token available:', localStorage.getItem('authToken'));
         // Clear user info from localStorage
-        localStorage.removeItem('training.user_id');
         localStorage.removeItem('training.user_name');
+        localStorage.removeItem('training.user_email');
         if (localStorage.getItem('training.selectedLvl')?.[0] == 'p') {
             localStorage.removeItem('training.selectedLvl');
         }

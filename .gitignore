@@ -1,0 +1,3 @@
+srv/.env
+/srv/node_modules
+/srv/db

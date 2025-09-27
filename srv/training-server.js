@@ -149,9 +149,11 @@ async function authenticateToken(req, res, next) {
 app.get('/health', (req, res) => {
   res.json({
     success: true,
+    status: 'OK',
     service: 'Training App Server',
     version: '1.0.0',
     timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
     port: APP_CONFIG.port,
     api_base: API_BASE
   });

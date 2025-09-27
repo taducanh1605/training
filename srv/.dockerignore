@@ -1,0 +1,44 @@
+# Node modules
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment files (sẽ được mount riêng)
+.env
+
+# database files
+db/
+
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+docs/
+
+# Development files
+*.log
+*.tmp
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-*
+
+# Build files
+dist/
+build/

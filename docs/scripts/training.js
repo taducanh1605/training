@@ -807,29 +807,7 @@ async function checkLoginAndUpdateTextMode() {
 
         if (response && exercises) {
             inputCSV.dataUsers = exercises;
-            tempGroup = [];
-            tempEx = [];
-            flag = 0;
-            Object.keys(exercises).forEach(prog => {
-                if (exercises[prog].length > 0) {
-                    tempEx.push(prog);
-                }
-                else if (flag > 0) {
-                    tempGroup.push(tempEx);
-                    inputCSV.listProgUsers.push(tempGroup);
-
-                    tempGroup = [];
-                    tempEx = [];
-
-                    tempGroup.push(prog);
-                }
-                else {
-                    tempGroup.push(prog);
-                    flag = 1;
-                }
-            });
-            tempGroup.push(tempEx);
-            inputCSV.listProgUsers.push(tempGroup);
+            inputCSV.listProgUsers = json2ListProg(exercises);
         }
     } catch (error) {
         console.log('Login check failed, setting to free mode:', error);

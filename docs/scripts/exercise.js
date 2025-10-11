@@ -283,7 +283,7 @@ function createLevelEditor(levelKey, levelData) {
     const addWorkoutBtn = document.createElement('button');
     addWorkoutBtn.textContent = '+ Add Workout';
     addWorkoutBtn.style.cssText = 'background: #00a2ff; color: #fff; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; margin-top: 10px;';
-    addWorkoutBtn.onclick = () => addNewWorkout(workoutsDiv);
+    addWorkoutBtn.onclick = () => addNewWorkoutAdvanced(workoutsDiv);
     levelDiv.appendChild(addWorkoutBtn);
     
     return levelDiv;
@@ -440,16 +440,19 @@ function createExerciseRow(exerciseString, rounds, restTime, index) {
     return row;
 }
 
-// Helper functions
+// ====== SHARED HELPER FUNCTIONS (Used by both Advanced Editor and Navigation Interface) ======
+
+// Add new movement to an exercise (works for both UI systems)
 function addMovement(movementsDiv) {
     // Find the add movement button (should be a direct child)
     const button = Array.from(movementsDiv.children).find(child => 
         child.tagName === 'BUTTON' && child.textContent.includes('+ Movement')
     );
     
+    // Create new movement input row with default values
     const newMovementRow = createMovementInputRow('New Exercise x10');
     
-    // If button exists and is a child, insert before it. Otherwise, append to end.
+    // Insert before the "Add Movement" button, or append if button not found
     if (button && button.parentNode === movementsDiv) {
         movementsDiv.insertBefore(newMovementRow, button);
     } else {
@@ -457,7 +460,7 @@ function addMovement(movementsDiv) {
         movementsDiv.appendChild(newMovementRow);
     }
     
-    // Focus on the exercise name input
+    // Focus on the exercise name input for better UX
     const nameInput = newMovementRow.querySelector('input[type="text"]');
     if (nameInput) {
         nameInput.focus();
@@ -467,24 +470,31 @@ function addMovement(movementsDiv) {
     markAsModified();
 }
 
+// Advanced Editor: Add new exercise row to exercises container
 function addNewExerciseRow(exercisesDiv) {
+    // Create exercise row with default values: name, rounds=3, rest=60s
     const newRow = createExerciseRow('New Exercise x10', 3, 60, -1);
     exercisesDiv.appendChild(newRow);
     markAsModified();
 }
 
-function addNewWorkout(workoutsDiv) {
+// Advanced Editor: Add new workout to a specific DOM container
+function addNewWorkoutAdvanced(workoutsDiv) {
+    // Create workout editor component with default exercise
     const newWorkout = createWorkoutEditor('New Workout', [['New Exercise x10'], [3], [60]]);
     workoutsDiv.appendChild(newWorkout);
     markAsModified();
 }
 
-function addNewLevel() {
+// Advanced Editor: Add new level with DOM manipulation (creates visual editor)
+function addNewLevelAdvanced() {
     const exerciseList = document.getElementById('exercise-list');
     const lastButton = exerciseList.querySelector('button:last-child');
     
+    // Create a new level editor component with default workout
     const newLevel = createLevelEditor('New Level', {'New Workout': [['New Exercise x10'], [3], [60]]});
     
+    // Insert before the last button (usually "Add Level" button)
     if (lastButton && lastButton.parentNode === exerciseList) {
         exerciseList.insertBefore(newLevel, lastButton);
     } else {
@@ -516,9 +526,16 @@ function deleteExerciseRow(row) {
     }
 }
 
-// Mark as modified (visual indicator)
+// Mark exercise data as modified (visual indicator for both Advanced Editor and Navigation Interface)
 function markAsModified() {
-    const saveBtn = document.querySelector('button[onclick="submitExerciseChanges()"]');
+    // Try to find save button by onclick attribute (Advanced Editor)
+    let saveBtn = document.querySelector('button[onclick="submitExerciseChanges()"]');
+    
+    // If not found, try to find by ID (Navigation Interface)
+    if (!saveBtn) {
+        saveBtn = document.getElementById('save-changes-btn');
+    }
+    
     if (saveBtn) {
         saveBtn.style.background = '#ff6600';
         saveBtn.textContent = 'Save Changes *';
@@ -1064,7 +1081,7 @@ function displayLevelsView(container) {
     // Add level button
     const addLevelBtn = document.createElement('button');
     addLevelBtn.textContent = '+ Add New Level';
-    addLevelBtn.onclick = () => addNewLevel();
+    addLevelBtn.onclick = () => addNewLevelNavigation();
     addLevelBtn.style.cssText = 'background: #ff8c00; color: #fff; padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; width: 100%;';
     
     levelsDiv.appendChild(addLevelBtn);
@@ -1174,7 +1191,7 @@ function displayWorkoutsView(container) {
     // Add workout button
     const addWorkoutBtn = document.createElement('button');
     addWorkoutBtn.textContent = '+ Add New Workout';
-    addWorkoutBtn.onclick = () => addNewWorkout();
+    addWorkoutBtn.onclick = () => addNewWorkoutNavigation();
     addWorkoutBtn.style.cssText = 'background: #00a2ff; color: #fff; padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; width: 100%;';
     
     workoutsDiv.appendChild(addWorkoutBtn);
@@ -1317,7 +1334,7 @@ function createDetailedExerciseRow(exerciseString, rounds, restTime, index) {
     // Add movement button
     const addMovementBtn = document.createElement('button');
     addMovementBtn.textContent = '+ Movement';
-    addMovementBtn.onclick = () => addMovementToExercise(movementsDiv);
+    addMovementBtn.onclick = () => addMovement(movementsDiv);
     addMovementBtn.style.cssText = 'background: #888; color: #fff; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-top: 5px;';
     movementsDiv.appendChild(addMovementBtn);
     
@@ -1450,43 +1467,22 @@ function createMovementInputRow(movementText) {
     return movementRow;
 }
 
-// Helper functions for navigation interface
-function addMovementToExercise(movementsDiv) {
-    // Find the add movement button (should be a direct child)
-    const button = Array.from(movementsDiv.children).find(child => 
-        child.tagName === 'BUTTON' && child.textContent.includes('+ Movement')
-    );
-    
-    const newMovementRow = createMovementInputRow('New Exercise x10');
-    
-    // If button exists and is a child, insert before it. Otherwise, append to end.
-    if (button && button.parentNode === movementsDiv) {
-        movementsDiv.insertBefore(newMovementRow, button);
-    } else {
-        // Fallback: append to the end if button not found or not a direct child
-        movementsDiv.appendChild(newMovementRow);
-    }
-    
-    // Focus on the exercise name input
-    const nameInput = newMovementRow.querySelector('input[type="text"]');
-    if (nameInput) {
-        nameInput.focus();
-        nameInput.select();
-    }
-    
-    markAsModified();
-}
+// ====== NAVIGATION INTERFACE HELPER FUNCTIONS ======
 
+// Navigation Interface: Add new exercise to current workout being edited
 function addNewExerciseToWorkout() {
     const exercisesList = document.querySelector('.exercises-list');
     if (!exercisesList) return;
     
+    // Calculate new index based on existing exercises
     const newIndex = exercisesList.children.length;
+    // Create detailed exercise row for navigation interface
     const newRow = createDetailedExerciseRow('New Exercise x10', 3, 60, newIndex);
     exercisesList.appendChild(newRow);
     markAsModified();
 }
 
+// Navigation Interface: Delete exercise from current workout
 function deleteExerciseFromWorkout(row) {
     if (confirm('Are you sure you want to delete this exercise?')) {
         row.remove();
@@ -1494,77 +1490,82 @@ function deleteExerciseFromWorkout(row) {
     }
 }
 
-function addNewLevel() {
+// Navigation Interface: Add new level to data structure (prompt-based)
+function addNewLevelNavigation() {
     const newLevelName = prompt('Enter new level name:', 'New Level');
     if (newLevelName && newLevelName.trim()) {
+        // Add new level to current exercise data with default workout
         currentExerciseData[newLevelName.trim()] = {
             'New Workout': [['New Exercise x10'], [3], [60]]
         };
         markAsModified();
-        displayNavigationExerciseEditor();
+        displayNavigationExerciseEditor(); // Refresh the navigation view
     }
 }
 
-function addNewWorkout() {
+// Navigation Interface: Add new workout to current level (prompt-based)
+function addNewWorkoutNavigation() {
     const newWorkoutName = prompt('Enter new workout name:', 'New Workout');
     if (newWorkoutName && newWorkoutName.trim() && currentLevelKey) {
+        // Add workout to current level with default exercise, rounds, and rest time
         currentExerciseData[currentLevelKey][newWorkoutName.trim()] = [['New Exercise x10'], [3], [60]];
         markAsModified();
-        displayNavigationExerciseEditor();
+        displayNavigationExerciseEditor(); // Refresh the navigation view
     }
 }
 
+// Navigation Interface: Edit level name via prompt
 function editLevelName(oldName) {
     const newName = prompt('Enter new level name:', oldName);
     if (newName && newName.trim() && newName !== oldName) {
+        // Rename level in data structure
         currentExerciseData[newName.trim()] = currentExerciseData[oldName];
         delete currentExerciseData[oldName];
+        // Update current navigation state if we're editing the active level
         if (currentLevelKey === oldName) {
             currentLevelKey = newName.trim();
         }
         markAsModified();
-        displayNavigationExerciseEditor();
+        displayNavigationExerciseEditor(); // Refresh view to show changes
     }
 }
 
+// Navigation Interface: Edit workout name via prompt
 function editWorkoutName(oldName) {
     const newName = prompt('Enter new workout name:', oldName);
     if (newName && newName.trim() && newName !== oldName && currentLevelKey) {
+        // Rename workout in current level
         currentExerciseData[currentLevelKey][newName.trim()] = currentExerciseData[currentLevelKey][oldName];
         delete currentExerciseData[currentLevelKey][oldName];
+        // Update current navigation state if we're editing the active workout
         if (currentWorkoutKey === oldName) {
             currentWorkoutKey = newName.trim();
         }
         markAsModified();
-        displayNavigationExerciseEditor();
+        displayNavigationExerciseEditor(); // Refresh view to show changes
     }
 }
 
+// Navigation Interface: Delete entire level and all its workouts
 function deleteLevel(levelKey) {
     if (confirm(`Are you sure you want to delete level "${levelKey}" and all its workouts?`)) {
         delete currentExerciseData[levelKey];
+        // If we're currently viewing the deleted level, navigate back to levels view
         if (currentLevelKey === levelKey) {
             navigateToLevels();
         }
         markAsModified();
-        displayNavigationExerciseEditor();
+        displayNavigationExerciseEditor(); // Refresh view
     }
 }
 
+// Navigation Interface: Delete workout from current level  
 function deleteWorkout(workoutKey) {
     if (confirm(`Are you sure you want to delete workout "${workoutKey}"?`)) {
         delete currentExerciseData[currentLevelKey][workoutKey];
+        // Navigate back to workouts view after deletion
         navigateToWorkouts(currentLevelKey);
         markAsModified();
-    }
-}
-
-// Mark as modified (visual indicator)
-function markAsModified() {
-    const saveBtn = document.getElementById('save-changes-btn');
-    if (saveBtn) {
-        saveBtn.style.background = '#ff6600';
-        saveBtn.textContent = 'Save Changes *';
     }
 }
 

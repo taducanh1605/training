@@ -169,7 +169,7 @@ app.post('/auth/login', async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Email và password là bắt buộc',
+        message: 'Email and password are required',
         error: 'MISSING_CREDENTIALS'
       });
     }
@@ -180,7 +180,7 @@ app.post('/auth/login', async (req, res) => {
     if (result.success) {
       res.json({
         success: true,
-        message: 'Đăng nhập thành công',
+        message: 'Login successful',
         token: result.token,
         user: result.user,
         expires_at: result.expires_at
@@ -188,7 +188,7 @@ app.post('/auth/login', async (req, res) => {
     } else {
       res.status(401).json({
         success: false,
-        message: result.message || 'Đăng nhập thất bại',
+        message: result.message || 'Login failed',
         error: 'LOGIN_FAILED'
       });
     }
@@ -196,7 +196,7 @@ app.post('/auth/login', async (req, res) => {
     console.error('Login error:', error);
     res.status(500).json({
       success: false,
-      message: 'Lỗi server khi đăng nhập',
+      message: 'Server error during login',
       error: 'SERVER_ERROR'
     });
   }
@@ -212,7 +212,7 @@ app.post('/auth/register', async (req, res) => {
     if (!email || !password || !name) {
       return res.status(400).json({
         success: false,
-        message: 'Email, password và name là bắt buộc',
+        message: 'Email, password and name are required',
         error: 'MISSING_FIELDS'
       });
     }
@@ -223,7 +223,7 @@ app.post('/auth/register', async (req, res) => {
     if (result.success) {
       res.json({
         success: true,
-        message: 'Đăng ký thành công',
+        message: 'Registration successful',
         token: result.token,
         user: result.user,
         expires_at: result.expires_at
@@ -231,7 +231,7 @@ app.post('/auth/register', async (req, res) => {
     } else {
       res.status(400).json({
         success: false,
-        message: result.message || 'Đăng ký thất bại',
+        message: result.message || 'Registration failed',
         error: 'REGISTER_FAILED'
       });
     }
@@ -239,7 +239,7 @@ app.post('/auth/register', async (req, res) => {
     console.error('Register error:', error);
     res.status(500).json({
       success: false,
-      message: 'Lỗi server khi đăng ký',
+      message: 'Server error during registration',
       error: 'SERVER_ERROR'
     });
   }
@@ -255,7 +255,7 @@ app.post('/auth/verify', async (req, res) => {
     if (!token) {
       return res.status(400).json({
         success: false,
-        message: 'Token là bắt buộc',
+        message: 'Token is required',
         error: 'MISSING_TOKEN'
       });
     }
@@ -265,14 +265,14 @@ app.post('/auth/verify', async (req, res) => {
     if (result.success) {
       res.json({
         success: true,
-        message: 'Token hợp lệ',
+        message: 'Token is valid',
         user: result.user,
         expires_at: result.expires_at
       });
     } else {
       res.status(401).json({
         success: false,
-        message: result.message || 'Token không hợp lệ',
+        message: result.message || 'Invalid token',
         error: 'INVALID_TOKEN'
       });
     }
@@ -280,7 +280,7 @@ app.post('/auth/verify', async (req, res) => {
     console.error('Verify token error:', error);
     res.status(500).json({
       success: false,
-      message: 'Lỗi server khi xác thực token',
+      message: 'Server error during token verification',
       error: 'SERVER_ERROR'
     });
   }
@@ -291,16 +291,223 @@ app.post('/auth/verify', async (req, res) => {
  */
 app.get('/api/user/me', authenticateToken, async (req, res) => {
   try {
+    // Lấy thông tin chi tiết từ TrainingApp
+    const profileResult = await trainingApp.getUserProfile(req.user.id);
+    
+    if (profileResult.error) {
+      return res.json({
+        success: true,
+        user: req.user,
+        profile: null,
+        metrics: null,
+        message: 'Basic user information'
+      });
+    }
+
     res.json({
       success: true,
       user: req.user,
-      message: 'Thông tin user'
+      profile: profileResult.profile,
+      metrics: profileResult.metrics,
+      message: 'Complete user information'
     });
   } catch (error) {
     console.error('Get user info error:', error);
     res.status(500).json({
       success: false,
-      message: 'Lỗi server khi lấy thông tin user',
+      message: 'Server error while getting user information',
+      error: 'SERVER_ERROR'
+    });
+  }
+});
+
+/**
+ * ROUTE: Cập nhật thông tin user (giới tính, tuổi, chiều cao, cân nặng)
+ */
+app.put('/api/user/profile', authenticateToken, async (req, res) => {
+  try {
+    const { gender, weight, height, birthdate, exercises } = req.body;
+
+    // Validation
+    if (gender && !['male', 'female', 'other'].includes(gender)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid gender (male, female, other)',
+        error: 'INVALID_GENDER'
+      });
+    }
+
+    if (weight && (typeof weight !== 'number' || weight <= 0 || weight > 300)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid weight (1-300 kg)',
+        error: 'INVALID_WEIGHT'
+      });
+    }
+
+    if (height && (typeof height !== 'number' || height <= 0 || height > 250)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid height (1-250 cm)',
+        error: 'INVALID_HEIGHT'
+      });
+    }
+
+    // Kiểm tra xem user đã có exercises trong DB chưa để tránh ghi đè
+    let shouldIncludeExercises = false;
+    if (exercises) {
+      try {
+        const existingWorkout = await trainingApp.getUserWorkout(req.user.id);
+        
+        if (existingWorkout.error || !existingWorkout.exercises) {
+          // User chưa có workout data, có thể thêm exercises mới
+          shouldIncludeExercises = true;
+          console.log(`User ${req.user.id} has no existing workout data, will add new exercises`);
+        } else {
+          // User đã có workout data, không ghi đè
+          console.log(`User ${req.user.id} already has workout data, skipping exercises update to prevent overwrite`);
+        }
+      } catch (error) {
+        console.error('Error checking existing workout:', error);
+        // Nếu có lỗi khi kiểm tra, an toàn hơn là không thêm exercises
+        shouldIncludeExercises = false;
+      }
+    }
+
+    // Cập nhật thông tin qua TrainingApp
+    const updateData = {
+      gender,
+      weight,
+      height, 
+      birthdate
+    };
+
+    // Chỉ thêm exercises nếu user chưa có và được phép
+    if (shouldIncludeExercises) {
+      updateData.exercises = exercises;
+    }
+
+    const updateResult = await trainingApp.updateUserProfile(updateData, req.user);
+
+    if (updateResult.error) {
+      return res.status(400).json({
+        success: false,
+        message: updateResult.error,
+        error: 'UPDATE_FAILED'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: updateResult
+    });
+  } catch (error) {
+    console.error('Update user profile error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while updating user profile',
+      error: 'SERVER_ERROR'
+    });
+  }
+});
+
+/**
+ * ROUTE: Lấy exercises của user hiện tại
+ */
+app.get('/api/user/exercises', authenticateToken, async (req, res) => {
+  try {
+    const workoutData = await trainingApp.getUserWorkout(req.user.id);
+    
+    if (workoutData.error) {
+      return res.status(400).json({
+        success: false,
+        message: workoutData.error,
+        error: 'GET_EXERCISES_FAILED'
+      });
+    }
+
+    res.json({
+      success: true,
+      exercises: workoutData.exercises || null,
+      message: 'Exercises retrieved successfully'
+    });
+  } catch (error) {
+    console.error('Get user exercises error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while getting exercises',
+      error: 'SERVER_ERROR'
+    });
+  }
+});
+
+/**
+ * ROUTE: Cập nhật exercises của user
+ */
+app.put('/api/user/exercises', authenticateToken, async (req, res) => {
+  try {
+    const { exercises } = req.body;
+
+    if (!exercises || typeof exercises !== 'object') {
+      return res.status(400).json({
+        success: false,
+        message: 'Exercises data is required and must be an object',
+        error: 'INVALID_EXERCISES'
+      });
+    }
+
+    // Cập nhật exercises qua TrainingApp
+    const updateResult = await trainingApp.updateUserWorkout(req.user.id, exercises);
+
+    if (updateResult.error) {
+      return res.status(400).json({
+        success: false,
+        message: updateResult.error,
+        error: 'UPDATE_EXERCISES_FAILED'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Exercises updated successfully',
+      data: updateResult
+    });
+  } catch (error) {
+    console.error('Update user exercises error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while updating exercises',
+      error: 'SERVER_ERROR'
+    });
+  }
+});
+
+/**
+ * ROUTE: Reset exercises về default (xóa custom exercises)
+ */
+app.delete('/api/user/exercises', authenticateToken, async (req, res) => {
+  try {
+    // Xóa custom exercises của user
+    const deleteResult = await trainingApp.deleteUserWorkout(req.user.id);
+
+    if (deleteResult.error) {
+      return res.status(400).json({
+        success: false,
+        message: deleteResult.error,
+        error: 'DELETE_EXERCISES_FAILED'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Exercises reset to default successfully'
+    });
+  } catch (error) {
+    console.error('Delete user exercises error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while deleting exercises',
       error: 'SERVER_ERROR'
     });
   }
@@ -318,7 +525,7 @@ app.get('/api/oauth/google/url', async (req, res) => {
     console.error('Google OAuth URL error:', error);
     res.status(500).json({
       success: false,
-      message: 'Lỗi khi lấy Google OAuth URL',
+      message: 'Error getting Google OAuth URL',
       error: 'SERVER_ERROR'
     });
   }
@@ -336,7 +543,7 @@ app.get('/api/oauth/facebook/url', async (req, res) => {
     console.error('Facebook OAuth URL error:', error);
     res.status(500).json({
       success: false,
-      message: 'Lỗi khi lấy Facebook OAuth URL',
+      message: 'Error getting Facebook OAuth URL',
       error: 'SERVER_ERROR'
     });
   }
@@ -359,13 +566,13 @@ app.get('/api/training/exercises', authenticateToken, async (req, res) => {
         },
         exercises: result.exercises || result
       },
-      message: 'Dữ liệu tập luyện'
+      message: 'Training data'
     });
   } catch (error) {
     console.error('Get exercises error:', error);
     res.status(500).json({
       success: false,
-      message: 'Lỗi server khi lấy dữ liệu tập luyện',
+      message: 'Server error while getting training data',
       error: 'SERVER_ERROR'
     });
   }
@@ -402,7 +609,7 @@ app.all('/api/training/:endpoint(*)', authenticateToken, async (req, res) => {
     console.error('Training API error:', error);
     res.status(500).json({
       success: false,
-      message: 'Lỗi server khi xử lý API training',
+      message: 'Server error while processing training API',
       error: 'SERVER_ERROR'
     });
   }
@@ -414,7 +621,7 @@ app.all('/api/training/:endpoint(*)', authenticateToken, async (req, res) => {
 app.use('*', (req, res) => {
   res.status(404).json({
     success: false,
-    message: 'API endpoint không tồn tại',
+    message: 'API endpoint not found',
     error: 'NOT_FOUND',
     available_routes: [
       'GET /health',
@@ -422,6 +629,7 @@ app.use('*', (req, res) => {
       'POST /auth/register', 
       'POST /auth/verify',
       'GET /api/user/me',
+      'PUT /api/user/profile',
       'GET /api/oauth/google/url',
       'GET /api/oauth/facebook/url',
       'GET /api/training/exercises',
@@ -437,7 +645,7 @@ app.use((error, req, res, next) => {
   console.error('Unhandled error:', error);
   res.status(500).json({
     success: false,
-    message: 'Lỗi server không xác định',
+    message: 'Internal server error',
     error: 'INTERNAL_SERVER_ERROR'
   });
 });
@@ -458,14 +666,18 @@ async function startServer() {
       console.log(`API Base: ${API_BASE}`);
       console.log(`Health check: http://localhost:${PORT}/health`);
       console.log('Available routes:');
-      console.log('   POST /auth/login - Đăng nhập');
-      console.log('   POST /auth/register - Đăng ký');
-      console.log('   POST /auth/verify - Xác thực token');
-      console.log('   GET  /api/user/me - Thông tin user');
+      console.log('   POST /auth/login - Login');
+      console.log('   POST /auth/register - Register');
+      console.log('   POST /auth/verify - Verify token');
+      console.log('   GET  /api/user/me - User information');
+      console.log('   PUT  /api/user/profile - Update user profile');
+      console.log('   GET  /api/user/exercises - Get user exercises');
+      console.log('   PUT  /api/user/exercises - Update user exercises');
+      console.log('   DELETE /api/user/exercises - Reset exercises to default');
       console.log('   GET  /api/oauth/google/url - Google OAuth URL');
       console.log('   GET  /api/oauth/facebook/url - Facebook OAuth URL');
-      console.log('   GET  /api/training/exercises - Dữ liệu tập luyện');
-      console.log('   ALL  /api/training/* - API tổng quát');
+      console.log('   GET  /api/training/exercises - Training data');
+      console.log('   ALL  /api/training/* - General training API');
       console.log('');
       console.log('Server ready to accept requests!');
     });

@@ -35,6 +35,7 @@
 
                 <p v-if="textMode === 'prime' && loaded === 0 && user_name != null" style="font-size: 13px;">Welcome {{user_name}}</p>
                 <button v-if="textMode === 'prime' && loaded === 0 && user_name != null" onclick="logout()" class="butLog">Logout</button>
+                <button v-if="textMode === 'prime' && loaded === 0 && user_name != null" onclick="showExerciseEditor()" class="butLog">Edit Exercise</button>
                 
                 <div v-if="textMode === 'prime' && loaded === 0 && user_name != null" class="row">
                     <div class="col-sm-6" style="padding: 0 3px 0 9px;">
@@ -127,6 +128,55 @@
                     </div>
                 </div>
 
+                <!-- Profile Information Form (hidden by default) -->
+                <div id="profile-form-container" class="profile-form-container" style="display: none; width: 100%; background: rgba(0,0,0,0.8); padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                    <h3 style="color: #fff; text-align: center; margin-bottom: 20px;">Complete Your Profile</h3>
+                    <p style="color: #ccc; text-align: center; margin-bottom: 20px;">Please provide your information to get personalized workout recommendations</p>
+                    
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <label for="profile_gender" style="color: #fff; display: block; margin-bottom: 5px;">Gender *</label>
+                            <select id="profile_gender" class="selectProg" style="width: 100%; margin-bottom: 15px; color: #000; background-color: #fff;" required>
+                                <option value="">Select Gender</option>
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-sm-6">
+                            <label for="profile_birthdate" style="color: #fff; display: block; margin-bottom: 5px;">Birth Date *</label>
+                            <input type="date" id="profile_birthdate" style="width: 100%; margin-bottom: 15px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; color: #000; background-color: #fff;" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <label for="profile_weight" style="color: #fff; display: block; margin-bottom: 5px;">Weight (kg) *</label>
+                            <input type="number" id="profile_weight" min="1" max="300" step="0.1" style="width: 100%; margin-bottom: 15px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; color: #000; background-color: #fff;" placeholder="Enter your weight" required>
+                        </div>
+                        <div class="col-sm-6">
+                            <label for="profile_height" style="color: #fff; display: block; margin-bottom: 5px;">Height (cm) *</label>
+                            <input type="number" id="profile_height" min="1" max="250" step="0.1" style="width: 100%; margin-bottom: 15px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; color: #000; background-color: #fff;" placeholder="Enter your height" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-sm-12" style="text-align: center;">
+                            <button type="button" onclick="submitProfileForm()" class="butLog" style="background: #00ff37; color: #000; padding: 10px 30px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">
+                                Update Profile
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Exercise Editor Form (hidden by default) -->
+                <div id="exercise-editor-container" class="exercise-editor-container" style="display: none; width: 100%; background: rgba(0,0,0,0.85); padding: 20px; border-radius: 10px; margin-bottom: 20px; max-height: 75vh; overflow-y: auto;">
+                    <!-- Exercise List Container (Navigation interface will be created here) -->
+                    <div id="exercise-list">
+                        <!-- Navigation interface will be loaded here dynamically -->
+                    </div>
+                </div>
+
                 <p v-if="count === 0 || (flagStart === 2)" class="row3" style="white-space: pre-line">{{row3}}</p>
                 <p v-if="(count > 0) && (flagStart < 2)" v-for="exer in row3_exs" class="row3" >{{(exer.indexOf('input') > 0) ? exer.slice(0, exer.indexOf(' x')+2) : exer}}<span v-if="exer.indexOf('input') > 0" v-html="exer.slice(exer.indexOf(' x')+2)"></span></p>
                 <p v-bind:class="'row4-'+textbreak">{{row4}}</p>
@@ -177,6 +227,8 @@
         </div>
     </div>
     <script src="./scripts/oauth.js"></script>
+    <script src="./scripts/exercise.js"></script>
+    <script src="./scripts/exercise-append.js"></script>
     <script src="./scripts/training.js"></script>
     <script>
         const body = document.body;

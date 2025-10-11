@@ -49,6 +49,7 @@ var inputCSV = new Vue({
             this.exLinkSearch = [];
             this.exNameOnly = [];
         },
+
         //read file csv
         onFileChange(e) {
             var files = e.target.files || e.dataTransfer.files;
@@ -182,14 +183,14 @@ var inputCSV = new Vue({
                             var repS = nameI.length - nameI.split("").reverse().join("").indexOf('-?'),
                                 repE = nameI.indexOf('?', repS),
                                 rep = parseInt(nameI.slice(repS, repE));
-                            nameI = nameI.substring(0, repS - 1) + ' -' + nameI.substring(repS + nameI.substring(repS).indexOf('?')).replace('?', `<input class="inHIIT" onInput="goal(${data[this.select][0].indexOf(exercise)},${i}, this.value, ${y})" type="number" min="0" value="${rep}">`);
+                            nameI = nameI.substring(0, repS - 1) + ' -' + nameI.substring(repS + nameI.substring(repS).indexOf('?')).replace('?', `<input class="inHIIT" onInput="goal(${dataEx[this.selectLvl][this.select][0].indexOf(exercise)},${i}, this.value, ${y})" type="number" min="0" value="${rep}">`);
                         }
 
                         // [2022-09-10-DA] pour replacer [x?]-?-?
                         var repS = nameI.indexOf(' x') + 2,
                             repE = nameI.indexOf('?'),
                             rep = parseInt(nameI.slice(repS, repE));
-                        nameI = nameI.substring(0, repS) + nameI.substring(repS + nameI.substring(repS).indexOf('?')).replace('?', `<input class="inHIIT" onInput="goal(${data[this.select][0].indexOf(exercise)},${i}, this.value)" type="number" min="0" value="${rep}">`);
+                        nameI = nameI.substring(0, repS) + nameI.substring(repS + nameI.substring(repS).indexOf('?')).replace('?', `<input class="inHIIT" onInput="goal(${dataEx[this.selectLvl][this.select][0].indexOf(exercise)},${i}, this.value)" type="number" min="0" value="${rep}">`);
                         tempName[i] = nameI.replaceAll(' -', '-');
                     }
                 }
@@ -794,6 +795,9 @@ async function checkLoginAndUpdateTextMode() {
             inputCSV.user_email = user.email;
             
             console.log('User logged in:', user.name, user.email);
+            
+            // Check if user profile is complete and show form if needed
+            checkAndShowProfileForm();
         } else {
             // User not logged in, set textMode to 'free'
             // localStorage.setItem('training.textMode', 'free');
@@ -803,11 +807,19 @@ async function checkLoginAndUpdateTextMode() {
             localStorage.removeItem('training.user_email');
             
             console.log('User not logged in');
+            
+            // Hide profile form since user is not logged in
+            hideProfileForm();
         }
 
         if (response && exercises) {
             inputCSV.dataUsers = exercises;
             inputCSV.listProgUsers = json2ListProg(exercises);
+            
+            // Check for pending localStorage exercises after setting server data
+            if (typeof checkAndRetryLocalStorageExercises === 'function') {
+                checkAndRetryLocalStorageExercises();
+            }
         }
     } catch (error) {
         console.log('Login check failed, setting to free mode:', error);
@@ -823,6 +835,26 @@ async function checkLoginAndUpdateTextMode() {
         }
         localStorage.setItem('training.textMode', 'free');
         inputCSV.textMode = 'free';
+        
+        // Hide profile form since user is not logged in or token is invalid
+        hideProfileForm();
     }
 }
 
+// Initialize profile check when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Small delay to ensure all other initialization is complete
+    setTimeout(() => {
+        checkAndShowProfileForm();
+    }, 500);
+});
+
+// Also check when page visibility changes (user returns to tab)
+document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+        // Page is now visible, recheck profile status
+        setTimeout(() => {
+            checkAndShowProfileForm();
+        }, 100);
+    }
+});

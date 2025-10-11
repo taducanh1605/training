@@ -115,8 +115,8 @@ class TrainingApp {
       
       // Tạo metrics mặc định cho user mới
       await this.run(
-        'INSERT INTO metrics (user_id, gender, activity_level, fitness_goal) VALUES (?, ?, ?, ?)',
-        [user.id, 'o', 'moderate', 'maintain']
+        'INSERT INTO metrics (user_id, gender) VALUES (?, ?)',
+        [user.id, 'o']
       );
     } else {
       // Update user info if changed
@@ -207,22 +207,24 @@ class TrainingApp {
         metricsValues.push(data.birthdate);
       }
 
-      if (data.activity_level) {
-        metricsFields.push('activity_level = ?');
-        metricsValues.push(data.activity_level);
-      }
-
-      if (data.fitness_goal) {
-        metricsFields.push('fitness_goal = ?');
-        metricsValues.push(data.fitness_goal);
-      }
-
       if (metricsFields.length > 0) {
         metricsFields.push('updated_at = CURRENT_TIMESTAMP');
         metricsValues.push(user.id);
 
         const metricsSql = `UPDATE metrics SET ${metricsFields.join(', ')} WHERE user_id = ?`;
         await this.run(metricsSql, metricsValues);
+      }
+
+      // Save exercises if provided (pre-checked by server layer)
+      if (data.exercises) {
+        console.log('Saving new exercises for user:', user.id);
+        const saveResult = await this.saveUserWorkout(user.id, data.exercises);
+        
+        if (saveResult.error) {
+          console.error('Error saving workout:', saveResult.error);
+        } else {
+          console.log('Workout saved successfully for user:', user.id);
+        }
       }
 
       // Nếu không có field nào để update
@@ -285,6 +287,60 @@ class TrainingApp {
     } catch (error) {
       console.error('Error getting workout:', error);
       return { error: 'Failed to get workout' };
+    }
+  }
+
+  // Update workout data cho user (cho exercise editor)
+  async updateUserWorkout(userId, exercisesData) {
+    try {
+      const exercisesJson = typeof exercisesData === 'string' ? exercisesData : JSON.stringify(exercisesData);
+      
+      // Kiểm tra xem user đã có workout chưa
+      const existingWorkout = await this.get('SELECT id FROM workouts WHERE user_id = ? ORDER BY created_at DESC LIMIT 1', [userId]);
+      
+      if (existingWorkout) {
+        // Update workout hiện tại
+        const result = await this.run(
+          'UPDATE workouts SET exercises = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?',
+          [exercisesJson, userId]
+        );
+        
+        return {
+          success: true,
+          message: 'Workout updated successfully'
+        };
+      } else {
+        // Tạo workout mới nếu chưa có
+        const result = await this.run(
+          'INSERT INTO workouts (user_id, exercises) VALUES (?, ?)',
+          [userId, exercisesJson]
+        );
+        
+        return {
+          success: true,
+          workout_id: result.lastID,
+          message: 'New workout created successfully'
+        };
+      }
+    } catch (error) {
+      console.error('Error updating workout:', error);
+      return { error: 'Failed to update workout' };
+    }
+  }
+
+  // Xóa workout data của user (reset về default)
+  async deleteUserWorkout(userId) {
+    try {
+      const result = await this.run('DELETE FROM workouts WHERE user_id = ?', [userId]);
+      
+      return {
+        success: true,
+        deleted_count: result.changes,
+        message: 'User workout deleted successfully'
+      };
+    } catch (error) {
+      console.error('Error deleting workout:', error);
+      return { error: 'Failed to delete workout' };
     }
   }
 

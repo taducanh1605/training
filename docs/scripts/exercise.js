@@ -442,10 +442,20 @@ function createExerciseRow(exerciseString, rounds, restTime, index) {
 
 // Helper functions
 function addMovement(movementsDiv) {
-    const button = movementsDiv.querySelector('button');
+    // Find the add movement button (should be a direct child)
+    const button = Array.from(movementsDiv.children).find(child => 
+        child.tagName === 'BUTTON' && child.textContent.includes('+ Movement')
+    );
     
     const newMovementRow = createMovementInputRow('New Exercise x10');
-    movementsDiv.insertBefore(newMovementRow, button);
+    
+    // If button exists and is a child, insert before it. Otherwise, append to end.
+    if (button && button.parentNode === movementsDiv) {
+        movementsDiv.insertBefore(newMovementRow, button);
+    } else {
+        // Fallback: append to the end if button not found or not a direct child
+        movementsDiv.appendChild(newMovementRow);
+    }
     
     // Focus on the exercise name input
     const nameInput = newMovementRow.querySelector('input[type="text"]');
@@ -474,7 +484,14 @@ function addNewLevel() {
     const lastButton = exerciseList.querySelector('button:last-child');
     
     const newLevel = createLevelEditor('New Level', {'New Workout': [['New Exercise x10'], [3], [60]]});
-    exerciseList.insertBefore(newLevel, lastButton);
+    
+    if (lastButton && lastButton.parentNode === exerciseList) {
+        exerciseList.insertBefore(newLevel, lastButton);
+    } else {
+        // Fallback: append to the end if button not found or not a direct child
+        exerciseList.appendChild(newLevel);
+    }
+    
     markAsModified();
 }
 
@@ -676,7 +693,12 @@ function addNewExercise(workoutDiv, category, workoutName) {
     
     // Insert before the "Add Exercise" button
     const addBtn = workoutDiv.querySelector('button');
-    workoutDiv.insertBefore(exerciseRow, addBtn);
+    if (addBtn && addBtn.parentNode === workoutDiv) {
+        workoutDiv.insertBefore(exerciseRow, addBtn);
+    } else {
+        // Fallback: append to the end if button not found or not a direct child
+        workoutDiv.appendChild(exerciseRow);
+    }
     
     // Focus on the new input
     exerciseInput.focus();
@@ -1430,10 +1452,20 @@ function createMovementInputRow(movementText) {
 
 // Helper functions for navigation interface
 function addMovementToExercise(movementsDiv) {
-    const button = movementsDiv.querySelector('button');
+    // Find the add movement button (should be a direct child)
+    const button = Array.from(movementsDiv.children).find(child => 
+        child.tagName === 'BUTTON' && child.textContent.includes('+ Movement')
+    );
     
     const newMovementRow = createMovementInputRow('New Exercise x10');
-    movementsDiv.insertBefore(newMovementRow, button);
+    
+    // If button exists and is a child, insert before it. Otherwise, append to end.
+    if (button && button.parentNode === movementsDiv) {
+        movementsDiv.insertBefore(newMovementRow, button);
+    } else {
+        // Fallback: append to the end if button not found or not a direct child
+        movementsDiv.appendChild(newMovementRow);
+    }
     
     // Focus on the exercise name input
     const nameInput = newMovementRow.querySelector('input[type="text"]');

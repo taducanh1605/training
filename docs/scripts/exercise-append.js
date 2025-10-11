@@ -30,15 +30,9 @@ async function resetToDefaultExercises() {
         try {
             // Clear localStorage
             clearLocalStorageExercises();
-            
-            // Reset server data
-            const result = await callExerciseAPI('/api/user/exercises', 'DELETE');
-            if (result.success) {
-                alert('Exercises reset to default successfully! The page will refresh.');
-                setTimeout(() => {
-                    window.location.reload(true);
-                }, 500);
-            }
+            setTimeout(() => {
+                window.location.reload(true);
+            }, 500);
         } catch (error) {
             console.error('Error resetting exercises:', error);
             alert('Error resetting exercises: ' + error.message);

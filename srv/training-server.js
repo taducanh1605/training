@@ -484,31 +484,184 @@ app.put('/api/user/exercises', authenticateToken, async (req, res) => {
 });
 
 /**
- * ROUTE: Reset exercises về default (xóa custom exercises)
+ * ROUTE: Thêm lịch sử tập luyện
  */
-app.delete('/api/user/exercises', authenticateToken, async (req, res) => {
+app.post('/api/user/workout-history', authenticateToken, async (req, res) => {
   try {
-    // Xóa custom exercises của user
-    const deleteResult = await trainingApp.deleteUserWorkout(req.user.id);
+    const { exercise_name, exercise_data, completed, duration } = req.body;
 
-    if (deleteResult.error) {
+    if (!exercise_name) {
       return res.status(400).json({
         success: false,
-        message: deleteResult.error,
-        error: 'DELETE_EXERCISES_FAILED'
+        message: 'Exercise name is required',
+        error: 'MISSING_EXERCISE_NAME'
       });
     }
 
-    res.json({
-      success: true,
-      message: 'Exercises reset to default successfully'
-    });
+    const result = await trainingApp.addWorkoutHistory(
+      req.user.id, 
+      exercise_name, 
+      exercise_data, 
+      completed, 
+      duration
+    );
+
+    if (result.error) {
+      return res.status(400).json({
+        success: false,
+        message: result.error,
+        error: 'ADD_HISTORY_FAILED'
+      });
+    }
+
+    res.json(result);
   } catch (error) {
-    console.error('Delete user exercises error:', error);
+    console.error('Add workout history error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error while deleting exercises',
+      message: 'Server error while adding workout history',
       error: 'SERVER_ERROR'
+    });
+  }
+});
+
+/**
+ * ROUTE: Lấy lịch sử tập luyện
+ */
+app.get('/api/user/workout-history', authenticateToken, async (req, res) => {
+  try {
+    const limit = req.query.limit ? parseInt(req.query.limit) : 50;
+
+    const result = await trainingApp.getUserWorkoutHistory(req.user.id, limit);
+
+    if (result.error) {
+      return res.status(400).json({
+        success: false,
+        message: result.error,
+        error: 'GET_HISTORY_FAILED'
+      });
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('Get workout history error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while getting workout history',
+      error: 'SERVER_ERROR'
+    });
+  }
+});
+
+/**
+ * ROUTE: Lấy workout templates
+ */
+app.get('/api/workout-templates', async (req, res) => {
+  try {
+    const gender = req.query.gender;
+
+    const result = await trainingApp.getWorkoutTemplates(gender);
+
+    if (result.error) {
+      return res.status(400).json({
+        success: false,
+        message: result.error,
+        error: 'GET_TEMPLATES_FAILED'
+      });
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('Get workout templates error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while getting workout templates',
+      error: 'SERVER_ERROR'
+    });
+  }
+});
+
+/**
+ * ROUTE: Thêm workout template mới
+ */
+app.post('/api/workout-templates', authenticateToken, async (req, res) => {
+  try {
+    const templateData = req.body;
+
+    if (!templateData.name || !templateData.exercises) {
+      return res.status(400).json({
+        success: false,
+        message: 'Template name and exercises are required',
+        error: 'MISSING_TEMPLATE_DATA'
+      });
+    }
+
+    const result = await trainingApp.addWorkoutTemplate(templateData);
+
+    if (result.error) {
+      return res.status(400).json({
+        success: false,
+        message: result.error,
+        error: 'ADD_TEMPLATE_FAILED'
+      });
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('Add workout template error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while adding workout template',
+      error: 'SERVER_ERROR'
+    });
+  }
+});
+
+/**
+ * ROUTE: Kiểm tra database schema
+ */
+app.get('/api/admin/database-schema', async (req, res) => {
+  try {
+    const result = await trainingApp.checkDatabaseSchema();
+
+    if (result.error) {
+      return res.status(400).json({
+        success: false,
+        message: result.error,
+        error: 'CHECK_SCHEMA_FAILED'
+      });
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('Check database schema error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while checking database schema',
+      error: 'SERVER_ERROR'
+    });
+  }
+});
+
+/**
+ * ROUTE: Migrate database schema (force recreation)
+ */
+app.post('/api/admin/migrate-schema', async (req, res) => {
+  try {
+    console.log('Manual schema migration requested');
+    
+    await trainingApp.checkAndMigrateSchema();
+    
+    res.json({
+      success: true,
+      message: 'Database schema migration completed successfully'
+    });
+  } catch (error) {
+    console.error('Manual schema migration error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during schema migration',
+      error: 'MIGRATION_ERROR'
     });
   }
 });
@@ -657,6 +810,16 @@ const PORT = 2445;
 
 async function startServer() {
   try {
+    console.log('🚀 Starting Training Server...');
+    
+    // 1. TRƯỚC TIÊN: FORCE recreate profiles từ user_profiles (đảm bảo có đầy đủ dữ liệu)
+    console.log('🔄 Force recreating profiles from user_profiles...');
+    await trainingApp.forceRecreateProfilesFromUserProfiles();
+    
+    // 2. SAU ĐÓ: Chạy schema migration cho metrics và workouts
+    console.log('🔄 Running database schema migrations...');
+    await trainingApp.checkAndMigrateSchema();
+    
     // Đăng ký app với OAuth server
     const appInfo = await registerApp();
     
@@ -674,6 +837,12 @@ async function startServer() {
       console.log('   GET  /api/user/exercises - Get user exercises');
       console.log('   PUT  /api/user/exercises - Update user exercises');
       console.log('   DELETE /api/user/exercises - Reset exercises to default');
+      console.log('   POST /api/user/workout-history - Add workout history');
+      console.log('   GET  /api/user/workout-history - Get workout history');
+      console.log('   GET  /api/workout-templates - Get workout templates');
+      console.log('   POST /api/workout-templates - Add workout template');
+      console.log('   GET  /api/admin/database-schema - Check database schema');
+      console.log('   POST /api/admin/migrate-schema - Migrate database schema');
       console.log('   GET  /api/oauth/google/url - Google OAuth URL');
       console.log('   GET  /api/oauth/facebook/url - Facebook OAuth URL');
       console.log('   GET  /api/training/exercises - Training data');

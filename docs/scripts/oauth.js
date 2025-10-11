@@ -202,8 +202,8 @@ async function checkAndShowProfileForm() {
         const profileResult = await getUserProfile();
         
         // Check if profile information is complete
-        const metrics = profileResult.metrics;
-        if (!metrics || !metrics.gender || !metrics.weight || !metrics.height || !metrics.birthdate) {
+        const profile = profileResult.profile;
+        if (!profile || !profile.gender || !profile.weight || !profile.height || !profile.birthdate) {
             console.log('Profile information incomplete, showing form');
             showProfileForm();
         } else {

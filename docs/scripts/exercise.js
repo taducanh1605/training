@@ -10,6 +10,54 @@ let currentNavigationLevel = 'levels'; // 'levels' -> 'workouts' -> 'exercises'
 let currentLevelKey = null;
 let currentWorkoutKey = null;
 
+// Calculate workout time estimate
+function calculateWorkoutTimeEstimate(workoutData) {
+    if (!workoutData || !Array.isArray(workoutData) || workoutData.length < 3) {
+        return 0;
+    }
+    
+    const [exercises, rounds, restTimes] = workoutData;
+    let totalTime = 0;
+    
+    exercises.forEach((exercise, index) => {
+        const exerciseRounds = rounds[index] || 1;
+        const restTime = restTimes[index] || 0;
+        
+        // Count movements in this exercise (split by +)
+        const movements = exercise.split('+');
+        const movementCount = movements.length;
+        
+        // Each movement takes average 3 seconds
+        const exerciseTime = movementCount * 60; // 90s for each movement
+        
+        // Total time for all rounds of this exercise
+        const totalExerciseTime = exerciseTime * exerciseRounds;
+        
+        // 20s buffer per round + rest time after this exercise (except for last exercise)
+        const bufferTime = exerciseRounds * 20;
+        const postExerciseRest = (index < exercises.length - 1) ? restTime : 0;
+        
+        totalTime += totalExerciseTime + bufferTime + postExerciseRest;
+    });
+    
+    return totalTime; // in seconds
+}
+
+// Format time in seconds to readable format
+function formatTimeEstimate(seconds) {
+    if (seconds < 60) {
+        return `${seconds}s`;
+    } else if (seconds < 3600) {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
+    } else {
+        const hours = Math.floor(seconds / 3600);
+        const remainingMinutes = Math.floor((seconds % 3600) / 60);
+        return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+    }
+}
+
 // Helper function to make API calls with authentication
 async function callExerciseAPI(endpoint, method = 'GET', data = null) {
     const token = localStorage.getItem('authToken');
@@ -74,6 +122,14 @@ function showExerciseEditor() {
     if (exerciseEditor) {
         exerciseEditor.style.display = 'block';
         loadCurrentExercisesForEdit();
+        
+        // Auto scroll to exercise editor
+        setTimeout(() => {
+            exerciseEditor.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }, 100);
     }
 }
 
@@ -206,7 +262,7 @@ function createLevelEditor(levelKey, levelData) {
     const deleteLevelBtn = document.createElement('button');
     deleteLevelBtn.textContent = 'Delete Level';
     deleteLevelBtn.style.cssText = 'background: #ff4444; color: #fff; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; margin-left: 10px;';
-    deleteLevelBtn.onclick = () => deleteLevel(levelDiv, levelKey);
+    deleteLevelBtn.onclick = () => deleteLevelElement(levelDiv, levelKey);
     
     levelHeader.appendChild(levelNameInput);
     levelHeader.appendChild(deleteLevelBtn);
@@ -236,6 +292,7 @@ function createLevelEditor(levelKey, levelData) {
 // Create workout editor
 function createWorkoutEditor(workoutKey, workoutData) {
     const [exercises, rounds, restTimes] = workoutData;
+    const timeEstimate = calculateWorkoutTimeEstimate(workoutData);
     
     const workoutDiv = document.createElement('div');
     workoutDiv.className = 'workout-editor';
@@ -243,21 +300,31 @@ function createWorkoutEditor(workoutKey, workoutData) {
     
     // Workout name editor
     const workoutHeader = document.createElement('div');
-    workoutHeader.style.cssText = 'display: flex; align-items: center; margin-bottom: 12px;';
+    workoutHeader.style.cssText = 'display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;';
+    
+    const headerLeft = document.createElement('div');
+    headerLeft.style.cssText = 'display: flex; flex-direction: column; flex: 1; gap: 5px;';
     
     const workoutNameInput = document.createElement('input');
     workoutNameInput.type = 'text';
     workoutNameInput.value = workoutKey;
-    workoutNameInput.style.cssText = 'flex: 1; padding: 6px; color: #000; background: #fff; border: 1px solid #ccc; border-radius: 4px; font-weight: bold;';
+    workoutNameInput.style.cssText = 'padding: 6px; color: #000; background: #fff; border: 1px solid #ccc; border-radius: 4px; font-weight: bold;';
     workoutNameInput.dataset.originalKey = workoutKey;
     workoutNameInput.oninput = () => markAsModified();
+    
+    const timeEstimateText = document.createElement('div');
+    timeEstimateText.textContent = `⏱️ Estimate: ${formatTimeEstimate(timeEstimate)}`;
+    timeEstimateText.style.cssText = 'color: #ffaa00; font-size: 12px; font-weight: bold;';
+    
+    headerLeft.appendChild(workoutNameInput);
+    headerLeft.appendChild(timeEstimateText);
     
     const deleteWorkoutBtn = document.createElement('button');
     deleteWorkoutBtn.textContent = '×';
     deleteWorkoutBtn.style.cssText = 'background: #ff4444; color: #fff; border: none; width: 30px; height: 30px; border-radius: 4px; cursor: pointer; margin-left: 10px; font-size: 16px;';
     deleteWorkoutBtn.onclick = () => deleteWorkout(workoutDiv);
     
-    workoutHeader.appendChild(workoutNameInput);
+    workoutHeader.appendChild(headerLeft);
     workoutHeader.appendChild(deleteWorkoutBtn);
     workoutDiv.appendChild(workoutHeader);
     
@@ -411,7 +478,7 @@ function addNewLevel() {
     markAsModified();
 }
 
-function deleteLevel(levelDiv, levelKey) {
+function deleteLevelElement(levelDiv, levelKey) {
     if (confirm(`Are you sure you want to delete level "${levelKey}"?`)) {
         levelDiv.remove();
         markAsModified();
@@ -773,17 +840,37 @@ function collectExerciseData() {
 async function resetToDefaultExercises() {
     if (confirm('Are you sure you want to reset to default exercises? All your customizations will be lost.')) {
         try {
-            // Clear localStorage
+            // Clear localStorage customizations
             clearLocalStorageExercises();
             
-            // Reset server data
-            const result = await callExerciseAPI('/api/user/exercises', 'DELETE');
-            if (result.success) {
-                alert('Exercises reset to default successfully! The page will refresh.');
-                setTimeout(() => {
-                    window.location.reload(true);
-                }, 500);
+            // Try to get default exercises from server or fallback to original data
+            try {
+                // Option 1: Try to get default/base exercises from server
+                const result = await callExerciseAPI('/api/user/exercises/default', 'GET');
+                if (result.success && result.exercises) {
+                    currentExerciseData = result.exercises;
+                    displayNavigationExerciseEditor();
+                    alert('Exercises reset to default successfully!');
+                    return;
+                }
+            } catch (serverError) {
+                console.log('No default exercises on server, using local fallback');
             }
+            
+            // Option 2: Fallback to original inputCSV.dataUsers (if available)
+            if (window.inputCSV && window.inputCSV.dataUsers && Object.keys(window.inputCSV.dataUsers).length > 0) {
+                currentExerciseData = JSON.parse(JSON.stringify(window.inputCSV.dataUsers)); // Deep copy
+                displayNavigationExerciseEditor();
+                alert('Exercises reset to original data successfully!');
+                return;
+            }
+            
+            // Option 3: Last resort - reload page to get fresh data
+            alert('Resetting to default exercises... The page will refresh.');
+            setTimeout(() => {
+                window.location.reload(true);
+            }, 500);
+            
         } catch (error) {
             console.error('Error resetting exercises:', error);
             alert('Error resetting exercises: ' + error.message);
@@ -1076,6 +1163,7 @@ function displayWorkoutsView(container) {
 function createWorkoutCard(workoutKey) {
     const workoutData = currentExerciseData[currentLevelKey][workoutKey];
     const exerciseCount = workoutData[0].length;
+    const timeEstimate = calculateWorkoutTimeEstimate(workoutData);
     
     const card = document.createElement('div');
     card.style.cssText = 'background: rgba(0,162,255,0.1); border: 2px solid #00a2ff; border-radius: 8px; padding: 15px; cursor: pointer; transition: all 0.3s;';
@@ -1086,9 +1174,19 @@ function createWorkoutCard(workoutKey) {
     workoutName.textContent = workoutKey;
     workoutName.style.cssText = 'color: #00a2ff; margin: 0 0 10px 0; font-size: 16px;';
     
+    const infoDiv = document.createElement('div');
+    infoDiv.style.cssText = 'margin-bottom: 15px;';
+    
     const countText = document.createElement('p');
     countText.textContent = `${exerciseCount} exercise(s)`;
-    countText.style.cssText = 'color: #ccc; margin: 0 0 15px 0; font-size: 14px;';
+    countText.style.cssText = 'color: #ccc; margin: 0 0 5px 0; font-size: 14px;';
+    
+    const timeText = document.createElement('p');
+    timeText.textContent = `⏱️ Est. ${formatTimeEstimate(timeEstimate)}`;
+    timeText.style.cssText = 'color: #ffaa00; margin: 0; font-size: 13px; font-weight: bold;';
+    
+    infoDiv.appendChild(countText);
+    infoDiv.appendChild(timeText);
     
     const buttonsDiv = document.createElement('div');
     buttonsDiv.style.cssText = 'display: flex; gap: 8px;';
@@ -1122,12 +1220,12 @@ function createWorkoutCard(workoutKey) {
     buttonsDiv.appendChild(deleteBtn);
     
     card.appendChild(workoutName);
-    card.appendChild(countText);
+    card.appendChild(infoDiv);
     card.appendChild(buttonsDiv);
     
     // Click on card to edit
     card.addEventListener('click', (e) => {
-        if (e.target === card || e.target === workoutName || e.target === countText) {
+        if (e.target === card || e.target === workoutName || e.target === countText || e.target === timeText || e.target === infoDiv) {
             navigateToExercises(currentLevelKey, workoutKey);
         }
     });
@@ -1141,6 +1239,7 @@ function displayExercisesView(container) {
     
     const workoutData = currentExerciseData[currentLevelKey][currentWorkoutKey];
     const [exercises, rounds, restTimes] = workoutData;
+    const timeEstimate = calculateWorkoutTimeEstimate(workoutData);
     
     const exercisesDiv = document.createElement('div');
     exercisesDiv.className = 'exercises-editor';
@@ -1148,8 +1247,13 @@ function displayExercisesView(container) {
     
     const header = document.createElement('h5');
     header.textContent = `Editing: ${currentWorkoutKey}`;
-    header.style.cssText = 'color: #ff8c00; margin: 0 0 20px 0; font-size: 18px; text-align: center;';
+    header.style.cssText = 'color: #ff8c00; margin: 0 0 10px 0; font-size: 18px; text-align: center;';
     exercisesDiv.appendChild(header);
+    
+    const timeEstimateDiv = document.createElement('div');
+    timeEstimateDiv.textContent = `⏱️ Estimated Time: ${formatTimeEstimate(timeEstimate)}`;
+    timeEstimateDiv.style.cssText = 'color: #ffaa00; font-size: 14px; font-weight: bold; text-align: center; margin-bottom: 20px; padding: 8px; background: rgba(255,170,0,0.1); border-radius: 5px;';
+    exercisesDiv.appendChild(timeEstimateDiv);
     
     // Exercises list
     const exercisesList = document.createElement('div');
@@ -1268,7 +1372,7 @@ function createDetailedExerciseRow(exerciseString, rounds, restTime, index) {
 function createMovementInputRow(movementText) {
     const movementRow = document.createElement('div');
     movementRow.className = 'movement-input-row';
-    movementRow.style.cssText = 'display: grid; grid-template-columns: 1fr auto 80px 30px; gap: 8px; align-items: center; margin-bottom: 5px; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 4px;';
+    movementRow.style.cssText = 'display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 5px; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 4px;';
     
     // Parse movement text (e.g., "Push-Up x10" -> name: "Push-Up", reps: "10")
     let exerciseName = '';
@@ -1287,7 +1391,7 @@ function createMovementInputRow(movementText) {
     nameInput.type = 'text';
     nameInput.value = exerciseName;
     nameInput.placeholder = 'Exercise name';
-    nameInput.style.cssText = 'padding: 6px; color: #000; background: #fff; border: 1px solid #ccc; border-radius: 3px; font-size: 13px;';
+    nameInput.style.cssText = 'flex: 1; min-width: 120px; padding: 6px; color: #000; background: #fff; border: 1px solid #ccc; border-radius: 3px; font-size: 13px;';
     nameInput.oninput = () => markAsModified();
     
     // "x" label
@@ -1300,7 +1404,7 @@ function createMovementInputRow(movementText) {
     repsInput.type = 'text';
     repsInput.value = exerciseReps;
     repsInput.placeholder = '10';
-    repsInput.style.cssText = 'width: 80px; padding: 6px; color: #000; background: #fff; border: 1px solid #ccc; border-radius: 3px; font-size: 13px; text-align: center;';
+    repsInput.style.cssText = 'width: 80px; min-width: 60px; padding: 6px; color: #000; background: #fff; border: 1px solid #ccc; border-radius: 3px; font-size: 13px; text-align: center;';
     repsInput.oninput = () => markAsModified();
     
     // Delete movement button
@@ -1314,7 +1418,7 @@ function createMovementInputRow(movementText) {
             alert('Each exercise must have at least one movement');
         }
     };
-    deleteMovementBtn.style.cssText = 'background: #ff6666; color: #fff; border: none; width: 25px; height: 25px; border-radius: 3px; cursor: pointer; font-size: 12px;';
+    deleteMovementBtn.style.cssText = 'background: #ff6666; color: #fff; border: none; width: 25px; height: 25px; border-radius: 3px; cursor: pointer; font-size: 12px; flex-shrink: 0;';
     
     movementRow.appendChild(nameInput);
     movementRow.appendChild(xLabel);

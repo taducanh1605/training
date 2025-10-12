@@ -563,7 +563,7 @@ function updateContext() {
         if ((vm.flagStart == 0) && (vm.count == 0)) {
             vm.row1_2 = 'Training with Njk';
             vm.row2 = "";
-            vm.row3 = "" + inputCSV.programName + '\n' + vm.exSet.length + ' exercise(s)' + '\nEst. ' + formatTimeEstimate(vm.exEstTime);
+            vm.row3 = "" + inputCSV.programName + '\n' + vm.exSet.length + ' exercise(s)' + '\n⏱️ ' + formatTimeEstimate(vm.exEstTime);
             vm.row4 = "";
         }
         else if (vm.flagStart == 2) {

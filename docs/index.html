@@ -51,7 +51,7 @@
                         <select v-model="select" name="program" v-on:change="selectHandle(selectGen)" class="selectProg">
                             <option value="">Choose a workout</option>
                             <optgroup v-for="group in listProgUsers" v-if="(group[0] === selectLvl) && (selectGen === 'Users')" v-bind:label="group[0]">
-                                <option  v-for="prog in group[1]">{{prog}}</option>
+                                <option  v-for="(prog, index) in group[1]" v-bind:value="prog">{{prog}}{{group?.[2] ? group[2][index] : ""}}</option>
                             </optgroup>
                         </select>
                     </div>

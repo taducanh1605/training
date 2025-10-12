@@ -208,6 +208,7 @@ var inputCSV = new Vue({
             });
             vm.exSet = dataEx[this.selectLvl][this.select][1];
             vm.exRest = dataEx[this.selectLvl][this.select][2];
+            vm.exEstTime = calculateWorkoutTimeEstimate(dataEx[this.selectLvl][this.select]);
             dataEx[this.selectLvl][this.select][1].forEach(exercise => { vm.exSumSet += Number(exercise); });
 
             this.listExHandle();
@@ -297,6 +298,7 @@ var vm = new Vue({
             this.exName = [];
             this.exRest = [];
             this.exSet = [];
+            this.exEstTime = 0;
             this.exSumSet = 0;
             this.exOrder = 0;
             this.exRound = 0;
@@ -423,19 +425,71 @@ Read json to listProg
 function json2ListProg(json) {
     let listProg = [];
     let tempGroup = [];
+    let tempEstTime = [];
     let tempEx = [];
     Object.keys(json).forEach(prog => {
         tempGroup.push(prog);
-        Object.keys(json[prog]).forEach(ex => {
+        let tmpExs = json[prog];
+        Object.keys(tmpExs).forEach(ex => {
             tempEx.push(ex);
+            tempEstTime.push(` (⏱️Est. ${formatTimeEstimate(calculateWorkoutTimeEstimate(tmpExs[ex]))})`);
         });
         tempGroup.push(tempEx);
+        tempGroup.push(tempEstTime);
 
         listProg.push(tempGroup);
         tempGroup = [];
         tempEx = [];
     });
     return listProg;
+}
+
+// Format time in seconds to readable format
+function formatTimeEstimate(seconds) {
+    if (seconds < 60) {
+        return `${seconds}s`;
+    } else if (seconds < 3600) {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
+    } else {
+        const hours = Math.floor(seconds / 3600);
+        const remainingMinutes = Math.floor((seconds % 3600) / 60);
+        return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+    }
+}
+
+// Calculate workout time estimate
+function calculateWorkoutTimeEstimate(workoutData) {
+    if (!workoutData || !Array.isArray(workoutData) || workoutData.length < 3) {
+        return 0;
+    }
+    
+    const [exercises, rounds, restTimes] = workoutData;
+    let totalTime = 0;
+    
+    exercises.forEach((exercise, index) => {
+        const exerciseRounds = rounds[index] || 1;
+        const restTime = restTimes[index] || 0;
+        
+        // Count movements in this exercise (split by +)
+        const movements = exercise.split('+');
+        const movementCount = movements.length;
+        
+        // Each movement takes average 3 seconds
+        const exerciseTime = movementCount * 60; // 90s for each movement
+        
+        // Total time for all rounds of this exercise
+        const totalExerciseTime = exerciseTime * exerciseRounds;
+        
+        // 20s buffer per round + rest time after this exercise (except for last exercise)
+        const bufferTime = exerciseRounds * 20;
+        const postExerciseRest = (index < exercises.length - 1) ? restTime : 0;
+        
+        totalTime += totalExerciseTime + bufferTime + postExerciseRest;
+    });
+    
+    return totalTime; // in seconds
 }
 
 
@@ -508,7 +562,7 @@ function updateContext() {
         if ((vm.flagStart == 0) && (vm.count == 0)) {
             vm.row1_2 = 'Training with Njk';
             vm.row2 = "";
-            vm.row3 = "" + inputCSV.programName + '\n' + vm.exSet.length + ' exercise(s)';
+            vm.row3 = "" + inputCSV.programName + '\n' + vm.exSet.length + ' exercise(s)' + '\nEst. ' + formatTimeEstimate(vm.exEstTime);
             vm.row4 = "";
         }
         else if (vm.flagStart == 2) {

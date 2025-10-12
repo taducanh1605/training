@@ -440,6 +440,7 @@ function json2ListProg(json) {
         listProg.push(tempGroup);
         tempGroup = [];
         tempEx = [];
+        tempEstTime = [];
     });
     return listProg;
 }

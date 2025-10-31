@@ -2,7 +2,7 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 
-// Gộp BaseApp và TrainingApp thành một file duy nhất
+// TrainingApp với database schema mới theo yêu cầu
 class TrainingApp {
   constructor() {
     this.appName = 'training';
@@ -11,7 +11,7 @@ class TrainingApp {
     this.setupDatabase();
   }
 
-  // Khởi tạo database cho app - cập nhật để lưu ở ./db thay vì ./db/apps
+  // Khởi tạo database 
   initializeDatabase() {
     const dbDir = path.join(__dirname, '..', 'db');
     if (!fs.existsSync(dbDir)) {
@@ -19,713 +19,112 @@ class TrainingApp {
     }
     
     const dbPath = path.join(dbDir, `${this.appName}.db3`);
-    console.log(`Database path for ${this.appName}: ${dbPath}`);
+    console.log(`Database path: ${dbPath}`);
     return dbPath;
   }
 
-  // Setup database schema với 3 bảng riêng biệt
+  // Setup database schema mới
   setupDatabase() {
     this.db.serialize(() => {
-      // Bảng profiles - TẤT CẢ thông tin cá nhân của user
+      console.log('Setting up database schema...');
+
+      // 1. Bảng profiles - Thông tin cơ bản của user
       this.db.run(`CREATE TABLE IF NOT EXISTS profiles (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL UNIQUE,
-        user_email TEXT NOT NULL,
+        user_email TEXT NOT NULL UNIQUE,
         user_name TEXT NOT NULL,
-        gender TEXT DEFAULT 'o',
-        weight REAL,
-        height REAL,
-        birthdate TEXT,
-        activity_level TEXT DEFAULT 'moderate',
-        fitness_goal TEXT DEFAULT 'maintain',
-        exercises TEXT,
+        gender TEXT DEFAULT 'o', -- 'm' = male, 'f' = female, 'o' = other
+        birthdate DATE, -- ngày sinh của user
+        mentor_id TEXT, -- ID để cung cấp cho khách hàng add vào danh sách mentor
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )`);
 
-      // Bảng metrics - Lịch sử tập luyện của user (để lập biểu đồ)
+      // 2. Bảng metrics - Chiều cao, cân nặng theo thời gian
       this.db.run(`CREATE TABLE IF NOT EXISTS metrics (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
-        exercise_name TEXT NOT NULL,
-        exercise_data TEXT,
-        progress_completed BOOLEAN DEFAULT 0,
-        workout_duration INTEGER,
-        workout_date DATE,
-        notes TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        height REAL, -- chiều cao (cm)
+        weight REAL, -- cân nặng (kg)
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- thời điểm cập nhật
         FOREIGN KEY (user_id) REFERENCES profiles (user_id) ON DELETE CASCADE
       )`);
 
-      // Bảng workouts - Template bài tập mẫu (Lower Power, Upper Body, etc.)
-      this.db.run(`CREATE TABLE IF NOT EXISTS workouts (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        template_name TEXT NOT NULL,
-        exercises_template TEXT NOT NULL,
-        gender TEXT DEFAULT 'o',
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )`);
-
-      // KHÔNG tạo index ở đây - sẽ tạo sau khi biết chắc cấu trúc bảng
-      // Index sẽ được tạo trong recreateMetricsTable() và recreateWorkoutsTable()
-    });
-
-    console.log('Training database schema initialized');
-    
-    // Tạo index an toàn cho profiles sau khi tạo bảng
-    setTimeout(() => {
-      this.createSafeIndexes('profiles');
-    }, 100);
-  }
-
-  // FORCE recreate profiles từ user_profiles (để đảm bảo có đầy đủ data)
-  async forceRecreateProfilesFromUserProfiles() {
-    try {
-      console.log('=== FORCE RECREATE PROFILES FROM USER_PROFILES ===');
-      
-      // 1. Đọc TOÀN BỘ dữ liệu từ user_profiles
-      let userProfilesData = [];
-      try {
-        const userProfilesInfo = await this.query("PRAGMA table_info(user_profiles)");
-        if (userProfilesInfo.length > 0) {
-          userProfilesData = await this.query('SELECT * FROM user_profiles');
-          console.log(`Found ${userProfilesData.length} records in user_profiles`);
-          
-          // In ra sample data để debug
-          if (userProfilesData.length > 0) {
-            console.log('Sample user_profiles record:', JSON.stringify(userProfilesData[0], null, 2));
-          }
-        } else {
-          console.log('user_profiles table not found - nothing to migrate');
-          return;
-        }
-      } catch (e) {
-        console.log('user_profiles table not accessible:', e.message);
-        return;
-      }
-      
-      if (userProfilesData.length === 0) {
-        console.log('user_profiles table is empty - nothing to migrate');
-        return;
-      }
-      
-      // 2. XÓA bảng profiles cũ (nếu có)
-      try {
-        await this.run('DROP TABLE IF EXISTS profiles');
-        console.log('Dropped existing profiles table');
-      } catch (e) {
-        console.log('No existing profiles table to drop');
-      }
-      
-      // 3. TẠO LẠI bảng profiles với cấu trúc đầy đủ
-      await this.run(`CREATE TABLE profiles (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL UNIQUE,
-        user_email TEXT NOT NULL,
-        user_name TEXT NOT NULL,
-        gender TEXT DEFAULT 'o',
-        weight REAL,
-        height REAL,
-        birthdate TEXT,
-        activity_level TEXT DEFAULT 'moderate',
-        fitness_goal TEXT DEFAULT 'maintain',
-        exercises TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )`);
-      console.log('Created new profiles table with full schema');
-      
-      // 4. MIGRATE TẤT CẢ DỮ LIỆU từ user_profiles
-      let migratedCount = 0;
-      for (const user of userProfilesData) {
-        try {
-          const insertData = this.mapUserProfileData(user);
-          console.log(`Migrating user ${user.user_id}:`, JSON.stringify(insertData, null, 2));
-          
-          await this.run(
-            `INSERT INTO profiles (user_id, user_email, user_name, gender, weight, height, birthdate, activity_level, fitness_goal, exercises, created_at, updated_at) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-              insertData.user_id, insertData.user_email, insertData.user_name,
-              insertData.gender, insertData.weight, insertData.height,
-              insertData.birthdate, insertData.activity_level, insertData.fitness_goal,
-              insertData.exercises, insertData.created_at, insertData.updated_at
-            ]
-          );
-          
-          migratedCount++;
-          console.log(`Successfully migrated user ${insertData.user_id}`);
-        } catch (e) {
-          console.error(`Error migrating user ${user.user_id}:`, e);
-        }
-      }
-      
-      // 5. Xác nhận migration thành công
-      const finalCount = await this.query('SELECT COUNT(*) as count FROM profiles');
-      console.log(`MIGRATION COMPLETED: ${migratedCount}/${userProfilesData.length} users migrated`);
-      console.log(`Final profiles table count: ${finalCount[0].count}`);
-      
-      // 6. Chỉ xóa user_profiles khi migration thành công 100%
-      if (migratedCount === userProfilesData.length && migratedCount > 0) {
-        await this.run('DROP TABLE user_profiles');
-        console.log('user_profiles table dropped after successful migration');
-      } else {
-        console.log('Keeping user_profiles table due to migration issues');
-      }
-      
-    } catch (error) {
-      console.error('Error in force profiles recreation:', error);
-    }
-  }
-
-  // Migration thông minh từ user_profiles sang profiles
-  async smartProfilesMigration() {
-    try {
-      console.log('=== SMART PROFILES MIGRATION ===');
-      
-      // 1. Đọc dữ liệu user_profiles TRƯỚC (nếu tồn tại)
-      let userProfilesData = [];
-      try {
-        const userProfilesInfo = await this.query("PRAGMA table_info(user_profiles)");
-        if (userProfilesInfo.length > 0) {
-          userProfilesData = await this.query('SELECT * FROM user_profiles');
-          console.log(`Found user_profiles table with ${userProfilesData.length} records`);
-        } else {
-          console.log('user_profiles table not found - no migration needed');
-          return;
-        }
-      } catch (e) {
-        console.log('user_profiles table not found - no migration needed');
-        return;
-      }
-      
-      // 2. Kiểm tra profiles table có tồn tại không
-      let profilesExists = false;
-      let profilesData = [];
-      try {
-        const profilesInfo = await this.query("PRAGMA table_info(profiles)");
-        if (profilesInfo.length > 0) {
-          profilesData = await this.query('SELECT * FROM profiles');
-          profilesExists = true;
-          console.log(`Found profiles table with ${profilesData.length} records`);
-        }
-      } catch (e) {
-        console.log('profiles table not found');
-      }
-      
-      // 3. Đảm bảo profiles table tồn tại với cấu trúc đúng
-      if (!profilesExists) {
-        console.log('Creating profiles table...');
-        await this.run(`CREATE TABLE IF NOT EXISTS profiles (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          user_id INTEGER NOT NULL UNIQUE,
-          user_email TEXT NOT NULL,
-          user_name TEXT NOT NULL,
-          gender TEXT DEFAULT 'o',
-          weight REAL,
-          height REAL,
-          birthdate TEXT,
-          activity_level TEXT DEFAULT 'moderate',
-          fitness_goal TEXT DEFAULT 'maintain',
-          exercises TEXT,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )`);
-        console.log('profiles table created successfully');
-      }
-      
-      // 4. THỰC SỰ MIGRATE DỮ LIỆU từ user_profiles vào profiles
-      if (userProfilesData.length > 0) {
-        console.log(`Starting migration of ${userProfilesData.length} user records...`);
-        
-        if (profilesExists && profilesData.length > 0) {
-          console.log('Case: Both tables exist - merging data');
-          await this.mergeProfilesTables(userProfilesData, profilesData);
-        } else {
-          console.log('Case: Migrating all user_profiles data to profiles');
-          await this.migrateAllUserProfiles(userProfilesData);
-        }
-        
-        // 5. Xác nhận dữ liệu đã được migrate thành công
-        const migratedData = await this.query('SELECT COUNT(*) as count FROM profiles');
-        console.log(`Migration completed. profiles table now has ${migratedData[0].count} records`);
-        
-        // 6. Chỉ xóa bảng cũ sau khi đã xác nhận migrate thành công
-        if (migratedData[0].count > 0) {
-          await this.backupAndDropUserProfiles();
-        } else {
-          console.error('Migration failed - profiles table is empty. Keeping user_profiles table.');
-        }
-      }
-      
-    } catch (error) {
-      console.error('Error during smart profiles migration:', error);
-    }
-  }
-  
-  // Migrate tất cả dữ liệu từ user_profiles sang profiles mới
-  async migrateAllUserProfiles(userData) {
-    console.log('Migrating all user_profiles data...');
-    
-    for (const user of userData) {
-      try {
-        const insertData = this.mapUserProfileData(user);
-        
-        await this.run(
-          `INSERT INTO profiles (user_id, user_email, user_name, gender, weight, height, birthdate, activity_level, fitness_goal, exercises, created_at, updated_at) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [
-            insertData.user_id, insertData.user_email, insertData.user_name,
-            insertData.gender, insertData.weight, insertData.height,
-            insertData.birthdate, insertData.activity_level, insertData.fitness_goal,
-            insertData.exercises, insertData.created_at, insertData.updated_at
-          ]
-        );
-        
-        console.log(`  Migrated user ${insertData.user_id}`);
-      } catch (e) {
-        console.error(`  Error migrating user ${user.user_id}:`, e);
-      }
-    }
-  }
-  
-  // Merge dữ liệu từ 2 bảng (ưu tiên profiles, bổ sung từ user_profiles)
-  async mergeProfilesTables(userProfilesData, profilesData) {
-    console.log('Merging data from both tables...');
-    
-    // Tạo map của profiles hiện tại
-    const existingProfiles = new Map();
-    profilesData.forEach(profile => {
-      existingProfiles.set(profile.user_id, profile);
-    });
-    
-    let mergedCount = 0;
-    let skippedCount = 0;
-    
-    for (const user of userProfilesData) {
-      if (existingProfiles.has(user.user_id)) {
-        console.log(`  User ${user.user_id} already exists in profiles - skipping`);
-        skippedCount++;
-        continue;
-      }
-      
-      try {
-        const insertData = this.mapUserProfileData(user);
-        
-        await this.run(
-          `INSERT INTO profiles (user_id, user_email, user_name, gender, weight, height, birthdate, activity_level, fitness_goal, exercises, created_at, updated_at) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [
-            insertData.user_id, insertData.user_email, insertData.user_name,
-            insertData.gender, insertData.weight, insertData.height,
-            insertData.birthdate, insertData.activity_level, insertData.fitness_goal,
-            insertData.exercises, insertData.created_at, insertData.updated_at
-          ]
-        );
-        
-        console.log(`  Merged user ${insertData.user_id}`);
-        mergedCount++;
-      } catch (e) {
-        console.error(`  Error merging user ${user.user_id}:`, e);
-      }
-    }
-    
-    console.log(`Merge completed: ${mergedCount} new records added, ${skippedCount} skipped`);
-  }
-  
-  // Map dữ liệu từ user_profiles format sang profiles format
-  mapUserProfileData(user) {
-    return {
-      user_id: user.user_id,
-      user_email: user.user_email || user.email || null,
-      user_name: user.user_name || user.name || 'Unknown User',
-      gender: user.gender || 'o',
-      weight: user.weight || null,
-      height: user.height || null,
-      birthdate: user.birthdate || null,
-      activity_level: user.activity_level || 'moderate',
-      fitness_goal: user.fitness_goal || 'maintain',
-      exercises: user.exercises || null,
-      created_at: user.created_at || new Date().toISOString(),
-      updated_at: user.updated_at || new Date().toISOString()
-    };
-  }
-  
-  // Xóa bảng user_profiles sau khi migration thành công
-  async backupAndDropUserProfiles() {
-    try {
-      console.log('Dropping user_profiles table...');
-      await this.run(`DROP TABLE user_profiles`);
-      console.log('user_profiles table dropped successfully');
-    } catch (e) {
-      console.error('Error dropping user_profiles:', e);
-    }
-  }
-
-  // Kiểm tra và migrate database schema (chỉ cho metrics và workouts)
-  async checkAndMigrateSchema() {
-    try {
-      console.log('Checking database schema...');
-      
-      // Kiểm tra cấu trúc bảng metrics - SAFE với DB không tồn tại
-      let metricsColumns = [];
-      try {
-        const metricsInfo = await this.query("PRAGMA table_info(metrics)");
-        metricsColumns = metricsInfo.map(col => col.name);
-      } catch (e) {
-        console.log('Metrics table does not exist, will be created automatically');
-        return; // Exit early nếu table không tồn tại
-      }
-      
-      // Kiểm tra cấu trúc bảng workouts - SAFE với DB không tồn tại
-      let workoutsColumns = [];
-      try {
-        const workoutsInfo = await this.query("PRAGMA table_info(workouts)");
-        workoutsColumns = workoutsInfo.map(col => col.name);
-      } catch (e) {
-        console.log('Workouts table does not exist, will be created automatically');
-        return; // Exit early nếu table không tồn tại
-      }
-      
-      // Cấu trúc mong muốn cho metrics (lịch sử tập luyện)
-      const expectedMetricsColumns = [
-        'id', 'user_id', 'exercise_name', 'exercise_data', 
-        'progress_completed', 'workout_duration', 'workout_date', 
-        'notes', 'created_at'
-      ];
-      
-      // Cấu trúc mong muốn cho workouts (templates)
-      const expectedWorkoutsColumns = [
-        'id', 'template_name', 'exercises_template', 'gender', 'created_at'
-      ];
-      
-      // Kiểm tra metrics có đúng cấu trúc không
-      const metricsNeedMigration = !expectedMetricsColumns.every(col => metricsColumns.includes(col)) ||
-                                   metricsColumns.includes('template_category') || // old structure
-                                   metricsColumns.includes('difficulty_level') ||  // old structure
-                                   metricsColumns.includes('user_email') ||        // old structure
-                                   metricsColumns.includes('session_name');        // old structure
-      
-      // Kiểm tra workouts có đúng cấu trúc không  
-      const workoutsNeedMigration = !expectedWorkoutsColumns.every(col => workoutsColumns.includes(col)) ||
-                                    workoutsColumns.includes('template_category') ||  // old structure
-                                    workoutsColumns.includes('difficulty_level') ||  // old structure
-                                    workoutsColumns.includes('estimated_duration') || // old structure
-                                    workoutsColumns.includes('user_id') ||            // old structure
-                                    workoutsColumns.includes('exercises');            // old structure
-      
-      if (metricsNeedMigration) {
-        console.log('Metrics table needs migration, recreating...');
-        await this.recreateMetricsTable();
-      } else {
-        console.log('Metrics table structure is correct');
-      }
-      
-      if (workoutsNeedMigration) {
-        console.log('Workouts table needs migration, recreating...');
-        await this.recreateWorkoutsTable();
-      } else {
-        console.log('Workouts table structure is correct');
-      }
-      
-    } catch (error) {
-      console.error('Error checking schema (non-critical):', error);
-      // Không throw error để không crash server
-    }
-  }
-  
-  // Tạo lại bảng metrics với cấu trúc mới
-  async recreateMetricsTable() {
-    try {
-      console.log('Backing up metrics data...');
-      
-      // Backup dữ liệu cũ (nếu có)
-      let backupData = [];
-      try {
-        backupData = await this.query('SELECT * FROM metrics');
-      } catch (e) {
-        console.log('No existing metrics data to backup');
-      }
-      
-      // Xóa bảng cũ
-      await this.run('DROP TABLE IF EXISTS metrics');
-      
-      // Tạo bảng mới
-      await this.run(`CREATE TABLE metrics (
+      // 3. Bảng histo - Lịch sử tập luyện chi tiết
+      this.db.run(`CREATE TABLE IF NOT EXISTS histo (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
-        exercise_name TEXT NOT NULL,
-        exercise_data TEXT,
-        progress_completed BOOLEAN DEFAULT 0,
-        workout_duration INTEGER,
-        workout_date DATE,
-        notes TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        exercise_id TEXT NOT NULL, -- ID của bài tập
+        exercise_name TEXT NOT NULL, -- tên bài tập
+        progress_status TEXT NOT NULL, -- trạng thái tiến độ hoặc 'done' nếu hoàn thành
+        workout_time INTEGER, -- thời gian tập (phút)
+        workout_date DATE NOT NULL, -- ngày tập
+        notes TEXT, -- ghi chú
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- thời gian tạo record
         FOREIGN KEY (user_id) REFERENCES profiles (user_id) ON DELETE CASCADE
       )`);
-      
-      // Tạo indexes AN TOÀN - chỉ sau khi đã tạo bảng với cấu trúc mới
-      await this.createSafeIndexes('metrics');
-      
-      console.log('Metrics table recreated successfully');
-      
-      // Migrate dữ liệu cũ nếu có (chỉ migrate những field tương thích)
-      if (backupData.length > 0) {
-        console.log(`Migrating ${backupData.length} metrics records...`);
-        for (const record of backupData) {
-          try {
-            // Sử dụng workout_date từ record cũ nếu có, ngược lại dùng created_at
-            const workoutDate = record.workout_date || 
-                              (record.created_at ? record.created_at.split('T')[0] : null) ||
-                              new Date().toISOString().split('T')[0];
-            
-            await this.run(
-              'INSERT INTO metrics (user_id, exercise_name, exercise_data, progress_completed, workout_duration, workout_date, notes, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-              [
-                record.user_id,
-                record.exercise_name || 'Unknown Exercise',
-                record.exercise_data || null,
-                record.progress_completed || 0,
-                record.workout_duration || null,
-                workoutDate,
-                record.notes || null,
-                record.created_at || new Date().toISOString()
-              ]
-            );
-          } catch (e) {
-            console.error('Error migrating metrics record:', e);
-          }
-        }
-        console.log('Metrics data migration completed');
-      }
-      
-    } catch (error) {
-      console.error('Error recreating metrics table:', error);
-    }
-  }
-  
-  // Tạo lại bảng workouts với cấu trúc mới
-  async recreateWorkoutsTable() {
-    try {
-      console.log('Backing up workouts data...');
-      
-      // Backup dữ liệu cũ (nếu có)
-      let backupData = [];
-      try {
-        backupData = await this.query('SELECT * FROM workouts');
-      } catch (e) {
-        console.log('No existing workouts data to backup');
-      }
-      
-      // Xóa bảng cũ
-      await this.run('DROP TABLE IF EXISTS workouts');
-      
-      // Tạo bảng mới
-      await this.run(`CREATE TABLE workouts (
+
+      // 4. Bảng progs - Chương trình tập luyện
+      this.db.run(`CREATE TABLE IF NOT EXISTS progs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        template_name TEXT NOT NULL,
-        exercises_template TEXT NOT NULL,
-        gender TEXT DEFAULT 'o',
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        user_id INTEGER NOT NULL,
+        exercises TEXT NOT NULL, -- JSON string chứa nội dung exercises
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES profiles (user_id) ON DELETE CASCADE
       )`);
+
+      // 5. Bảng mentors - Quản lý mối quan hệ mentor-học viên
+      this.db.run(`CREATE TABLE IF NOT EXISTS mentors (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        mentor_id TEXT NOT NULL, -- ID của mentor
+        student_user_id INTEGER NOT NULL, -- user_id của học viên
+        custom_name TEXT, -- tên tùy chỉnh cho học viên (mentor có thể đặt)
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (student_user_id) REFERENCES profiles (user_id) ON DELETE CASCADE,
+        UNIQUE(mentor_id, student_user_id) -- Đảm bảo không duplicate relationship
+      )`);
+
+      // 6. Bảng prime - Quản lý quyền mentor và giới hạn
+      this.db.run(`CREATE TABLE IF NOT EXISTS prime (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL UNIQUE, -- user_id của người có prime
+        mentor_id TEXT NOT NULL, -- mentor_id của user này
+        max_students INTEGER NOT NULL DEFAULT 3, -- số lượng student tối đa có thể mentor (-1 = unlimited)
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES profiles (user_id) ON DELETE CASCADE,
+        FOREIGN KEY (mentor_id) REFERENCES profiles (mentor_id) ON DELETE CASCADE
+      )`);
+
+      console.log('Database schema created successfully');
       
-      // Tạo indexes AN TOÀN - chỉ sau khi đã tạo bảng với cấu trúc mới
-      await this.createSafeIndexes('workouts');
-      
-      console.log('Workouts table recreated successfully');
-      
-      // Migrate dữ liệu cũ nếu có (chỉ migrate những field tương thích)
-      if (backupData.length > 0) {
-        console.log(`Migrating ${backupData.length} workouts records...`);
-        for (const record of backupData) {
-          try {
-            // Chỉ migrate những record có exercises_template hoặc exercises
-            const exercisesData = record.exercises_template || record.exercises;
-            if (exercisesData) {
-              await this.run(
-                'INSERT INTO workouts (template_name, exercises_template, gender, created_at) VALUES (?, ?, ?, ?)',
-                [
-                  record.template_name || record.session_name || 'Unnamed Template',
-                  exercisesData,
-                  record.gender || 'o',
-                  record.created_at || new Date().toISOString()
-                ]
-              );
-            }
-          } catch (e) {
-            console.error('Error migrating workouts record:', e);
-          }
-        }
-        console.log('Workouts data migration completed');
-      }
-      
-    } catch (error) {
-      console.error('Error recreating workouts table:', error);
-    }
+      // Tạo indexes sau khi tạo xong tất cả bảng
+      this.createIndexes();
+    });
   }
 
-  // Tạo indexes an toàn - chỉ sau khi biết chắc cấu trúc bảng
-  async createSafeIndexes(tableName) {
-    try {
-      console.log(`Creating safe indexes for ${tableName} table...`);
-      
-      if (tableName === 'metrics') {
-        // Kiểm tra từng column trước khi tạo index
-        const tableInfo = await this.query(`PRAGMA table_info(${tableName})`);
-        const columns = tableInfo.map(col => col.name);
-        
-        // Chỉ tạo index cho columns tồn tại
-        if (columns.includes('user_id')) {
-          await this.run('CREATE INDEX IF NOT EXISTS idx_metrics_user_id ON metrics(user_id)');
-          console.log('Created index: idx_metrics_user_id');
-        }
-        
-        if (columns.includes('workout_date')) {
-          await this.run('CREATE INDEX IF NOT EXISTS idx_metrics_date ON metrics(workout_date)');
-          console.log('Created index: idx_metrics_date');
-        }
-        
-        if (columns.includes('exercise_name')) {
-          await this.run('CREATE INDEX IF NOT EXISTS idx_metrics_exercise ON metrics(exercise_name)');
-          console.log('Created index: idx_metrics_exercise');
-        }
-        
-      } else if (tableName === 'workouts') {
-        // Kiểm tra từng column trước khi tạo index
-        const tableInfo = await this.query(`PRAGMA table_info(${tableName})`);
-        const columns = tableInfo.map(col => col.name);
-        
-        if (columns.includes('template_name')) {
-          await this.run('CREATE INDEX IF NOT EXISTS idx_workouts_template ON workouts(template_name)');
-          console.log('Created index: idx_workouts_template');
-        }
-        
-        if (columns.includes('gender')) {
-          await this.run('CREATE INDEX IF NOT EXISTS idx_workouts_gender ON workouts(gender)');
-          console.log('Created index: idx_workouts_gender');
-        }
-      }
-      
-      // Luôn tạo index cho profiles.user_id vì đây là bảng cố định
-      if (tableName === 'profiles') {
-        await this.run('CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON profiles(user_id)');
-        console.log('Created index: idx_profiles_user_id');
-      }
-      
-    } catch (error) {
-      console.error(`Error creating indexes for ${tableName}:`, error);
-      // Không throw - index không quan trọng bằng functionality
-    }
+  // Tạo indexes sau khi bảng đã tồn tại
+  createIndexes() {
+    console.log('Creating indexes...');
+    
+    // Tạo indexes trong serialize để đảm bảo bảng đã được tạo
+    this.db.run('CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON profiles(user_id)');
+    this.db.run('CREATE INDEX IF NOT EXISTS idx_profiles_email ON profiles(user_email)');
+    this.db.run('CREATE INDEX IF NOT EXISTS idx_metrics_user_id ON metrics(user_id)');
+    this.db.run('CREATE INDEX IF NOT EXISTS idx_histo_user_id ON histo(user_id)');
+    this.db.run('CREATE INDEX IF NOT EXISTS idx_histo_date ON histo(workout_date)');
+    this.db.run('CREATE INDEX IF NOT EXISTS idx_progs_user_id ON progs(user_id)');
+    this.db.run('CREATE INDEX IF NOT EXISTS idx_mentors_mentor_id ON mentors(mentor_id)');
+    this.db.run('CREATE INDEX IF NOT EXISTS idx_prime_user_id ON prime(user_id)');
+    this.db.run('CREATE INDEX IF NOT EXISTS idx_prime_mentor_id ON prime(mentor_id)');
+    
+    console.log('Indexes created successfully');
   }
 
-  // Kiểm tra schema thủ công (có thể gọi từ API)
-  async checkDatabaseSchema() {
-    try {
-      const metricsInfo = await this.query("PRAGMA table_info(metrics)");
-      const workoutsInfo = await this.query("PRAGMA table_info(workouts)");
-      
-      return {
-        success: true,
-        metrics: {
-          exists: metricsInfo.length > 0,
-          columns: metricsInfo.map(col => ({ name: col.name, type: col.type }))
-        },
-        workouts: {
-          exists: workoutsInfo.length > 0,
-          columns: workoutsInfo.map(col => ({ name: col.name, type: col.type }))
-        },
-        message: 'Database schema information retrieved'
-      };
-    } catch (error) {
-      console.error('Error checking database schema:', error);
-      return { error: 'Failed to check database schema' };
-    }
-  }
 
-  // Hàm kiểm tra và tạo lại bảng nếu cấu trúc không đúng
-  async forceCheckAndRecreateSchema() {
-    try {
-      console.log('Force checking and recreating database schema...');
-      
-      // Kiểm tra cấu trúc bảng metrics
-      const metricsInfo = await this.query("PRAGMA table_info(metrics)");
-      const metricsColumns = metricsInfo.map(col => col.name);
-      
-      // Kiểm tra cấu trúc bảng workouts  
-      const workoutsInfo = await this.query("PRAGMA table_info(workouts)");
-      const workoutsColumns = workoutsInfo.map(col => col.name);
-      
-      // Cấu trúc mong muốn cho metrics (lịch sử tập luyện)
-      const expectedMetricsColumns = [
-        'id', 'user_id', 'exercise_name', 'exercise_data', 
-        'progress_completed', 'workout_duration', 'workout_date', 
-        'notes', 'created_at'
-      ];
-      
-      // Cấu trúc mong muốn cho workouts (templates)
-      const expectedWorkoutsColumns = [
-        'id', 'template_name', 'exercises_template', 'gender', 'created_at'
-      ];
-      
-      let result = {
-        success: true,
-        actions: [],
-        message: 'Schema check completed'
-      };
-      
-      // Kiểm tra metrics có đúng cấu trúc không
-      const metricsNeedMigration = !expectedMetricsColumns.every(col => metricsColumns.includes(col)) ||
-                                   metricsColumns.includes('template_category') || // old structure
-                                   metricsColumns.includes('difficulty_level') ||   // old structure
-                                   metricsColumns.includes('user_email') ||         // old structure
-                                   metricsColumns.includes('session_name');         // old structure
-      
-      // Kiểm tra workouts có đúng cấu trúc không  
-      const workoutsNeedMigration = !expectedWorkoutsColumns.every(col => workoutsColumns.includes(col)) ||
-                                    workoutsColumns.includes('template_category') ||  // old structure
-                                    workoutsColumns.includes('difficulty_level') ||  // old structure
-                                    workoutsColumns.includes('estimated_duration') || // old structure
-                                    workoutsColumns.includes('user_id') ||            // old structure
-                                    workoutsColumns.includes('exercises');            // old structure
-      
-      if (metricsNeedMigration) {
-        console.log('Metrics table needs recreation...');
-        await this.recreateMetricsTable();
-        result.actions.push('Recreated metrics table');
-      } else {
-        console.log('Metrics table structure is correct');
-        result.actions.push('Metrics table is up to date');
-      }
-      
-      if (workoutsNeedMigration) {
-        console.log('Workouts table needs recreation...');
-        await this.recreateWorkoutsTable();
-        result.actions.push('Recreated workouts table');
-      } else {
-        console.log('Workouts table structure is correct');
-        result.actions.push('Workouts table is up to date');
-      }
-      
-      // Kiểm tra lại sau khi migration
-      const finalMetricsInfo = await this.query("PRAGMA table_info(metrics)");
-      const finalWorkoutsInfo = await this.query("PRAGMA table_info(workouts)");
-      
-      result.final_schema = {
-        metrics: finalMetricsInfo.map(col => ({ name: col.name, type: col.type })),
-        workouts: finalWorkoutsInfo.map(col => ({ name: col.name, type: col.type }))
-      };
-      
-      console.log('Schema check and recreation completed successfully');
-      return result;
-      
-    } catch (error) {
-      console.error('Error in force schema check:', error);
-      return { 
-        error: 'Failed to check and recreate schema',
-        details: error.message 
-      };
-    }
-  }
 
   // === DATABASE UTILITY METHODS ===
   async query(sql, params = []) {
@@ -735,10 +134,6 @@ class TrainingApp {
         else resolve(rows);
       });
     });
-  }
-
-  async all(sql, params = []) {
-    return this.query(sql, params);
   }
 
   async run(sql, params = []) {
@@ -759,538 +154,1611 @@ class TrainingApp {
     });
   }
 
-  // === USER PROFILE METHODS ===
-  async ensureUserProfile(user) {
-    // CHỈ sử dụng bảng profiles
-    const existing = await this.get('SELECT id FROM profiles WHERE user_id = ?', [user.id]);
-
-    if (!existing) {
-      console.log(`Creating user profile for user ${user.id}`);
-      await this.run(
-        'INSERT INTO profiles (user_id, user_email, user_name) VALUES (?, ?, ?)',
-        [user.id, user.email, user.name]
-      );
-      
-      // Không cần tạo metrics mặc định - tất cả thông tin đã ở profiles
-    } else {
-      // Update user info if changed
-      try {
-        await this.run(
-          'UPDATE profiles SET user_email = ?, user_name = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?',
-          [user.email, user.name, user.id]
-        );
-      } catch (updateError) {
-        console.error('Error updating user profile:', updateError);
-        // Try without updated_at if column doesn't exist
-        try {
-          await this.run(
-            'UPDATE profiles SET user_email = ?, user_name = ? WHERE user_id = ?',
-            [user.email, user.name, user.id]
-          );
-        } catch (e) {
-          console.error('Failed to update user profile:', e);
-        }
-      }
-    }
-  }
-
-  // Get user profile với thông tin từ bảng profiles
-  async getUserProfile(userId = null, email = null) {
+  // === PROFILES METHODS ===
+  
+  // Tạo profile mới
+  async createProfile(profileData) {
+    const { user_id, user_email, user_name, gender, mentor_id } = profileData;
+    
     try {
-      // CHỈ sử dụng bảng profiles
-      const profile = await this.get('SELECT * FROM profiles WHERE user_id = ? OR user_email = ?', [userId, email]);
-      
-      if (!profile) {
-        return { error: 'User profile not found' };
-      }
-
-      // Lấy metrics (lịch sử tập luyện)
-      let metrics = [];
-      try {
-        metrics = await this.all('SELECT * FROM metrics WHERE user_id = ? ORDER BY workout_date DESC, created_at DESC LIMIT 20', [profile.user_id]);
-      } catch (e) {
-        console.log('Error getting metrics:', e.message);
-        metrics = [];
-      }
-      
-      // Lấy danh sách template workouts có sẵn (theo giới tính hoặc unisex)
-      let workoutTemplates = [];
-      try {
-        const workoutsInfo = await this.query("PRAGMA table_info(workouts)");
-        const workoutsColumns = workoutsInfo.map(col => col.name);
-        
-        if (workoutsColumns.includes('template_name')) {
-          // Cấu trúc mới - có template_name
-          workoutTemplates = await this.all('SELECT * FROM workouts WHERE gender = ? OR gender = "o" ORDER BY template_name', [profile.gender || 'o']);
-        } else {
-          // Cấu trúc cũ - có thể có session_name
-          workoutTemplates = await this.all('SELECT * FROM workouts ORDER BY created_at DESC', []);
-        }
-      } catch (e) {
-        console.log('Error getting workout templates, table may not exist:', e.message);
-        workoutTemplates = [];
-      }
-
-      // Đảm bảo profile có đầy đủ thông tin với giá trị mặc định
-      const completeProfile = {
-        ...profile,
-        gender: profile.gender || 'o',
-        weight: profile.weight || null,
-        height: profile.height || null,
-        birthdate: profile.birthdate || null,
-        activity_level: profile.activity_level || 'moderate',
-        fitness_goal: profile.fitness_goal || 'maintain',
-        exercises: profile.exercises || null,
-        // Thêm flag để frontend biết profile đã hoàn thiện
-        profile_completed: !!(profile.gender && profile.weight && profile.height)
-      };
-
-
-
-      return {
-        success: true,
-        profile: completeProfile,
-        workout_history: metrics || [],
-        workout_templates: workoutTemplates || [],
-        message: 'User profile retrieved successfully'
-      };
-    } catch (error) {
-      console.error('Error getting user profile:', error);
-      return { error: 'Failed to get user profile' };
-    }
-  }
-
-  // Update user profile với cấu trúc bảng mới
-  async updateUserProfile(data, user) {
-    try {
-      console.log('Updating user profile for user:', user.id, 'with data:', JSON.stringify(data));
-      
-      // CHỈ sử dụng bảng profiles
-      let profilesColumns = [];
-      try {
-        const profilesInfo = await this.query("PRAGMA table_info(profiles)");
-        profilesColumns = profilesInfo.map(col => col.name);
-        console.log('Profiles table columns:', profilesColumns);
-      } catch (e) {
-        console.error('Error checking profiles table structure:', e);
-        return { error: 'Profiles table not accessible' };
-      }
-
-      // Chuẩn bị tất cả fields cần update - CHỈ các fields tồn tại trong DB
-      const profileFields = [];
-      const profileValues = [];
-
-      // Update thông tin profile cơ bản
-      if (data.name && profilesColumns.includes('user_name')) {
-        profileFields.push('user_name = ?');
-        profileValues.push(data.name);
-      }
-
-      if (data.email && profilesColumns.includes('user_email')) {
-        profileFields.push('user_email = ?');
-        profileValues.push(data.email);
-      }
-
-      // Update thông tin cá nhân (chỉ nếu columns tồn tại)
-      if (data.gender && profilesColumns.includes('gender')) {
-        profileFields.push('gender = ?');
-        profileValues.push(data.gender);
-      }
-
-      if (data.weight !== undefined && profilesColumns.includes('weight')) {
-        profileFields.push('weight = ?');
-        profileValues.push(data.weight);
-      }
-
-      if (data.height !== undefined && profilesColumns.includes('height')) {
-        profileFields.push('height = ?');
-        profileValues.push(data.height);
-      }
-
-      if (data.birthdate !== undefined && profilesColumns.includes('birthdate')) {
-        profileFields.push('birthdate = ?');
-        profileValues.push(data.birthdate);
-      }
-
-      if (data.activity_level && profilesColumns.includes('activity_level')) {
-        profileFields.push('activity_level = ?');
-        profileValues.push(data.activity_level);
-      }
-
-      if (data.fitness_goal && profilesColumns.includes('fitness_goal')) {
-        profileFields.push('fitness_goal = ?');
-        profileValues.push(data.fitness_goal);
-      }
-
-      // Cập nhật tất cả thông tin cá nhân vào profiles
-      if (profileFields.length > 0) {
-        if (profilesColumns.includes('updated_at')) {
-          profileFields.push('updated_at = CURRENT_TIMESTAMP');
-        }
-        profileValues.push(user.id);
-
-        const profileSql = `UPDATE profiles SET ${profileFields.join(', ')} WHERE user_id = ?`;
-        console.log('Executing profile update SQL:', profileSql, 'with values:', profileValues);
-        
-        const result = await this.run(profileSql, profileValues);
-        console.log('Profile update result:', result);
-      }
-
-      // Save exercises if provided - lưu vào profiles (kiểm tra column tồn tại)
-      if (data.exercises && profilesColumns.includes('exercises')) {
-        console.log('Saving exercises to profile for user:', user.id);
-        
-        try {
-          if (profilesColumns.includes('updated_at')) {
-            await this.run(
-              'UPDATE profiles SET exercises = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?',
-              [JSON.stringify(data.exercises), user.id]
-            );
-          } else {
-            await this.run(
-              'UPDATE profiles SET exercises = ? WHERE user_id = ?',
-              [JSON.stringify(data.exercises), user.id]
-            );
-          }
-          console.log('Exercises saved successfully to profile for user:', user.id);
-        } catch (exerciseError) {
-          console.error('Error saving exercises:', exerciseError);
-          // Không return error - exercises không critical
-        }
-      }
-
-      console.log('User profile updated successfully for user:', user.id);
-      return {
-        success: true,
-        message: 'User profile updated successfully'
-      };
-    } catch (error) {
-      console.error('Error updating user profile:', error);
-      console.error('Error details:', error.message);
-      console.error('Error stack:', error.stack);
-      return { 
-        error: 'Failed to update user profile',
-        details: error.message 
-      };
-    }
-  }
-
-  // === WORKOUT MANAGEMENT METHODS ===
-  // Lưu workout data vào profile (không còn lưu vào bảng workouts)
-  async saveUserWorkout(userId, exercisesData) {
-    try {
-      const exercisesJson = typeof exercisesData === 'string' ? exercisesData : JSON.stringify(exercisesData);
-      
-      // Lưu exercises vào profile thay vì bảng workouts
       const result = await this.run(
-        'UPDATE profiles SET exercises = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?',
-        [exercisesJson, userId]
+        `INSERT INTO profiles (user_id, user_email, user_name, gender, mentor_id) 
+         VALUES (?, ?, ?, ?, ?)`,
+        [user_id, user_email, user_name, gender || 'o', mentor_id || null]
       );
-
-      if (result.changes === 0) {
-        return { error: 'User profile not found' };
-      }
-
-      return {
-        success: true,
-        message: 'Workout saved successfully to profile'
-      };
+      
+      // Profile created successfully
+      return { success: true, user_id, id: result.lastID };
     } catch (error) {
-      console.error('Error saving workout:', error);
-      return { error: 'Failed to save workout' };
+      console.error('Error creating profile:', error);
+      return { error: 'Failed to create profile', details: error.message };
     }
   }
 
-  // Lấy exercises data từ profile
-  async getUserWorkout(userId) {
+  // Lấy profile theo user_id
+  async getProfile(user_id) {
     try {
-      const profile = await this.get('SELECT exercises FROM profiles WHERE user_id = ?', [userId]);
-      
-      if (!profile) {
-        return { error: 'No profile found for user' };
-      }
-
-      if (!profile.exercises) {
-        return { error: 'No exercises found in profile' };
-      }
-
-      // Parse JSON data
-      const exercises = JSON.parse(profile.exercises);
-
-      return {
-        success: true,
-        exercises: exercises,
-        message: 'Exercises retrieved successfully from profile'
-      };
+      const profile = await this.get('SELECT * FROM profiles WHERE user_id = ?', [user_id]);
+      return profile || null;
     } catch (error) {
-      console.error('Error getting exercises from profile:', error);
-      return { error: 'Failed to get exercises from profile' };
+      console.error('Error getting profile:', error);
+      return null;
     }
   }
 
-  // Update exercises data trong profile
-  async updateUserWorkout(userId, exercisesData) {
+  // Cập nhật profile
+  async updateProfile(user_id, updateData) {
+    const { user_email, user_name, gender, mentor_id } = updateData;
+    
     try {
-      const exercisesJson = typeof exercisesData === 'string' ? exercisesData : JSON.stringify(exercisesData);
-      
-      // Cập nhật exercises trong profile
       const result = await this.run(
-        'UPDATE profiles SET exercises = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?',
-        [exercisesJson, userId]
+        `UPDATE profiles SET user_email = ?, user_name = ?, gender = ?, mentor_id = ?, updated_at = CURRENT_TIMESTAMP 
+         WHERE user_id = ?`,
+        [user_email, user_name, gender, mentor_id, user_id]
       );
       
-      if (result.changes === 0) {
-        return { error: 'Profile not found or no changes made' };
+      if (result.changes > 0) {
+        return { success: true, message: 'Profile updated successfully' };
+      } else {
+        return { error: 'Profile not found' };
       }
-      
-      return {
-        success: true,
-        message: 'Exercises updated successfully in profile'
-      };
     } catch (error) {
-      console.error('Error updating workout:', error);
-      return { error: 'Failed to update workout' };
+      console.error('Error updating profile:', error);
+      return { error: 'Failed to update profile', details: error.message };
     }
   }
 
-  // === WORKOUT HISTORY METHODS (METRICS) ===
+  // === METRICS METHODS ===
+  
+  // Thêm metrics mới (chiều cao, cân nặng)
+  async addMetrics(user_id, height, weight) {
+    try {
+      const result = await this.run(
+        'INSERT INTO metrics (user_id, height, weight) VALUES (?, ?, ?)',
+        [user_id, height, weight]
+      );
+      
+      // Metrics added successfully
+      return { success: true, id: result.lastID };
+    } catch (error) {
+      console.error('Error adding metrics:', error);
+      return { error: 'Failed to add metrics', details: error.message };
+    }
+  }
+
+  // Lấy metrics mới nhất của user
+  async getLatestMetrics(user_id) {
+    try {
+      const metrics = await this.get(
+        'SELECT * FROM metrics WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1',
+        [user_id]
+      );
+      return metrics || null;
+    } catch (error) {
+      console.error('Error getting latest metrics:', error);
+      return null;
+    }
+  }
+
+  // Lấy lịch sử metrics của user
+  async getMetricsHistory(user_id, limit = 50) {
+    try {
+      const metrics = await this.query(
+        'SELECT * FROM metrics WHERE user_id = ? ORDER BY updated_at DESC LIMIT ?',
+        [user_id, limit]
+      );
+      return metrics;
+    } catch (error) {
+      console.error('Error getting metrics history:', error);
+      return [];
+    }
+  }
+
+  // === HISTO METHODS ===
   
   // Thêm lịch sử tập luyện
-  async addWorkoutHistory(userId, exerciseName, exerciseData, completed, duration, notes = null) {
+  async addWorkoutHistory(historyData) {
+    const { user_id, exercise_id, exercise_name, progress_status, workout_time, workout_date, notes } = historyData;
+    
     try {
       const result = await this.run(
-        'INSERT INTO metrics (user_id, exercise_name, exercise_data, progress_completed, workout_duration, workout_date, notes) VALUES (?, ?, ?, ?, ?, DATE("now"), ?)',
-        [userId, exerciseName, JSON.stringify(exerciseData), completed ? 1 : 0, duration, notes]
+        `INSERT INTO histo (user_id, exercise_id, exercise_name, progress_status, workout_time, workout_date, notes) 
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [user_id, exercise_id, exercise_name, progress_status, workout_time, workout_date, notes || null]
       );
       
-      return {
-        success: true,
-        history_id: result.lastID,
-        message: 'Workout history added successfully'
-      };
+      // Workout history added successfully
+      return { success: true, id: result.lastID };
     } catch (error) {
       console.error('Error adding workout history:', error);
-      return { error: 'Failed to add workout history' };
-    }
-  }
-
-  // Lưu toàn bộ session workout (khi user hoàn thành một session)
-  async saveWorkoutSession(userId, sessionData) {
-    try {
-      const { 
-        sessionName, 
-        exercises, 
-        totalDuration, 
-        completedExercises, 
-        notes 
-      } = sessionData;
-      
-      const result = await this.run(
-        'INSERT INTO metrics (user_id, exercise_name, exercise_data, progress_completed, workout_duration, workout_date, notes) VALUES (?, ?, ?, ?, ?, DATE("now"), ?)',
-        [
-          userId, 
-          sessionName || 'Workout Session',
-          JSON.stringify(exercises),
-          1, // Session luôn completed
-          totalDuration || 0,
-          notes || null
-        ]
-      );
-      
-      return {
-        success: true,
-        session_id: result.lastID,
-        message: 'Workout session saved successfully'
-      };
-    } catch (error) {
-      console.error('Error saving workout session:', error);
-      return { error: 'Failed to save workout session' };
+      return { error: 'Failed to add workout history', details: error.message };
     }
   }
 
   // Lấy lịch sử tập luyện của user
-  async getUserWorkoutHistory(userId, limit = 50) {
+  async getWorkoutHistory(user_id, limit = 100) {
     try {
-      const history = await this.all(
-        'SELECT * FROM metrics WHERE user_id = ? ORDER BY workout_date DESC, created_at DESC LIMIT ?',
-        [userId, limit]
+      const history = await this.query(
+        'SELECT * FROM histo WHERE user_id = ? ORDER BY workout_date DESC, created_at DESC LIMIT ?',
+        [user_id, limit]
       );
-      
-      return {
-        success: true,
-        history: history,
-        message: 'Workout history retrieved successfully'
-      };
+      return history;
     } catch (error) {
       console.error('Error getting workout history:', error);
-      return { error: 'Failed to get workout history' };
+      return [];
     }
   }
 
-  // === WORKOUT TEMPLATES METHODS ===
-
-  // Lấy tất cả workout templates
-  async getWorkoutTemplates(gender = null) {
+  // Lấy lịch sử tập luyện theo ngày
+  async getWorkoutHistoryByDate(user_id, workout_date) {
     try {
-      let sql = 'SELECT * FROM workouts';
-      let params = [];
-      
-      if (gender) {
-        sql += ' WHERE gender = ? OR gender = "o"';
-        params.push(gender);
-      }
-      
-      sql += ' ORDER BY template_name, created_at DESC';
-      
-      const templates = await this.all(sql, params);
-      
-      return {
-        success: true,
-        templates: templates,
-        message: 'Workout templates retrieved successfully'
-      };
+      const history = await this.query(
+        'SELECT * FROM histo WHERE user_id = ? AND workout_date = ? ORDER BY created_at DESC',
+        [user_id, workout_date]
+      );
+      return history;
     } catch (error) {
-      console.error('Error getting workout templates:', error);
-      return { error: 'Failed to get workout templates' };
+      console.error('Error getting workout history by date:', error);
+      return [];
     }
   }
 
-  // Thêm workout template mới
-  async addWorkoutTemplate(templateData) {
+  // Cập nhật trạng thái bài tập
+  async updateExerciseProgress(histo_id, progress_status, notes = null) {
     try {
-      const { name, exercises, gender } = templateData;
-      
       const result = await this.run(
-        'INSERT INTO workouts (template_name, exercises_template, gender) VALUES (?, ?, ?)',
-        [name, JSON.stringify(exercises), gender || 'o']
+        'UPDATE histo SET progress_status = ?, notes = ? WHERE id = ?',
+        [progress_status, notes, histo_id]
       );
       
-      return {
-        success: true,
-        template_id: result.lastID,
-        message: 'Workout template added successfully'
-      };
+      if (result.changes > 0) {
+        return { success: true, message: 'Exercise progress updated' };
+      } else {
+        return { error: 'Workout history record not found' };
+      }
     } catch (error) {
-      console.error('Error adding workout template:', error);
-      return { error: 'Failed to add workout template' };
+      console.error('Error updating exercise progress:', error);
+      return { error: 'Failed to update exercise progress', details: error.message };
     }
   }
 
-  // === EXERCISES MANAGEMENT METHODS ===
-  // Load user-specific data từ database hoặc fallback về file
-  async getUserTrainingData(userId, gender = 'o') {
+  // === PROGS METHODS ===
+  
+  // Kiểm tra quyền mentor có thể edit program của student
+  async canMentorEditStudent(mentor_user_id, student_user_id) {
     try {
-      console.log(`getUserTrainingData called for userId: ${userId}, gender: ${gender}`);
-      
-      // 1. Kiểm tra database trước
-      console.log('Checking database for user workout...');
-      const dbResult = await this.getUserWorkout(userId);
-      
-      if (dbResult.success) {
-        console.log(`Loading training data from database for user ${userId}`);
-        return dbResult.exercises;
+      // Nếu edit chính mình thì luôn được phép
+      if (mentor_user_id === student_user_id) {
+        return { allowed: true, reason: 'self' };
       }
 
-      // 2. Fallback về user-specific file (nếu có)
-      const userFilePath = path.join(__dirname, '..', '..', 'user_data', `${userId}.json`);
-      console.log(`Checking user-specific file: ${userFilePath}`);
-      if (fs.existsSync(userFilePath)) {
-        console.log(`Loading training data from user file for user ${userId}`);
-        const userData = fs.readFileSync(userFilePath, 'utf8');
-        return JSON.parse(userData);
+      // Lấy mentor_id của mentor (từ profiles)
+      const mentorProfile = await this.get('SELECT mentor_id FROM profiles WHERE user_id = ?', [mentor_user_id]);
+      if (!mentorProfile || !mentorProfile.mentor_id) {
+        return { allowed: false, reason: 'Mentor not found or has no mentor_id' };
       }
 
-      // 3. Fallback về default Calisthenic data
-      console.log(`Loading default Calisthenic data for user ${userId} (gender: ${gender})`);
-      const defaultFilePath = path.join(__dirname, '..', '..', 'Calisthenic.json');
-      console.log(`Checking default file: ${defaultFilePath}`);
-      if (fs.existsSync(defaultFilePath)) {
-        console.log('Default file found, loading...');
-        const defaultData = fs.readFileSync(defaultFilePath, 'utf8');
-        return JSON.parse(defaultData);
+      // Kiểm tra xem student có trong danh sách students của mentor này không
+      // Bảng mentors có: mentor_id (TEXT) và student_user_id (INTEGER)
+      const mentorRelation = await this.get(
+        'SELECT id FROM mentors WHERE mentor_id = ? AND student_user_id = ?',
+        [mentorProfile.mentor_id, student_user_id]
+      );
+
+      if (!mentorRelation) {
+        return { allowed: false, reason: 'You are not the mentor of this student' };
       }
 
-      console.log('No training data found anywhere');
-      throw new Error('No training data found');
+      return { allowed: true, reason: 'mentor_relation_found' };
     } catch (error) {
-      console.error('Error loading training data:', error);
-      throw error;
+      console.error('Error checking mentor permission:', error);
+      return { allowed: false, reason: 'Database error: ' + error.message };
     }
   }
 
-  // === MAIN REQUEST HANDLER ===
-  async handleRequest(endpoint, method, data, user) {
-    // console.log(`Training app handling: ${method} ${endpoint}`);
+  // Lưu chương trình tập luyện (với kiểm tra quyền mentor)
+  async saveProgram(user_id, exercises, mentor_user_id = null) {
+    const exercisesJson = typeof exercises === 'string' ? exercises : JSON.stringify(exercises);
     
     try {
-      // Đảm bảo user profile tồn tại
-      await this.ensureUserProfile(user);
+      // Nếu có mentor_user_id, kiểm tra quyền trước khi lưu
+      if (mentor_user_id && mentor_user_id !== user_id) {
+        const permission = await this.canMentorEditStudent(mentor_user_id, user_id);
+        if (!permission.allowed) {
+          return { error: `Permission denied: ${permission.reason}` };
+        }
+        // Permission granted for mentor
+      }
+      // Kiểm tra xem user đã có program chưa
+      const existingProg = await this.get('SELECT id FROM progs WHERE user_id = ?', [user_id]);
+      
+      if (existingProg) {
+        // Update existing program
+        const result = await this.run(
+          'UPDATE progs SET exercises = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?',
+          [exercisesJson, user_id]
+        );
+        
+        return { success: true, message: 'Program updated', id: existingProg.id };
+      } else {
+        // Create new program
+        const result = await this.run(
+          'INSERT INTO progs (user_id, exercises) VALUES (?, ?)',
+          [user_id, exercisesJson]
+        );
+        
+        return { success: true, message: 'Program created', id: result.lastID };
+      }
+    } catch (error) {
+      console.error('Error saving program:', error);
+      return { error: 'Failed to save program', details: error.message };
+    }
+  }
 
-      switch (endpoint) {
+  // Lấy chương trình tập luyện của user (với kiểm tra quyền mentor)
+  async getProgram(user_id, mentor_user_id = null) {
+    try {
+      // Nếu có mentor_user_id, kiểm tra quyền trước khi lấy
+      if (mentor_user_id && mentor_user_id !== user_id) {
+        const permission = await this.canMentorEditStudent(mentor_user_id, user_id);
+        if (!permission.allowed) {
+          return { error: `Permission denied: ${permission.reason}` };
+        }
+        // Permission granted for mentor
+      }
+
+      const program = await this.get('SELECT * FROM progs WHERE user_id = ?', [user_id]);
+      
+      if (program) {
+        // Parse JSON exercises
+        try {
+          program.exercises = JSON.parse(program.exercises);
+        } catch (e) {
+          console.warn('Failed to parse exercises JSON for user', user_id);
+        }
+      }
+      
+      return program || null;
+    } catch (error) {
+      console.error('Error getting program:', error);
+      return null;
+    }
+  }
+
+  // === MENTORS METHODS ===
+  
+  // Thêm mối quan hệ mentor-học viên
+  async addMentorStudent(mentor_id, student_user_id) {
+    try {
+      const result = await this.run(
+        'INSERT INTO mentors (mentor_id, student_user_id) VALUES (?, ?)',
+        [mentor_id, student_user_id]
+      );
+      
+      // Mentor relationship added successfully
+      return { success: true, id: result.lastID };
+    } catch (error) {
+      if (error.message.includes('UNIQUE constraint failed')) {
+        return { error: 'Mentor-student relationship already exists' };
+      }
+      console.error('Error adding mentor-student relationship:', error);
+      return { error: 'Failed to add mentor-student relationship', details: error.message };
+    }
+  }
+
+  // Lấy danh sách học viên của mentor
+  async getMentorStudents(mentor_id) {
+    try {
+      const students = await this.query(`
+        SELECT p.*, m.created_at as relationship_created_at 
+        FROM mentors m 
+        JOIN profiles p ON m.student_user_id = p.user_id 
+        WHERE m.mentor_id = ? 
+        ORDER BY m.created_at DESC
+      `, [mentor_id]);
+      
+      return students;
+    } catch (error) {
+      console.error('Error getting mentor students:', error);
+      return [];
+    }
+  }
+
+  // Lấy thông tin mentor của học viên
+  async getStudentMentor(student_user_id) {
+    try {
+      const mentorRelation = await this.get(
+        'SELECT mentor_id, created_at FROM mentors WHERE student_user_id = ?',
+        [student_user_id]
+      );
+      return mentorRelation || null;
+    } catch (error) {
+      console.error('Error getting student mentor:', error);
+      return null;
+    }
+  }
+
+  // Xóa mối quan hệ mentor-học viên
+  async removeMentorStudent(mentor_id, student_user_id) {
+    try {
+      const result = await this.run(
+        'DELETE FROM mentors WHERE mentor_id = ? AND student_user_id = ?',
+        [mentor_id, student_user_id]
+      );
+      
+      if (result.changes > 0) {
+        // Mentor relationship removed successfully
+        return { success: true, message: 'Mentor-student relationship removed' };
+      } else {
+        return { error: 'Mentor-student relationship not found' };
+      }
+    } catch (error) {
+      console.error('Error removing mentor-student relationship:', error);
+      return { error: 'Failed to remove mentor-student relationship', details: error.message };
+    }
+  }
+
+  // === UTILITY METHODS ===
+  
+  // Lấy thống kê tổng quan
+  async getDatabaseStats() {
+    try {
+      const stats = {};
+      
+      stats.profiles = await this.get('SELECT COUNT(*) as count FROM profiles');
+      stats.metrics = await this.get('SELECT COUNT(*) as count FROM metrics');
+      stats.histo = await this.get('SELECT COUNT(*) as count FROM histo');
+      stats.progs = await this.get('SELECT COUNT(*) as count FROM progs');
+      stats.mentors = await this.get('SELECT COUNT(*) as count FROM mentors');
+      
+      return {
+        profiles_count: stats.profiles.count,
+        metrics_count: stats.metrics.count,
+        workout_history_count: stats.histo.count,
+        programs_count: stats.progs.count,
+        mentor_relationships_count: stats.mentors.count
+      };
+    } catch (error) {
+      console.error('Error getting database stats:', error);
+      return { error: 'Failed to get database statistics' };
+    }
+  }
+
+  // Kiểm tra schema database
+  async checkNewDatabaseSchema() {
+    try {
+      const tables = ['profiles', 'metrics', 'histo', 'progs', 'mentors'];
+      const schema = {};
+      
+      for (const table of tables) {
+        const tableInfo = await this.query(`PRAGMA table_info(${table})`);
+        schema[table] = {
+          exists: tableInfo.length > 0,
+          columns: tableInfo.map(col => ({ 
+            name: col.name, 
+            type: col.type, 
+            notnull: col.notnull,
+            pk: col.pk 
+          }))
+        };
+      }
+      
+      return {
+        success: true,
+        schema: schema,
+        message: 'New database schema information retrieved'
+      };
+    } catch (error) {
+      console.error('Error checking new database schema:', error);
+      return { error: 'Failed to check new database schema' };
+    }
+  }
+
+  // Đóng kết nối database
+  close() {
+    return new Promise((resolve) => {
+      this.db.close((err) => {
+        if (err) {
+          console.error('Error closing database:', err);
+        } else {
+          console.log('Database connection closed');
+        }
+        resolve();
+      });
+    });
+  }
+
+  // ===== UTILITY METHODS =====
+
+  /**
+   * Generate unique mentor ID
+   * @returns {string} Unique mentor ID
+   */
+  generateMentorId() {
+    // Tạo mentor ID từ timestamp + random (không chứa user_id để bảo mật)
+    const timestamp = Date.now().toString(36);
+    const random1 = Math.random().toString(36).substr(2, 4);
+    const random2 = Math.random().toString(36).substr(2, 4);
+    return `${timestamp}${random1}${random2}`.toUpperCase();
+  }
+
+  /**
+   * Check if mentor ID is unique
+   * @param {string} mentorId - Mentor ID to check
+   * @returns {Promise<boolean>} True if unique, false if exists
+   */
+  async isMentorIdUnique(mentorId) {
+    return new Promise((resolve) => {
+      this.db.get(
+        'SELECT id FROM profiles WHERE mentor_id = ?',
+        [mentorId],
+        (err, result) => {
+          if (err) {
+            console.error('Error checking mentor ID uniqueness:', err);
+            resolve(false);
+            return;
+          }
+          resolve(!result); // true if no result (unique)
+        }
+      );
+    });
+  }
+
+  // ===== SERVER INTERFACE METHODS =====
+
+  /**
+   * Handle HTTP requests from server
+   * @param {string} path - Request path
+   * @param {string} method - HTTP method
+   * @param {object} params - Request parameters
+   * @param {object} user - User info from authentication
+   * @returns {Promise<object>} Response data
+   */
+  async handleRequest(path, method, params, user) {
+    try {
+      switch (path) {
+        case '/workout':
+          if (method === 'GET') {
+            return await this.getWorkoutData(user.id, params);
+          }
+          break;
+        
         case '/profile':
           if (method === 'GET') {
             return await this.getUserProfile(user.id);
-          } else if (method === 'PUT') {
-            return await this.updateUserProfile(data, user);
+          } else if (method === 'POST' || method === 'PUT') {
+            return await this.updateUserProfile(user.id, params);
           }
           break;
-
-        case '/workout':
+        
+        case '/metrics':
           if (method === 'GET') {
-            const trainingData = await this.getUserTrainingData(user.id, data?.gender);
-            return { success: true, exercises: trainingData };
+            return await this.getUserMetrics(user.id);
           } else if (method === 'POST') {
-            return await this.saveUserWorkout(user.id, data.exercises);
+            return await this.addUserMetrics(user.id, params);
           }
           break;
-
-        case '/workouts':
+        
+        case '/history':
           if (method === 'GET') {
-            return await this.getUserWorkout(user.id);
-          }
-          break;
-
-        case '/workout-history':
-          if (method === 'GET') {
-            return await this.getUserWorkoutHistory(user.id, data?.limit);
+            return await this.getUserHistory(user.id);
           } else if (method === 'POST') {
-            return await this.addWorkoutHistory(
-              user.id, 
-              data.exerciseName, 
-              data.exerciseData, 
-              data.completed, 
-              data.duration,
-              data.notes
-            );
+            return await this.addWorkoutHistory(user.id, params);
           }
           break;
-
-        case '/workout-session':
-          if (method === 'POST') {
-            return await this.saveWorkoutSession(user.id, data);
-          }
-          break;
-
-        case '/workout-templates':
-          if (method === 'GET') {
-            return await this.getWorkoutTemplates(data?.gender);
-          } else if (method === 'POST') {
-            return await this.addWorkoutTemplate(data);
-          }
-          break;
-
+        
         default:
-          return { error: 'Endpoint not found' };
+          return { error: 'Endpoint not found', path, method };
       }
     } catch (error) {
-      console.error('Error in handleRequest:', error);
-      return { error: 'Internal server error' };
+      console.error(`Error handling request ${method} ${path}:`, error);
+      return { error: error.message };
     }
   }
 
-  // Đóng database connection
-  close() {
-    this.db.close();
+  /**
+   * Create user profile automatically with unique mentor ID
+   * @param {number} userId - User ID
+   * @param {string} userEmail - User email
+   * @param {string} userName - User name
+   * @returns {Promise<object>} Create result
+   */
+  async createUserProfile(userId, userEmail, userName) {
+    try {
+      // Generate unique mentor ID
+      let mentorId;
+      let isUnique = false;
+      let attempts = 0;
+      const maxAttempts = 5;
+
+      while (!isUnique && attempts < maxAttempts) {
+        mentorId = this.generateMentorId();
+        isUnique = await this.isMentorIdUnique(mentorId);
+        attempts++;
+      }
+
+      if (!isUnique) {
+        return { error: 'Failed to generate unique mentor ID' };
+      }
+
+      return new Promise((resolve) => {
+        // Lưu reference đến database để tránh context loss trong nested callbacks
+        const db = this.db;
+        
+        // Bắt đầu transaction để tạo cả profile và prime
+        db.serialize(() => {
+          db.run('BEGIN TRANSACTION');
+
+          // Tạo profile trước
+          db.run(
+            `INSERT INTO profiles (user_id, user_email, user_name, gender, mentor_id) 
+             VALUES (?, ?, ?, 'o', ?)`,
+            [userId, userEmail, userName, mentorId],
+            function(err) {
+              if (err) {
+                console.error('Error creating user profile:', err);
+                db.run('ROLLBACK');
+                resolve({ error: err.message });
+                return;
+              }
+
+              const profileId = this.lastID;
+
+              // Tự động tạo prime với max_students = 1 cho user mới
+              db.run(
+                `INSERT INTO prime (user_id, mentor_id, max_students) VALUES (?, ?, ?)`,
+                [userId, mentorId, 1],
+                function(primeErr) {
+                  if (primeErr) {
+                    console.error('Error creating prime for new user:', primeErr);
+                    db.run('ROLLBACK');
+                    resolve({ error: 'Failed to create prime: ' + primeErr.message });
+                    return;
+                  }
+
+                  console.log(`✅ Auto-created prime for new user ${userId} with max_students = 1`);
+
+                  // Commit transaction nếu cả 2 đều thành công
+                  db.run('COMMIT', function(commitErr) {
+                    if (commitErr) {
+                      console.error('Error committing transaction:', commitErr);
+                      resolve({ error: commitErr.message });
+                      return;
+                    }
+
+                    resolve({
+                      success: true,
+                      id: profileId,
+                      mentor_id: mentorId,
+                      prime_created: true,
+                      max_students: 1,
+                      message: 'Profile created successfully with mentor ID and prime status (max 1 student)'
+                    });
+                  });
+                }
+              );
+            }
+          );
+        });
+      });
+    } catch (error) {
+      console.error('Error in createUserProfile:', error);
+      return { error: error.message };
+    }
+  }
+
+  /**
+   * Get user profile information (auto-create if not exists)
+   * @param {number} userId - User ID
+   * @param {object} userInfo - User info from OAuth {email, name}
+   * @returns {Promise<object>} User profile data
+   */
+  async getUserProfile(userId, userInfo = null) {
+    return new Promise((resolve) => {
+      this.db.get(
+        'SELECT * FROM profiles WHERE user_id = ?',
+        [userId],
+        async (err, profile) => {
+          if (err) {
+            console.error('Error getting user profile:', err);
+            resolve({ error: err.message });
+            return;
+          }
+
+          // If profile doesn't exist, create it automatically
+          if (!profile && userInfo) {
+            // Creating new profile
+            const createResult = await this.createUserProfile(userId, userInfo.email, userInfo.name || userInfo.email);
+            
+            if (createResult.error) {
+              resolve({ error: createResult.error });
+              return;
+            }
+
+            // Get the newly created profile
+            this.db.get(
+              'SELECT * FROM profiles WHERE user_id = ?',
+              [userId],
+              (err, newProfile) => {
+                if (err || !newProfile) {
+                  resolve({ error: 'Failed to retrieve created profile' });
+                  return;
+                }
+                
+                resolve({
+                  profile: newProfile,
+                  metrics: null,
+                  isNewProfile: true
+                });
+              }
+            );
+            return;
+          }
+
+          if (!profile) {
+            resolve({ error: 'Profile not found' });
+            return;
+          }
+
+          // Đảm bảo user có prime (tạo tự động nếu chưa có)
+          this.ensureUserPrime(userId).then(primeResult => {
+            // Get latest metrics
+            this.db.get(
+              'SELECT * FROM metrics WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1',
+              [userId],
+              (err, metrics) => {
+                if (err) {
+                  console.error('Error getting user metrics:', err);
+                }
+
+                resolve({
+                  profile,
+                  metrics: metrics || null,
+                  prime_ensured: primeResult.success
+                });
+              }
+            );
+          }).catch(primeErr => {
+            console.error('Error ensuring prime for user:', primeErr);
+            // Vẫn trả về profile nếu prime creation thất bại
+            this.db.get(
+              'SELECT * FROM metrics WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1',
+              [userId],
+              (err, metrics) => {
+                if (err) {
+                  console.error('Error getting user metrics:', err);
+                }
+
+                resolve({
+                  profile,
+                  metrics: metrics || null,
+                  prime_ensured: false,
+                  prime_error: primeErr.message
+                });
+              }
+            );
+          });
+        }
+      );
+    });
+  }
+
+  /**
+   * Get workout data for user (mentor gets own + students' exercises)
+   * @param {number} userId - User ID  
+   * @param {object} params - Query parameters
+   * @returns {Promise<object>} Workout data
+   */
+  async getWorkoutData(userId, params = {}) {
+    try {
+      // Get user's mentor_id and check if they have students
+      const userProfile = await new Promise((resolve) => {
+        this.db.get(
+          `SELECT mentor_id, 
+                  (SELECT COUNT(*) FROM mentors WHERE mentor_id = profiles.mentor_id) as student_count
+           FROM profiles WHERE user_id = ?`,
+          [userId],
+          (err, result) => {
+            if (err) resolve({ error: err.message });
+            else resolve(result);
+          }
+        );
+      });
+
+      if (userProfile.error) return userProfile;
+      if (!userProfile) return { error: 'User not found' };
+
+      let allUserIds = [userId]; // Start with current user
+
+      // If user is mentor with students, include their IDs
+      if (userProfile.mentor_id && userProfile.student_count > 0) {
+        const students = await new Promise((resolve) => {
+          this.db.all(
+            'SELECT student_user_id FROM mentors WHERE mentor_id = ?',
+            [userProfile.mentor_id],
+            (err, results) => {
+              if (err) resolve({ error: err.message });
+              else resolve(results.map(r => r.student_user_id));
+            }
+          );
+        });
+
+        if (students.error) return students;
+        allUserIds = allUserIds.concat(students);
+      }
+
+      // Get programs for all relevant users
+      const programs = await new Promise((resolve) => {
+        const placeholders = allUserIds.map(() => '?').join(',');
+        this.db.all(
+          `SELECT p.*, pr.user_name, pr.user_email 
+           FROM progs p
+           JOIN profiles pr ON p.user_id = pr.user_id
+           WHERE p.user_id IN (${placeholders}) 
+           ORDER BY p.created_at DESC`,
+          allUserIds,
+          (err, results) => {
+            if (err) resolve({ error: err.message });
+            else resolve(results);
+          }
+        );
+      });
+
+      if (programs.error) return programs;
+
+      // Parse JSON exercises and organize by user
+      let exercises = {};
+      let exercisesByUser = {};
+      
+      if (programs.length > 0) {
+        programs.forEach(prog => {
+          try {
+            if (prog.exercises) {
+              const progExercises = JSON.parse(prog.exercises);
+              if (typeof progExercises === 'object' && progExercises !== null) {
+                // Merge into main exercises object
+                exercises = { ...exercises, ...progExercises };
+                
+                // Also organize by user for frontend selection
+                if (!exercisesByUser[prog.user_id]) {
+                  exercisesByUser[prog.user_id] = {
+                    user_name: prog.user_name,
+                    user_email: prog.user_email,
+                    exercises: {}
+                  };
+                }
+                exercisesByUser[prog.user_id].exercises = { 
+                  ...exercisesByUser[prog.user_id].exercises, 
+                  ...progExercises 
+                };
+              }
+            }
+          } catch (parseErr) {
+            console.error('Error parsing exercises JSON:', parseErr);
+          }
+        });
+      }
+      
+      // If no exercises found, return empty structure for frontend compatibility
+      if (Object.keys(exercises).length === 0) {
+        exercises = {
+          "FullBodyMale": {},
+          "FullBodyFemale": {},
+          "FullBodyPers": {},
+          "Calisthenic": {},
+          "pika": {}
+        };
+      }
+
+      return {
+        programs,
+        exercises, // Combined exercises for main view
+        exercises_by_user: exercisesByUser, // Organized by user for selection
+        is_mentor: userProfile.student_count > 0,
+        student_count: userProfile.student_count,
+        total: programs.length
+      };
+    } catch (error) {
+      return { error: error.message };
+    }
+  }
+
+  /**
+   * Update user profile
+   * @param {number} userId - User ID
+   * @param {object} profileData - Profile data to update
+   * @returns {Promise<object>} Update result
+   */
+  async updateUserProfile(userId, profileData) {
+    return new Promise((resolve) => {
+      const { user_name, gender, birthdate } = profileData;
+      
+      this.db.run(
+        `UPDATE profiles 
+         SET user_name = COALESCE(?, user_name),
+             gender = COALESCE(?, gender), 
+             birthdate = COALESCE(?, birthdate),
+             updated_at = CURRENT_TIMESTAMP
+         WHERE user_id = ?`,
+        [user_name, gender, birthdate, userId],
+        function(err) {
+          if (err) {
+            console.error('Error updating profile:', err);
+            resolve({ error: err.message });
+            return;
+          }
+
+          resolve({ 
+            success: true, 
+            changes: this.changes,
+            message: 'Profile updated successfully' 
+          });
+        }
+      );
+    });
+  }
+
+  /**
+   * Get user's workout exercises (với kiểm tra quyền mentor)
+   * @param {number} userId - User ID
+   * @param {number} mentorUserId - Mentor User ID (optional)
+   * @returns {Promise<object>} User workout data
+   */
+  async getUserWorkout(userId, mentorUserId = null) {
+    // Nếu có mentorUserId, kiểm tra quyền trước
+    if (mentorUserId && mentorUserId !== userId) {
+      const permission = await this.canMentorEditStudent(mentorUserId, userId);
+      if (!permission.allowed) {
+        return { error: `Permission denied: ${permission.reason}` };
+      }
+      // Permission granted for mentor
+    }
+    return new Promise((resolve) => {
+      this.db.get(
+        'SELECT * FROM progs WHERE user_id = ? ORDER BY created_at DESC LIMIT 1',
+        [userId],
+        (err, program) => {
+          if (err) {
+            console.error('Error getting user workout:', err);
+            resolve({ error: err.message });
+            return;
+          }
+
+          if (!program) {
+            resolve({ error: 'No workout program found' });
+            return;
+          }
+
+          try {
+            const exercises = program.exercises ? JSON.parse(program.exercises) : [];
+            resolve({
+              program,
+              exercises,
+              total: exercises.length
+            });
+          } catch (parseErr) {
+            console.error('Error parsing workout exercises:', parseErr);
+            resolve({ error: 'Invalid workout data format' });
+          }
+        }
+      );
+    });
+  }
+
+  /**
+   * Update user's workout exercises (wrapper for saveProgram với mentor check)
+   * @param {number} userId - User ID
+   * @param {object} exercises - Exercise data
+   * @param {number} mentorUserId - Mentor User ID (optional)
+   * @returns {Promise<object>} Update result
+   */
+  async updateUserWorkout(userId, exercises, mentorUserId = null) {
+    return await this.saveProgram(userId, exercises, mentorUserId);
+  }
+
+  /**
+   * Get user's workout history
+   * @param {number} userId - User ID
+   * @param {number} limit - Number of records to fetch
+   * @returns {Promise<object>} User workout history
+   */
+  async getUserWorkoutHistory(userId, limit = 50) {
+    return new Promise((resolve) => {
+      this.db.all(
+        'SELECT * FROM histo WHERE user_id = ? ORDER BY workout_date DESC LIMIT ?',
+        [userId, limit],
+        (err, history) => {
+          if (err) {
+            console.error('Error getting workout history:', err);
+            resolve({ error: err.message });
+            return;
+          }
+
+          // Parse exercise_data JSON if exists
+          const processedHistory = history.map(record => {
+            try {
+              if (record.exercise_data) {
+                record.exercise_data = JSON.parse(record.exercise_data);
+              }
+              return record;
+            } catch (parseErr) {
+              console.error('Error parsing exercise data:', parseErr);
+              record.exercise_data = null;
+              return record;
+            }
+          });
+
+          resolve({
+            success: true,
+            history: processedHistory,
+            total: processedHistory.length
+          });
+        }
+      );
+    });
+  }
+
+  /**
+   * Get user metrics (height, weight history)
+   * @param {number} userId - User ID
+   * @returns {Promise<object>} User metrics data
+   */
+  async getUserMetrics(userId) {
+    return new Promise((resolve) => {
+      this.db.all(
+        'SELECT * FROM metrics WHERE user_id = ? ORDER BY updated_at DESC',
+        [userId],
+        (err, metrics) => {
+          if (err) {
+            console.error('Error getting user metrics:', err);
+            resolve({ error: err.message });
+            return;
+          }
+
+          resolve({
+            success: true,
+            metrics,
+            total: metrics.length
+          });
+        }
+      );
+    });
+  }
+
+  /**
+   * Add user metrics (height, weight)
+   * @param {number} userId - User ID
+   * @param {object} metricsData - Metrics data {height, weight}
+   * @returns {Promise<object>} Add result
+   */
+  async addUserMetrics(userId, metricsData) {
+    return new Promise((resolve) => {
+      const { height, weight } = metricsData;
+
+      this.db.run(
+        'INSERT INTO metrics (user_id, height, weight) VALUES (?, ?, ?)',
+        [userId, height, weight],
+        function(err) {
+          if (err) {
+            console.error('Error adding user metrics:', err);
+            resolve({ error: err.message });
+            return;
+          }
+
+          resolve({
+            success: true,
+            id: this.lastID,
+            message: 'Metrics added successfully'
+          });
+        }
+      );
+    });
+  }
+
+  /**
+   * Get user history (alias for getUserWorkoutHistory)
+   * @param {number} userId - User ID
+   * @returns {Promise<object>} User history data
+   */
+  async getUserHistory(userId) {
+    return this.getUserWorkoutHistory(userId);
+  }
+
+  /**
+   * Add workout history record
+   * @param {number} userId - User ID
+   * @param {object} workoutData - Workout data
+   * @returns {Promise<object>} Add result
+   */
+  async addWorkoutHistory(userId, workoutData) {
+    return new Promise((resolve) => {
+      const { 
+        exercise_name, 
+        exercise_data, 
+        workout_date = new Date().toISOString(),
+        notes 
+      } = workoutData;
+
+      const exerciseDataJson = typeof exercise_data === 'object' 
+        ? JSON.stringify(exercise_data) 
+        : exercise_data;
+
+      this.db.run(
+        `INSERT INTO histo (user_id, exercise_name, exercise_data, workout_date, notes) 
+         VALUES (?, ?, ?, ?, ?)`,
+        [userId, exercise_name, exerciseDataJson, workout_date, notes],
+        function(err) {
+          if (err) {
+            console.error('Error adding workout history:', err);
+            resolve({ error: err.message });
+            return;
+          }
+
+          resolve({
+            success: true,
+            id: this.lastID,
+            message: 'Workout history added successfully'
+          });
+        }
+      );
+    });
+  }
+
+  /**
+   * Update user program (exercises) - with mentor permission check
+   * @param {number} editorUserId - User ID of person making the edit
+   * @param {number} targetUserId - User ID of person whose exercises are being edited
+   * @param {object} programData - Program data {exercises}
+   * @returns {Promise<object>} Update result
+   */
+  async updateUserProgramAsEditor(editorUserId, targetUserId, programData) {
+    try {
+      // Check if editor has permission to edit target's exercises
+      if (editorUserId !== targetUserId) {
+        // Check if editor is mentor of target
+        const editorProfile = await new Promise((resolve) => {
+          this.db.get('SELECT mentor_id FROM profiles WHERE user_id = ?', [editorUserId], (err, result) => {
+            if (err) resolve({ error: err.message });
+            else resolve(result);
+          });
+        });
+
+        if (editorProfile.error) return editorProfile;
+        if (!editorProfile?.mentor_id) return { error: 'Editor does not have mentor privileges' };
+
+        const isStudentOfEditor = await new Promise((resolve) => {
+          this.db.get(
+            'SELECT id FROM mentors WHERE mentor_id = ? AND student_user_id = ?',
+            [editorProfile.mentor_id, targetUserId],
+            (err, result) => {
+              if (err) resolve({ error: err.message });
+              else resolve(!!result);
+            }
+          );
+        });
+
+        if (typeof isStudentOfEditor === 'object' && isStudentOfEditor.error) return isStudentOfEditor;
+        if (!isStudentOfEditor) return { error: 'Editor is not mentor of target user' };
+      }
+
+      // Permission granted, update the program
+      return await this.updateUserProgram(targetUserId, programData);
+    } catch (error) {
+      return { error: error.message };
+    }
+  }
+
+  /**
+   * Update user program (exercises) - basic version
+   * @param {number} userId - User ID
+   * @param {object} programData - Program data {exercises}
+   * @returns {Promise<object>} Update result
+   */
+  async updateUserProgram(userId, programData) {
+    return new Promise((resolve) => {
+      const { exercises } = programData;
+      const exercisesJson = typeof exercises === 'object' 
+        ? JSON.stringify(exercises) 
+        : exercises;
+
+      // Check if user already has a program
+      this.db.get(
+        'SELECT id FROM progs WHERE user_id = ?',
+        [userId],
+        (err, existingProg) => {
+          if (err) {
+            console.error('Error checking existing program:', err);
+            resolve({ error: err.message });
+            return;
+          }
+
+          if (existingProg) {
+            // Update existing program
+            this.db.run(
+              'UPDATE progs SET exercises = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?',
+              [exercisesJson, userId],
+              function(err) {
+                if (err) {
+                  console.error('Error updating program:', err);
+                  resolve({ error: err.message });
+                  return;
+                }
+
+                resolve({
+                  success: true,
+                  changes: this.changes,
+                  message: 'Program updated successfully'
+                });
+              }
+            );
+          } else {
+            // Create new program
+            this.db.run(
+              'INSERT INTO progs (user_id, exercises) VALUES (?, ?)',
+              [userId, exercisesJson],
+              function(err) {
+                if (err) {
+                  console.error('Error creating program:', err);
+                  resolve({ error: err.message });
+                  return;
+                }
+
+                resolve({
+                  success: true,
+                  id: this.lastID,
+                  message: 'Program created successfully'
+                });
+              }
+            );
+          }
+        }
+      );
+    });
+  }
+
+  /**
+   * Delete user program (reset to default)
+   * @param {number} userId - User ID
+   * @returns {Promise<object>} Delete result
+   */
+  async deleteUserProgram(userId) {
+    return new Promise((resolve) => {
+      this.db.run(
+        'DELETE FROM progs WHERE user_id = ?',
+        [userId],
+        function(err) {
+          if (err) {
+            console.error('Error deleting user program:', err);
+            resolve({ error: err.message });
+            return;
+          }
+
+          resolve({
+            success: true,
+            changes: this.changes,
+            message: 'User program deleted successfully'
+          });
+        }
+      );
+    });
+  }
+
+  /**
+   * Generate mentor ID for existing user (if they don't have one)
+   * @param {number} userId - User ID
+   * @returns {Promise<object>} Generate result
+   */
+  async generateMentorIdForUser(userId) {
+    try {
+      // Check if user already has mentor_id
+      const profile = await new Promise((resolve) => {
+        this.db.get(
+          'SELECT mentor_id FROM profiles WHERE user_id = ?',
+          [userId],
+          (err, result) => {
+            if (err) resolve({ error: err.message });
+            else resolve(result);
+          }
+        );
+      });
+
+      if (profile.error) {
+        return { error: profile.error };
+      }
+
+      if (!profile) {
+        return { error: 'User profile not found' };
+      }
+
+      if (profile.mentor_id) {
+        return { 
+          success: true, 
+          mentor_id: profile.mentor_id, 
+          message: 'User already has mentor ID' 
+        };
+      }
+
+      // Generate new mentor ID
+      let mentorId;
+      let isUnique = false;
+      let attempts = 0;
+      const maxAttempts = 5;
+
+      while (!isUnique && attempts < maxAttempts) {
+        mentorId = this.generateMentorId();
+        isUnique = await this.isMentorIdUnique(mentorId);
+        attempts++;
+      }
+
+      if (!isUnique) {
+        return { error: 'Failed to generate unique mentor ID' };
+      }
+
+      // Update user profile with new mentor_id
+      return new Promise((resolve) => {
+        this.db.run(
+          'UPDATE profiles SET mentor_id = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?',
+          [mentorId, userId],
+          function(err) {
+            if (err) {
+              console.error('Error updating mentor ID:', err);
+              resolve({ error: err.message });
+              return;
+            }
+
+            resolve({
+              success: true,
+              mentor_id: mentorId,
+              message: 'Mentor ID generated successfully'
+            });
+          }
+        );
+      });
+    } catch (error) {
+      console.error('Error in generateMentorIdForUser:', error);
+      return { error: error.message };
+    }
+  }
+
+  // ===== MENTOR-STUDENT MANAGEMENT METHODS =====
+
+  /**
+   * Add student to mentor (only mentor can do this)
+   * @param {string} mentorId - Mentor's mentor_id
+   * @param {number} studentUserId - Student's user_id
+   * @returns {Promise<object>} Result
+   */
+  async addStudentToMentor(mentorId, studentUserId) {
+    try {
+      // Check if mentor exists and has prime access
+      const mentorCheck = await new Promise((resolve) => {
+        this.db.get(
+          `SELECT p.user_id, pr.max_students 
+           FROM profiles p 
+           LEFT JOIN prime pr ON p.user_id = pr.user_id 
+           WHERE p.mentor_id = ?`,
+          [mentorId],
+          (err, result) => {
+            if (err) resolve({ error: err.message });
+            else resolve(result);
+          }
+        );
+      });
+
+      if (mentorCheck.error) return mentorCheck;
+      if (!mentorCheck) return { error: 'Mentor not found' };
+      if (mentorCheck.max_students === null) return { error: 'User does not have mentor privileges' };
+
+      // Check current student count if not unlimited
+      if (mentorCheck.max_students !== -1) {
+        const currentCount = await new Promise((resolve) => {
+          this.db.get(
+            'SELECT COUNT(*) as count FROM mentors WHERE mentor_id = ?',
+            [mentorId],
+            (err, result) => {
+              if (err) resolve({ error: err.message });
+              else resolve(result.count);
+            }
+          );
+        });
+
+        if (typeof currentCount === 'object' && currentCount.error) return currentCount;
+        if (currentCount >= mentorCheck.max_students) {
+          return { error: `Mentor limit reached (${mentorCheck.max_students} students max)` };
+        }
+      }
+
+      // Check if student exists
+      const studentExists = await new Promise((resolve) => {
+        this.db.get(
+          'SELECT user_id FROM profiles WHERE user_id = ?',
+          [studentUserId],
+          (err, result) => {
+            if (err) resolve({ error: err.message });
+            else resolve(!!result);
+          }
+        );
+      });
+
+      if (typeof studentExists === 'object' && studentExists.error) return studentExists;
+      if (!studentExists) return { error: 'Student not found' };
+
+      // Add relationship
+      return new Promise((resolve) => {
+        this.db.run(
+          'INSERT INTO mentors (mentor_id, student_user_id) VALUES (?, ?)',
+          [mentorId, studentUserId],
+          function(err) {
+            if (err) {
+              if (err.code === 'SQLITE_CONSTRAINT') {
+                resolve({ error: 'Student is already added to this mentor' });
+              } else {
+                resolve({ error: err.message });
+              }
+              return;
+            }
+
+            resolve({
+              success: true,
+              id: this.lastID,
+              message: 'Student added successfully'
+            });
+          }
+        );
+      });
+    } catch (error) {
+      return { error: error.message };
+    }
+  }
+
+  /**
+   * Remove student from mentor
+   * @param {string} mentorId - Mentor's mentor_id
+   * @param {number} studentUserId - Student's user_id
+   * @returns {Promise<object>} Result
+   */
+  async removeStudentFromMentor(mentorId, studentUserId) {
+    return new Promise((resolve) => {
+      this.db.run(
+        'DELETE FROM mentors WHERE mentor_id = ? AND student_user_id = ?',
+        [mentorId, studentUserId],
+        function(err) {
+          if (err) {
+            resolve({ error: err.message });
+            return;
+          }
+
+          if (this.changes === 0) {
+            resolve({ error: 'Student not found in mentor list' });
+            return;
+          }
+
+          resolve({
+            success: true,
+            changes: this.changes,
+            message: 'Student removed successfully'
+          });
+        }
+      );
+    });
+  }
+
+  /**
+   * Get all students of a mentor
+   * @param {string} mentorId - Mentor's mentor_id
+   * @returns {Promise<object>} Students list
+   */
+  async getStudentsByMentor(mentorId) {
+    return new Promise((resolve) => {
+      this.db.all(
+        `SELECT p.user_id, p.user_name, p.gender, p.birthdate, p.mentor_id,
+                m.custom_name, m.created_at as added_at
+         FROM mentors m 
+         JOIN profiles p ON m.student_user_id = p.user_id 
+         WHERE m.mentor_id = ?
+         ORDER BY m.created_at DESC`,
+        [mentorId],
+        (err, students) => {
+          if (err) {
+            resolve({ error: err.message });
+            return;
+          }
+
+          resolve({
+            success: true,
+            students,
+            total: students.length
+          });
+        }
+      );
+    });
+  }
+
+  /**
+   * Update custom name for student
+   * @param {string} mentorId - Mentor ID
+   * @param {number} studentUserId - Student user ID
+   * @param {string} customName - Custom name for student
+   * @returns {Promise<object>} Update result
+   */
+  async updateStudentCustomName(mentorId, studentUserId, customName) {
+    return new Promise((resolve) => {
+      this.db.run(
+        'UPDATE mentors SET custom_name = ?, updated_at = CURRENT_TIMESTAMP WHERE mentor_id = ? AND student_user_id = ?',
+        [customName, mentorId, studentUserId],
+        function(err) {
+          if (err) {
+            console.error('Error updating student custom name:', err);
+            resolve({ error: err.message });
+            return;
+          }
+
+          if (this.changes === 0) {
+            resolve({ error: 'Student not found in mentor relationship' });
+            return;
+          }
+
+          resolve({
+            success: true,
+            message: 'Student custom name updated successfully'
+          });
+        }
+      );
+    });
+  }
+
+  /**
+   * Ensure user has prime status (auto-create if not exists)
+   * @param {number} userId - User ID
+   * @returns {Promise<object>} Prime ensure result
+   */
+  async ensureUserPrime(userId) {
+    return new Promise((resolve) => {
+      // Lưu reference đến database
+      const db = this.db;
+      
+      // Kiểm tra xem user đã có prime chưa
+      db.get(
+        'SELECT pr.max_students, p.mentor_id FROM profiles p LEFT JOIN prime pr ON p.user_id = pr.user_id WHERE p.user_id = ?',
+        [userId],
+        (err, result) => {
+          if (err) {
+            resolve({ error: err.message });
+            return;
+          }
+
+          if (!result) {
+            resolve({ error: 'User profile not found' });
+            return;
+          }
+
+          // Nếu user đã có prime, return thành công
+          if (result.max_students !== null) {
+            resolve({ 
+              success: true, 
+              already_exists: true, 
+              max_students: result.max_students 
+            });
+            return;
+          }
+
+          // Nếu user chưa có prime, tạo mới với max_students = 1
+          db.run(
+            'INSERT INTO prime (user_id, mentor_id, max_students) VALUES (?, ?, ?)',
+            [userId, result.mentor_id, 1],
+            function(insertErr) {
+              if (insertErr) {
+                console.error('Error creating prime for existing user:', insertErr);
+                resolve({ error: insertErr.message });
+                return;
+              }
+
+              console.log(`✅ Auto-created prime for existing user ${userId} with max_students = 1`);
+
+              resolve({
+                success: true,
+                created: true,
+                max_students: 1,
+                message: 'Prime status created (max 1 student)'
+              });
+            }
+          );
+        }
+      );
+    });
+  }
+
+  /**
+   * Check if user has mentor privileges and get limits
+   * @param {number} userId - User ID
+   * @returns {Promise<object>} Prime status
+   */
+  async getUserPrimeStatus(userId) {
+    return new Promise((resolve) => {
+      this.db.get(
+        `SELECT pr.max_students, p.mentor_id,
+                (SELECT COUNT(*) FROM mentors WHERE mentor_id = p.mentor_id) as current_students
+         FROM profiles p 
+         LEFT JOIN prime pr ON p.user_id = pr.user_id 
+         WHERE p.user_id = ?`,
+        [userId],
+        (err, result) => {
+          if (err) {
+            resolve({ error: err.message });
+            return;
+          }
+
+          if (!result) {
+            resolve({ error: 'User not found' });
+            return;
+          }
+
+          const hasPrime = result.max_students !== null;
+          const canAddMore = !hasPrime ? false : 
+            (result.max_students === -1 || result.current_students < result.max_students);
+
+          resolve({
+            success: true,
+            has_prime: hasPrime,
+            mentor_id: result.mentor_id,
+            max_students: result.max_students,
+            current_students: result.current_students || 0,
+            can_add_more: canAddMore
+          });
+        }
+      );
+    });
+  }
+
+  /**
+   * Set prime status for user
+   * @param {number} userId - User ID
+   * @param {number} maxStudents - Max students (-1 for unlimited)
+   * @returns {Promise<object>} Result
+   */
+  async setPrimeStatus(userId, maxStudents) {
+    try {
+      // Get user's mentor_id
+      const profile = await new Promise((resolve) => {
+        this.db.get(
+          'SELECT mentor_id FROM profiles WHERE user_id = ?',
+          [userId],
+          (err, result) => {
+            if (err) resolve({ error: err.message });
+            else resolve(result);
+          }
+        );
+      });
+
+      if (profile.error) return profile;
+      if (!profile) return { error: 'User not found' };
+      if (!profile.mentor_id) return { error: 'User does not have mentor_id yet' };
+
+      // Insert or update prime status
+      return new Promise((resolve) => {
+        this.db.run(
+          `INSERT INTO prime (user_id, mentor_id, max_students) 
+           VALUES (?, ?, ?) 
+           ON CONFLICT(user_id) DO UPDATE SET 
+           max_students = excluded.max_students,
+           updated_at = CURRENT_TIMESTAMP`,
+          [userId, profile.mentor_id, maxStudents],
+          function(err) {
+            if (err) {
+              resolve({ error: err.message });
+              return;
+            }
+
+            resolve({
+              success: true,
+              message: `Prime status set: ${maxStudents === -1 ? 'unlimited' : maxStudents} students`
+            });
+          }
+        );
+      });
+    } catch (error) {
+      return { error: error.message };
+    }
   }
 }
 

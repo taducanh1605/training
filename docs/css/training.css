@@ -48,6 +48,60 @@
     url(fonts/armalite.ttf) format('truetype');
 }
 
+/* Mentor Editor Styles */
+.mentor-editor-container {
+    font-family: Arial, sans-serif;
+}
+
+.mentor-editor-container h3, .mentor-editor-container h4 {
+    color: #fff !important;
+}
+
+.mentor-selection-radio {
+    margin-bottom: 10px;
+    color: #fff;
+}
+
+.mentor-selection-radio input[type="radio"] {
+    margin-right: 8px;
+}
+
+.student-item {
+    background: rgba(255,255,255,0.05);
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #fff;
+}
+
+.student-remove-btn {
+    background: #ff4444;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.student-remove-btn:hover {
+    background: #ff0000;
+}
+
+.button-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.button-group .butLog {
+    flex: 1;
+    min-width: 80px;
+}
+
 html,body {
     width: 97.9%;
     margin: auto;

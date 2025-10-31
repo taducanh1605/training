@@ -291,25 +291,36 @@ app.post('/auth/verify', async (req, res) => {
  */
 app.get('/api/user/me', authenticateToken, async (req, res) => {
   try {
-    // Lấy thông tin chi tiết từ TrainingApp
-    const profileResult = await trainingApp.getUserProfile(req.user.id);
+    // Lấy thông tin chi tiết từ TrainingApp với auto-create profile
+    const profileResult = await trainingApp.getUserProfile(req.user.id, req.user);
     
     if (profileResult.error) {
+      // User has valid OAuth token but doesn't exist in training app
       return res.json({
         success: true,
         user: req.user,
         profile: null,
         metrics: null,
-        message: 'Basic user information'
+        needsRegistration: true,  // Add this flag
+        message: 'User needs to complete registration in training app'
       });
     }
 
+    const message = profileResult.isNewProfile ? 'New profile created' : 'Complete user information';
+
+    // Include mentor_id in user info for sharing with others
+    const userWithMentorId = {
+      ...req.user,
+      mentor_id: profileResult.profile ? profileResult.profile.mentor_id : null
+    };
+
     res.json({
       success: true,
-      user: req.user,
+      user: userWithMentorId,
       profile: profileResult.profile,
       metrics: profileResult.metrics,
-      message: 'Complete user information'
+      needsRegistration: false,  // User exists in training app
+      message: message
     });
   } catch (error) {
     console.error('Get user info error:', error);
@@ -353,6 +364,14 @@ app.put('/api/user/profile', authenticateToken, async (req, res) => {
       });
     }
 
+    if (birthdate && !/^\d{4}-\d{2}-\d{2}$/.test(birthdate)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid birthdate format (YYYY-MM-DD)',
+        error: 'INVALID_BIRTHDATE'
+      });
+    }
+
     // Kiểm tra xem user đã có exercises trong DB chưa để tránh ghi đè
     let shouldIncludeExercises = false;
     if (exercises) {
@@ -374,25 +393,51 @@ app.put('/api/user/profile', authenticateToken, async (req, res) => {
       }
     }
 
-    // Cập nhật thông tin qua TrainingApp
-    const updateData = {
-      gender,
-      weight,
-      height, 
-      birthdate
-    };
-
-    // Chỉ thêm exercises nếu user chưa có và được phép
-    if (shouldIncludeExercises) {
-      updateData.exercises = exercises;
-    }
-
-    const updateResult = await trainingApp.updateUserProfile(updateData, req.user);
-
-    if (updateResult.error) {
+    // Đảm bảo user đã có profile (tự động tạo nếu chưa có)
+    const profileCheck = await trainingApp.getUserProfile(req.user.id, req.user);
+    if (profileCheck.error) {
       return res.status(400).json({
         success: false,
-        message: updateResult.error,
+        message: 'Failed to get or create user profile',
+        error: 'PROFILE_ERROR'
+      });
+    }
+
+    // Cập nhật profile information
+    let updateResults = [];
+
+    if (gender || birthdate) {
+      const profileData = {};
+      if (gender) {
+        profileData.gender = gender === 'male' ? 'm' : gender === 'female' ? 'f' : 'o';
+      }
+      if (birthdate) {
+        profileData.birthdate = birthdate;
+      }
+      
+      const profileResult = await trainingApp.updateUserProfile(req.user.id, profileData);
+      updateResults.push(profileResult);
+    }
+
+    // Cập nhật metrics (height, weight)
+    if (height || weight) {
+      const metricsResult = await trainingApp.addUserMetrics(req.user.id, { height, weight });
+      updateResults.push(metricsResult);
+    }
+
+    // Chỉ thêm exercises nếu user chưa có và được phép
+    if (shouldIncludeExercises && exercises) {
+      const exercisesResult = await trainingApp.updateUserProgram(req.user.id, { exercises });
+      updateResults.push(exercisesResult);
+    }
+
+    // Check for any errors in updates
+    const hasErrors = updateResults.some(result => result.error);
+    if (hasErrors) {
+      const errors = updateResults.filter(result => result.error).map(result => result.error);
+      return res.status(400).json({
+        success: false,
+        message: 'Some updates failed: ' + errors.join(', '),
         error: 'UPDATE_FAILED'
       });
     }
@@ -400,13 +445,298 @@ app.put('/api/user/profile', authenticateToken, async (req, res) => {
     res.json({
       success: true,
       message: 'Profile updated successfully',
-      data: updateResult
+      data: updateResults,
+      updated: {
+        profile: (gender || birthdate) ? true : false,
+        metrics: (height || weight) ? true : false,
+        exercises: shouldIncludeExercises ? true : false,
+        birthdate: birthdate ? true : false
+      }
     });
   } catch (error) {
     console.error('Update user profile error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error while updating user profile',
+      error: 'SERVER_ERROR'
+    });
+  }
+});
+
+/**
+ * ROUTE: Generate mentor ID cho user (nếu chưa có)
+ */
+app.post('/api/user/generate-mentor-id', authenticateToken, async (req, res) => {
+  try {
+    const result = await trainingApp.generateMentorIdForUser(req.user.id);
+    
+    if (result.error) {
+      return res.status(400).json({
+        success: false,
+        message: result.error,
+        error: 'GENERATE_MENTOR_ID_FAILED'
+      });
+    }
+
+    res.json({
+      success: true,
+      mentor_id: result.mentor_id,
+      message: result.message
+    });
+  } catch (error) {
+    console.error('Generate mentor ID error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while generating mentor ID',
+      error: 'SERVER_ERROR'
+    });
+  }
+});
+
+/**
+ * ROUTE: Get user's prime status and mentor limits
+ */
+app.get('/api/user/prime-status', authenticateToken, async (req, res) => {
+  try {
+    const result = await trainingApp.getUserPrimeStatus(req.user.id);
+    
+    if (result.error) {
+      return res.status(400).json({
+        success: false,
+        message: result.error,
+        error: 'GET_PRIME_STATUS_FAILED'
+      });
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('Get prime status error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while getting prime status',
+      error: 'SERVER_ERROR'
+    });
+  }
+});
+
+/**
+ * ROUTE: Add student to mentor (only mentor can do this)
+ */
+app.post('/api/mentor/add-student', authenticateToken, async (req, res) => {
+  try {
+    const { student_user_id } = req.body;
+
+    if (!student_user_id || !Number.isInteger(student_user_id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid student_user_id is required',
+        error: 'INVALID_STUDENT_ID'
+      });
+    }
+
+    // Get mentor's mentor_id
+    const profile = await trainingApp.getUserProfile(req.user.id);
+    if (profile.error || !profile.profile?.mentor_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'User does not have mentor_id',
+        error: 'NO_MENTOR_ID'
+      });
+    }
+
+    const result = await trainingApp.addStudentToMentor(profile.profile.mentor_id, student_user_id);
+    
+    if (result.error) {
+      return res.status(400).json({
+        success: false,
+        message: result.error,
+        error: 'ADD_STUDENT_FAILED'
+      });
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('Add student error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while adding student',
+      error: 'SERVER_ERROR'
+    });
+  }
+});
+
+/**
+ * ROUTE: Remove student from mentor
+ */
+app.delete('/api/mentor/remove-student/:student_user_id', authenticateToken, async (req, res) => {
+  try {
+    const studentUserId = parseInt(req.params.student_user_id);
+
+    if (!studentUserId || !Number.isInteger(studentUserId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid student_user_id is required',
+        error: 'INVALID_STUDENT_ID'
+      });
+    }
+
+    // Get mentor's mentor_id
+    const profile = await trainingApp.getUserProfile(req.user.id);
+    if (profile.error || !profile.profile?.mentor_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'User does not have mentor_id',
+        error: 'NO_MENTOR_ID'
+      });
+    }
+
+    const result = await trainingApp.removeStudentFromMentor(profile.profile.mentor_id, studentUserId);
+    
+    if (result.error) {
+      return res.status(400).json({
+        success: false,
+        message: result.error,
+        error: 'REMOVE_STUDENT_FAILED'
+      });
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('Remove student error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while removing student',
+      error: 'SERVER_ERROR'
+    });
+  }
+});
+
+/**
+ * ROUTE: Get mentor's students list
+ */
+app.get('/api/mentor/students', authenticateToken, async (req, res) => {
+  try {
+    // Get mentor's mentor_id
+    const profile = await trainingApp.getUserProfile(req.user.id);
+    
+    if (profile.error || !profile.profile?.mentor_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'User does not have mentor_id',
+        error: 'NO_MENTOR_ID'
+      });
+    }
+
+    const result = await trainingApp.getStudentsByMentor(profile.profile.mentor_id);
+    
+    if (result.error) {
+      return res.status(400).json({
+        success: false,
+        message: 'GET_STUDENTS_FAILED',
+        error: 'GET_STUDENTS_FAILED'
+      });
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('Get students error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while getting students',
+      error: 'SERVER_ERROR'
+    });
+  }
+});
+
+/**
+ * ROUTE: Lấy exercises của student (chỉ dành cho mentor)
+ */
+app.get('/api/mentor/student-exercises/:student_user_id', authenticateToken, async (req, res) => {
+  try {
+    const studentUserId = parseInt(req.params.student_user_id);
+    const mentorUserId = req.user.id;
+
+    if (!studentUserId || isNaN(studentUserId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid student user ID is required',
+        error: 'INVALID_STUDENT_ID'
+      });
+    }
+
+    const workoutData = await trainingApp.getUserWorkout(studentUserId, mentorUserId);
+    
+    if (workoutData.error) {
+      return res.status(403).json({
+        success: false,
+        message: workoutData.error,
+        error: 'GET_STUDENT_EXERCISES_FAILED'
+      });
+    }
+
+    res.json({
+      success: true,
+      exercises: workoutData.exercises || null,
+      student_user_id: studentUserId,
+      message: 'Student exercises retrieved successfully'
+    });
+  } catch (error) {
+    console.error('Get student exercises error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while getting student exercises',
+      error: 'SERVER_ERROR'
+    });
+  }
+});
+
+/**
+ * ROUTE: Cập nhật exercises của student (chỉ dành cho mentor)
+ */
+app.put('/api/mentor/student-exercises/:student_user_id', authenticateToken, async (req, res) => {
+  try {
+    const studentUserId = parseInt(req.params.student_user_id);
+    const mentorUserId = req.user.id;
+    const { exercises } = req.body;
+
+    if (!studentUserId || isNaN(studentUserId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid student user ID is required',
+        error: 'INVALID_STUDENT_ID'
+      });
+    }
+
+    if (!exercises || typeof exercises !== 'object') {
+      return res.status(400).json({
+        success: false,
+        message: 'Exercises data is required and must be an object',
+        error: 'INVALID_EXERCISES'
+      });
+    }
+
+    // Cập nhật exercises qua TrainingApp với kiểm tra mentor permission
+    const updateResult = await trainingApp.updateUserWorkout(studentUserId, exercises, mentorUserId);
+
+    if (updateResult.error) {
+      return res.status(403).json({
+        success: false,
+        message: updateResult.error,
+        error: 'UPDATE_STUDENT_EXERCISES_FAILED'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Student exercises updated successfully',
+      student_user_id: studentUserId,
+      data: updateResult
+    });
+  } catch (error) {
+    console.error('Update student exercises error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while updating student exercises',
       error: 'SERVER_ERROR'
     });
   }
@@ -478,6 +808,66 @@ app.put('/api/user/exercises', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error while updating exercises',
+      error: 'SERVER_ERROR'
+    });
+  }
+});
+
+/**
+ * ROUTE: Get default exercises (reset to default)
+ */
+app.get('/api/user/exercises/default', authenticateToken, async (req, res) => {
+  try {
+    // Return default/empty exercises structure
+    const defaultExercises = {
+      "FullBodyMale": {},
+      "FullBodyFemale": {},
+      "FullBodyPers": {},
+      "Calisthenic": {},
+      "pika": {}
+    };
+
+    res.json({
+      success: true,
+      exercises: defaultExercises,
+      message: 'Default exercises retrieved successfully'
+    });
+  } catch (error) {
+    console.error('Get default exercises error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while getting default exercises',
+      error: 'SERVER_ERROR'
+    });
+  }
+});
+
+/**
+ * ROUTE: Reset user exercises to default
+ */
+app.delete('/api/user/exercises', authenticateToken, async (req, res) => {
+  try {
+    // Delete user's custom program to reset to default
+    const deleteResult = await trainingApp.deleteUserProgram(req.user.id);
+    
+    if (deleteResult.error) {
+      return res.status(400).json({
+        success: false,
+        message: deleteResult.error,
+        error: 'DELETE_FAILED'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'User exercises reset to default successfully',
+      data: deleteResult
+    });
+  } catch (error) {
+    console.error('Reset user exercises error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while resetting exercises',
       error: 'SERVER_ERROR'
     });
   }
@@ -707,16 +1097,23 @@ app.get('/api/oauth/facebook/url', async (req, res) => {
  */
 app.get('/api/training/exercises', authenticateToken, async (req, res) => {
   try {
+    // Lấy profile để có mentor_id
+    const profileResult = await trainingApp.getUserProfile(req.user.id, req.user);
+    
     // Gọi TrainingApp để lấy dữ liệu workout (not exercise)
     const result = await trainingApp.handleRequest('/workout', 'GET', req.query, req.user);
+    
+    // Include mentor_id trong user info
+    const userWithMentorId = {
+      name: req.user.name || req.user.email,
+      email: req.user.email,
+      mentor_id: profileResult.profile ? profileResult.profile.mentor_id : null
+    };
     
     res.json({
       success: true,
       data: {
-        user: {
-          name: req.user.name || req.user.email,
-          email: req.user.email
-        },
+        user: userWithMentorId,
         exercises: result.exercises || result
       },
       message: 'Training data'
@@ -727,6 +1124,173 @@ app.get('/api/training/exercises', authenticateToken, async (req, res) => {
       success: false,
       message: 'Server error while getting training data',
       error: 'SERVER_ERROR'
+    });
+  }
+});
+
+/**
+ * ROUTE: Add student by mentor code (mentor adds student using student's code)
+ */
+app.post('/api/mentor/add-student-by-code', authenticateToken, async (req, res) => {
+  try {
+    const mentorUserId = req.user.id;
+    const { student_code } = req.body;
+    
+    if (!student_code) {
+      return res.status(400).json({
+        success: false,
+        error: 'Student mentor code is required'
+      });
+    }
+
+    // Get mentor's profile to get their mentor_id
+    const mentorProfile = await trainingApp.getUserProfile(mentorUserId);
+    if (mentorProfile.error || !mentorProfile.profile?.mentor_id) {
+      return res.status(400).json({
+        success: false,
+        error: 'Mentor does not have mentor_id'
+      });
+    }
+
+    // Find student by their mentor_code
+    const studentProfile = await new Promise((resolve) => {
+      if (!trainingApp || !trainingApp.db) {
+        resolve({ error: 'Database not available' });
+        return;
+      }
+      
+      trainingApp.db.get(
+        'SELECT user_id, user_name, user_email FROM profiles WHERE mentor_id = ?',
+        [student_code],
+        (err, result) => {
+          if (err) resolve({ error: err.message });
+          else resolve(result);
+        }
+      );
+    });
+
+    if (!studentProfile) {
+      return res.status(404).json({
+        success: false,
+        error: 'Student not found with this mentor code'
+      });
+    }
+
+    if (studentProfile.error) {
+      return res.status(500).json({
+        success: false,
+        error: studentProfile.error
+      });
+    }
+
+    // Cannot add yourself as student
+    if (studentProfile.user_id === mentorUserId) {
+      return res.status(400).json({
+        success: false,
+        error: 'You cannot add yourself as a student'
+      });
+    }
+
+    // Add student to mentor using mentor's mentor_id (not user_id)
+    const result = await trainingApp.addStudentToMentor(mentorProfile.profile.mentor_id, studentProfile.user_id);
+    
+    if (result.error) {
+      return res.status(400).json({
+        success: false,
+        error: result.error
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: result,
+      student: {
+        name: studentProfile.user_name,
+        email: studentProfile.user_email
+      },
+      message: `Successfully added ${studentProfile.user_name} as student`
+    });
+  } catch (error) {
+    console.error('Error adding student by code:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+});
+
+/**
+ * ROUTE: Update student custom name
+ */
+app.put('/api/mentor/update-student-name/:studentId', authenticateToken, async (req, res) => {
+  try {
+    const mentorUserId = req.user.id;
+    const studentUserId = parseInt(req.params.studentId);
+    const { custom_name } = req.body;
+    
+    // Get mentor's mentor_id
+    const mentorProfile = await trainingApp.getUserProfile(mentorUserId, req.user);
+    if (mentorProfile.error || !mentorProfile.profile?.mentor_id) {
+      return res.status(400).json({
+        success: false,
+        error: 'Mentor profile not found'
+      });
+    }
+
+    const result = await trainingApp.updateStudentCustomName(
+      mentorProfile.profile.mentor_id, 
+      studentUserId, 
+      custom_name
+    );
+    
+    if (result.error) {
+      return res.status(400).json({
+        success: false,
+        error: result.error
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Student name updated successfully'
+    });
+  } catch (error) {
+    console.error('Error updating student name:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+});
+
+/**
+ * ROUTE: Update training program cho target user (mentor permission required)
+ */
+app.post('/api/mentor/update-student-program/:studentId', authenticateToken, async (req, res) => {
+  try {
+    const editorUserId = req.user.id;
+    const targetUserId = parseInt(req.params.studentId);
+    const programData = req.body;
+    
+    const result = await trainingApp.updateUserProgramAsEditor(editorUserId, targetUserId, programData);
+    
+    if (result.error) {
+      return res.status(400).json({ 
+        success: false,
+        error: result.error 
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: result,
+      message: 'Student program updated successfully'
+    });
+  } catch (error) {
+    console.error('Error updating student training program:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Internal server error' 
     });
   }
 });
@@ -812,13 +1376,8 @@ async function startServer() {
   try {
     console.log('🚀 Starting Training Server...');
     
-    // 1. TRƯỚC TIÊN: FORCE recreate profiles từ user_profiles (đảm bảo có đầy đủ dữ liệu)
-    console.log('🔄 Force recreating profiles from user_profiles...');
-    await trainingApp.forceRecreateProfilesFromUserProfiles();
-    
-    // 2. SAU ĐÓ: Chạy schema migration cho metrics và workouts
-    console.log('🔄 Running database schema migrations...');
-    await trainingApp.checkAndMigrateSchema();
+    // Database đã được setup trong constructor của TrainingApp
+    console.log('✓ Database ready');
     
     // Đăng ký app với OAuth server
     const appInfo = await registerApp();
@@ -834,6 +1393,7 @@ async function startServer() {
       console.log('   POST /auth/verify - Verify token');
       console.log('   GET  /api/user/me - User information');
       console.log('   PUT  /api/user/profile - Update user profile');
+      console.log('   POST /api/user/generate-mentor-id - Generate unique mentor ID');
       console.log('   GET  /api/user/exercises - Get user exercises');
       console.log('   PUT  /api/user/exercises - Update user exercises');
       console.log('   DELETE /api/user/exercises - Reset exercises to default');

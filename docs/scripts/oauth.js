@@ -14,7 +14,7 @@ async function googleLogin() {
         // 3. Listen for token
         window.addEventListener('message', (event) => {
             if (event.data.type === 'oauth_success') {
-                localStorage.setItem('authToken', event.data.token);
+                localStorage.setItem('training.token', event.data.token);
 
                 // refresh page after login with small delay
                 setTimeout(() => {
@@ -41,7 +41,7 @@ async function facebookLogin() {
         // 3. Listen for token
         window.addEventListener('message', (event) => {
             if (event.data.type === 'oauth_success') {
-                localStorage.setItem('authToken', event.data.token);
+                localStorage.setItem('training.token', event.data.token);
                 
                 // refresh page after login with small delay
                 setTimeout(() => {
@@ -65,7 +65,7 @@ async function directLogin(email, password) {
     
     const data = await response.json();
     if (data.success) {
-        localStorage.setItem('authToken', data.token);
+        localStorage.setItem('training.token', data.token);
         
         // refresh page after login with small delay
         setTimeout(() => {
@@ -88,7 +88,7 @@ async function registerUser(email, password, name) {
     
     const data = await response.json();
     if (data.success) {
-        localStorage.setItem('authToken', data.token);
+        localStorage.setItem('training.token', data.token);
         
         // refresh page after registration with small delay
         setTimeout(() => {
@@ -102,7 +102,7 @@ async function registerUser(email, password, name) {
 }
 
 async function callAPI(endpoint, method = 'GET', data = null) {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('training.token');
     
     const options = {
         method: method,
@@ -152,9 +152,10 @@ async function updateUserProfile(profileData) {
 
 // Logout
 function logout() {
-    localStorage.removeItem('authToken');
+    localStorage.removeItem('training.token');
     localStorage.removeItem('training.user_name');
     localStorage.removeItem('training.user_email');
+    localStorage.removeItem('training.mentor_code');
     if (localStorage.getItem('training.selectedLvl')?.[0] == 'p') {
         localStorage.removeItem('training.selectedLvl');
     }
@@ -188,7 +189,7 @@ async function updateUserProfile(profileData) {
 
 // Check if user profile is complete and show form if needed
 async function checkAndShowProfileForm() {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('training.token');
     const userName = localStorage.getItem('training.user_name');
     
     if (!token || !userName) {
@@ -203,7 +204,8 @@ async function checkAndShowProfileForm() {
         
         // Check if profile information is complete
         const profile = profileResult.profile;
-        if (!profile || !profile.gender || !profile.weight || !profile.height || !profile.birthdate) {
+        const metric = profileResult.metrics;
+        if (!metric || !profile || !profile.gender || !metric.weight || !metric.height || !profile.birthdate) {
             console.log('Profile information incomplete, showing form');
             showProfileForm();
         } else {

@@ -8,6 +8,7 @@ var inputCSV = new Vue({
         select: '',
         user_name: localStorage.getItem('training.user_name') || null,
         user_email: localStorage.getItem('training.user_email') || null,
+        mentor_code: localStorage.getItem('training.mentor_code') || null,
 
         checkHIIT: 0,
 
@@ -840,16 +841,29 @@ async function checkLoginAndUpdateTextMode() {
         exercises = data.exercises;
 
         if (response && user) {
-            // User is logged in, set textMode to 'prime'
+            // Check if user needs to complete registration in training app
+            if (response.needsRegistration) {
+                alert('You have a valid account, but you need to complete registration in the Training App first. Please register using the same email.');
+                // Clear token and redirect to registration
+                localStorage.removeItem('training.token');
+                localStorage.removeItem('training.user_name');
+                localStorage.removeItem('training.user_email');
+                localStorage.removeItem('training.mentor_code');
+                return;
+            }
+            
+            // User is fully logged in, set textMode to 'prime'
             // localStorage.setItem('training.textMode', 'prime');
             
             // Save user info to localStorage for training app (without user_id for security)
             localStorage.setItem('training.user_name', user.name || '');
             localStorage.setItem('training.user_email', user.email || '');
+            localStorage.setItem('training.mentor_code', user.mentor_id || '');
             inputCSV.user_name = user.name;
             inputCSV.user_email = user.email;
+            inputCSV.mentor_code = user.mentor_id || null;
             
-            console.log('User logged in:', user.name, user.email);
+            console.log('User logged in:', user.name, user.email, 'mentor_id:', user.mentor_id);
             
             // Check if user profile is complete and show form if needed
             checkAndShowProfileForm();
@@ -860,6 +874,12 @@ async function checkLoginAndUpdateTextMode() {
             // Clear user info from localStorage
             localStorage.removeItem('training.user_name');
             localStorage.removeItem('training.user_email');
+            localStorage.removeItem('training.mentor_code');
+            
+            // Clear Vue data
+            inputCSV.user_name = null;
+            inputCSV.user_email = null;
+            inputCSV.mentor_code = null;
             
             console.log('User not logged in');
             
@@ -878,7 +898,7 @@ async function checkLoginAndUpdateTextMode() {
         }
     } catch (error) {
         console.log('Login check failed, setting to free mode:', error);
-        console.log('Token available:', localStorage.getItem('authToken'));
+        console.log('Token available:', localStorage.getItem('training.token'));
         // Clear user info from localStorage
         localStorage.removeItem('training.user_name');
         localStorage.removeItem('training.user_email');

@@ -60,7 +60,7 @@ function formatTimeEstimate(seconds) {
 
 // Helper function to make API calls with authentication
 async function callExerciseAPI(endpoint, method = 'GET', data = null) {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('training.token');
     
     const options = {
         method: method,
@@ -141,12 +141,18 @@ function hideExerciseEditor() {
         exerciseEditor.style.display = 'none';
     }
     
-    // Show row3 and row4 content again
-    const row3Elements = document.querySelectorAll('.row3, .row4-regular, .row4-break');
-    const row4Elements = document.querySelectorAll('[class*="row4"]');
+    // Check if mentor editor is open - if so, don't show row3/row4
+    const mentorEditor = document.getElementById('mentor-editor-container');
+    const isMentorEditorOpen = mentorEditor && mentorEditor.style.display === 'block';
     
-    row3Elements.forEach(el => el.style.display = '');
-    row4Elements.forEach(el => el.style.display = '');
+    // Only show row3 and row4 content if mentor editor is not open
+    if (!isMentorEditorOpen) {
+        const row3Elements = document.querySelectorAll('.row3, .row4-regular, .row4-break');
+        const row4Elements = document.querySelectorAll('[class*="row4"]');
+        
+        row3Elements.forEach(el => el.style.display = '');
+        row4Elements.forEach(el => el.style.display = '');
+    }
 }
 
 // Load current exercises for editing (from localStorage first, then ProgUsers)

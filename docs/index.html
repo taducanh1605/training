@@ -33,9 +33,16 @@
                     <label for="file">Choose your Program File</label>
                 </form>
 
-                <p v-if="textMode === 'prime' && loaded === 0 && user_name != null" style="font-size: 13px;">Welcome {{user_name}}</p>
-                <button v-if="textMode === 'prime' && loaded === 0 && user_name != null" onclick="logout()" class="butLog">Logout</button>
-                <button v-if="textMode === 'prime' && loaded === 0 && user_name != null" onclick="showExerciseEditor()" class="butLog">Edit Exercise</button>
+                <div v-if="textMode === 'prime' && loaded === 0 && user_name != null">
+                    <p style="font-size: 13px; margin-bottom: 5px;">Welcome {{user_name}}</p>
+                    <p v-if="mentor_code" style="font-size: 11px; margin-bottom: 10px; color: #666;">Your mentor code: <strong>{{mentor_code}}</strong></p>
+                    <p v-if="!mentor_code" style="font-size: 11px; margin-bottom: 10px; color: #999;">Loading mentor code...</p>
+                </div>
+                
+                <div v-if="textMode === 'prime' && loaded === 0 && user_name != null" class="button-group">
+                    <button onclick="logout()" class="butLog">Logout</button>
+                    <button onclick="showMentorEditor()" class="butLog">Mentor Manager</button>
+                </div>
                 
                 <div v-if="textMode === 'prime' && loaded === 0 && user_name != null" class="row">
                     <div class="col-sm-6" style="padding: 0 3px 0 9px;">
@@ -169,6 +176,26 @@
                     </div>
                 </div>
 
+                <!-- Mentor Editor Form (hidden by default) - MUST BE FIRST to appear on top -->
+                <div id="mentor-editor-container" class="mentor-editor-container" style="display: none; width: 100%; background: rgba(0,0,0,0.85); padding: 15px; border-radius: 10px; margin-bottom: 20px; max-height: 70vh; overflow-y: auto;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #444; padding-bottom: 10px;">
+                        <h3 style="color: #fff; margin: 0; font-size: 18px;">👥 Mentor Manager</h3>
+                        <button onclick="hideMentorEditor()" style="background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 3px; font-size: 12px; cursor: pointer;" title="Close">✖</button>
+                    </div>
+
+                    <!-- Add Student Form -->
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center;">
+                        <input type="text" id="student-code-input" placeholder="Student's mentor code" 
+                               style="padding: 6px 8px; border-radius: 4px; border: none; flex: 1; color: #333; background: #fff; font-size: 13px;">
+                        <button onclick="addStudent()" class="butLog" style="padding: 6px 12px; font-size: 13px;">Add</button>
+                    </div>
+
+                    <!-- Students List -->
+                    <div id="students-list">
+                        <!-- Student list will be loaded here -->
+                    </div>
+                </div>
+
                 <!-- Exercise Editor Form (hidden by default) -->
                 <div id="exercise-editor-container" class="exercise-editor-container" style="display: none; width: 100%; background: rgba(0,0,0,0.85); padding: 20px; border-radius: 10px; margin-bottom: 20px; max-height: 75vh; overflow-y: auto;">
                     <!-- Exercise List Container (Navigation interface will be created here) -->
@@ -229,6 +256,7 @@
     <script src="./scripts/oauth.js"></script>
     <script src="./scripts/exercise.js"></script>
     <script src="./scripts/exercise-append.js"></script>
+    <script src="./scripts/mentor.js"></script>
     <script src="./scripts/training.js"></script>
     <script>
         const body = document.body;

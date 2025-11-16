@@ -449,3 +449,50 @@ BUTTON
     margin-block: 5px;
     padding: 0px 10px 0px 10px;
 }
+
+/* Drag and Drop Styles for Exercise Editor */
+.exercise-drag-handle {
+    cursor: grab;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid #666;
+    border-radius: 4px;
+    padding: 8px;
+    margin-right: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 30px;
+    color: #ccc;
+    font-size: 14px;
+    user-select: none;
+    transition: all 0.2s ease;
+}
+
+.exercise-drag-handle:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    border-color: #00ff37;
+}
+
+.exercise-drag-handle:active {
+    cursor: grabbing;
+    background: rgba(0, 255, 55, 0.2);
+}
+
+.exercise-row.dragging {
+    opacity: 0.5;
+    transform: scale(0.95);
+    transition: all 0.2s ease;
+}
+
+.exercise-row.drag-over {
+    border: 2px dashed #00ff37;
+    background: rgba(0, 255, 55, 0.1);
+    transform: translateY(-2px);
+    transition: all 0.2s ease;
+}
+
+.exercises-container.drag-active {
+    background: rgba(0, 255, 55, 0.05);
+    border-radius: 8px;
+}

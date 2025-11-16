@@ -75,7 +75,7 @@ async function loadMentorData() {
 
 // Load students list
 async function loadStudentsList() {
-    const token = localStorage.getItem('training.token');
+    const token = localStorage.getItem('token');
     if (!token) {
         alert('Please login first');
         return;
@@ -186,7 +186,7 @@ async function addStudent() {
         return;
     }
 
-    const token = localStorage.getItem('training.token');
+    const token = localStorage.getItem('token');
     if (!token) {
         alert('Please login first');
         return;
@@ -243,7 +243,7 @@ async function removeStudent(studentId) {
         return;
     }
 
-    const token = localStorage.getItem('training.token');
+    const token = localStorage.getItem('token');
     if (!token) {
         alert('Please login first');
         return;
@@ -396,7 +396,7 @@ async function loadStudentExercisesForEdit(student) {
         }
 
         // Load student exercises from API
-        const token = localStorage.getItem('training.token');
+        const token = localStorage.getItem('token');
         const response = await fetch(`${API_BASE}/api/mentor/student-exercises/${student.user_id}`, {
             method: 'GET',
             headers: {
@@ -528,7 +528,7 @@ function restoreOriginalSaveFunction() {
 
 // Save student exercise changes
 async function saveStudentExerciseChanges(studentUserId) {
-    const token = localStorage.getItem('training.token');
+    const token = localStorage.getItem('token');
     
     try {
         // Get current exercise data from multiple sources
@@ -673,7 +673,7 @@ async function editStudentName(studentId, currentName) {
         return;
     }
     
-    const token = localStorage.getItem('training.token');
+    const token = localStorage.getItem('token');
     if (!token) {
         alert('Please login first');
         return;

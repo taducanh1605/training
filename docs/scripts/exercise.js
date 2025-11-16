@@ -1,4 +1,4 @@
-// Exercise Management Functions
+﻿// Exercise Management Functions
 // Dedicated file for managing exercise editing and customization
 
 // const API_BASE = 'https://pika-proxy.taducanhbkhn.workers.dev/port/52445';
@@ -60,7 +60,7 @@ function formatTimeEstimate(seconds) {
 
 // Helper function to make API calls with authentication
 async function callExerciseAPI(endpoint, method = 'GET', data = null) {
-    const token = localStorage.getItem('training.token');
+    const token = localStorage.getItem('token');
     
     const options = {
         method: method,

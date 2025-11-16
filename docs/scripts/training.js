@@ -331,14 +331,18 @@ var vm = new Vue({
                         this.count += 1;
                         [this.exOrder, this.exRound] = getOrder(this.count);
                         this.rest = this.exRest[this.exOrder];
+                        /*
                         this.exName[this.exOrder].forEach(function (exer) {
-                            if (exer.split(' x')[1].indexOf('s') > -1) that.exHold = 1;
+                            if (exer.split(' x')[1].indexOf('s') > -1) {
+                                that.exHold = 1;
+                            }
                         });
                         if (this.exHold == 1) {
                             // [2023-03-19-DA] pause for counting hold time
                             this.flagStart = 0;
                             this.exHold = 0;
                         }
+                        */
                     }
                     else if (this.count == this.exSumSet) {
                         ring("finish.wav");
@@ -845,6 +849,7 @@ async function checkLoginAndUpdateTextMode() {
             if (response.needsRegistration) {
                 alert('You have a valid account, but you need to complete registration in the Training App first. Please register using the same email.');
                 // Clear token and redirect to registration
+                localStorage.removeItem('token');
                 localStorage.removeItem('training.token');
                 localStorage.removeItem('training.user_name');
                 localStorage.removeItem('training.user_email');
@@ -898,7 +903,7 @@ async function checkLoginAndUpdateTextMode() {
         }
     } catch (error) {
         console.log('Login check failed, setting to free mode:', error);
-        console.log('Token available:', localStorage.getItem('training.token'));
+        console.log('Token available:', localStorage.getItem('token'));
         // Clear user info from localStorage
         localStorage.removeItem('training.user_name');
         localStorage.removeItem('training.user_email');

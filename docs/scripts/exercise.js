@@ -360,9 +360,21 @@ function createExerciseRow(exerciseString, rounds, restTime, index) {
     const row = document.createElement('div');
     row.className = 'exercise-row';
     row.style.cssText = 'display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; padding: 12px; background: rgba(255,255,255,0.1); border-radius: 6px;';
+    row.draggable = true;
     
-    // Exercise movements (split by +)
+    // Top section with drag handle and movements
+    const topSection = document.createElement('div');
+    topSection.style.cssText = 'display: flex; gap: 10px; align-items: flex-start;';
+    
+    // Drag handle
+    const dragHandle = document.createElement('div');
+    dragHandle.className = 'exercise-drag-handle';
+    dragHandle.textContent = '≡';
+    dragHandle.title = 'Drag to reorder exercise';
+    
+    // Exercise movements container (split by +)
     const movementsDiv = document.createElement('div');
+    movementsDiv.style.cssText = 'flex: 1;';
     const movements = exerciseString.split('+');
     
     movements.forEach((movement, idx) => {
@@ -377,7 +389,9 @@ function createExerciseRow(exerciseString, rounds, restTime, index) {
     addMovementBtn.onclick = () => addMovement(movementsDiv);
     movementsDiv.appendChild(addMovementBtn);
     
-    row.appendChild(movementsDiv);
+    topSection.appendChild(dragHandle);
+    topSection.appendChild(movementsDiv);
+    row.appendChild(topSection);
     
     // Bottom section with rounds, rest time and delete button
     const bottomSection = document.createElement('div');
@@ -442,6 +456,9 @@ function createExerciseRow(exerciseString, rounds, restTime, index) {
     bottomSection.appendChild(roundsRestDiv);
     bottomSection.appendChild(deleteBtn);
     row.appendChild(bottomSection);
+    
+    // Setup drag and drop functionality
+    setupExerciseDragAndDrop(row, dragHandle);
     
     return row;
 }
@@ -1327,9 +1344,21 @@ function createDetailedExerciseRow(exerciseString, rounds, restTime, index) {
     row.className = 'detailed-exercise-row';
     row.dataset.index = index;
     row.style.cssText = 'display: flex; flex-direction: column; gap: 15px; margin-bottom: 15px; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 8px; position: relative;';
+    row.draggable = true;
+    
+    // Top section with drag handle and movements
+    const topSection = document.createElement('div');
+    topSection.style.cssText = 'display: flex; gap: 10px; align-items: flex-start;';
+    
+    // Drag handle
+    const dragHandle = document.createElement('div');
+    dragHandle.className = 'exercise-drag-handle';
+    dragHandle.textContent = '≡';
+    dragHandle.title = 'Drag to reorder exercise';
     
     // Movements column
     const movementsDiv = document.createElement('div');
+    movementsDiv.style.cssText = 'flex: 1;';
     const movements = exerciseString.split('+');
     
     movements.forEach((movement, idx) => {
@@ -1344,7 +1373,9 @@ function createDetailedExerciseRow(exerciseString, rounds, restTime, index) {
     addMovementBtn.style.cssText = 'background: #888; color: #fff; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-top: 5px;';
     movementsDiv.appendChild(addMovementBtn);
     
-    row.appendChild(movementsDiv);
+    topSection.appendChild(dragHandle);
+    topSection.appendChild(movementsDiv);
+    row.appendChild(topSection);
     
     // Bottom section with rounds, rest time and delete button
     const bottomSection = document.createElement('div');
@@ -1409,6 +1440,9 @@ function createDetailedExerciseRow(exerciseString, rounds, restTime, index) {
     bottomSection.appendChild(roundsRestDiv);
     bottomSection.appendChild(deleteBtn);
     row.appendChild(bottomSection);
+    
+    // Setup drag and drop functionality
+    setupExerciseDragAndDrop(row, dragHandle);
     
     return row;
 }
@@ -1610,14 +1644,16 @@ function collectNavigationExerciseData() {
                 const roundsInput = row.querySelector('.rounds-input');
                 const restInput = row.querySelector('.rest-input');
                 
-                if (movements.length > 0) {
+                if (movements.length > 0 && roundsInput && restInput) {
                     const exerciseString = movements.join(' +');
-                    const roundsValue = parseInt(roundsInput?.value) || 1;
-                    const restValue = parseInt(restInput?.value) || 0;
+                    const roundsValue = parseInt(roundsInput.value) || 1;
+                    const restValue = parseInt(restInput.value) || 0;
                     
                     exercises.push(exerciseString);
                     rounds.push(roundsValue);
                     restTimes.push(restValue);
+                } else if (movements.length > 0) {
+                    console.warn('Missing rounds or rest input in navigation interface', {roundsInput, restInput});
                 }
             });
             
@@ -1683,4 +1719,175 @@ async function submitExerciseChanges() {
         console.error('Error submitting exercise changes:', error);
         alert('Error updating exercises: ' + error.message);
     }
+}
+
+// ====== DRAG AND DROP FUNCTIONALITY ======
+
+// Setup drag and drop functionality for exercise rows
+function setupExerciseDragAndDrop(row, dragHandle) {
+    // Validate inputs
+    if (!row || !dragHandle) {
+        console.error('setupExerciseDragAndDrop: Invalid parameters', {row, dragHandle});
+        return;
+    }
+    
+    let draggedElement = null;
+    let draggedOver = null;
+    
+    // Drag start event
+    row.addEventListener('dragstart', (e) => {
+        draggedElement = row;
+        row.classList.add('dragging');
+        
+        // Add visual feedback to container (try multiple possible container classes)
+        const exercisesContainer = row.closest('.exercises-list') || row.closest('.exercises-container') || row.parentNode;
+        if (exercisesContainer) {
+            exercisesContainer.classList.add('drag-active');
+        }
+        
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', row.innerHTML);
+    });
+    
+    // Drag end event
+    row.addEventListener('dragend', (e) => {
+        // Delay cleanup to let drop event complete first
+        setTimeout(() => {
+            row.classList.remove('dragging');
+            
+            // Remove visual feedback from container (try multiple possible container classes)
+            const exercisesContainer = row.closest('.exercises-list') || row.closest('.exercises-container') || row.parentNode;
+            if (exercisesContainer) {
+                exercisesContainer.classList.remove('drag-active');
+            }
+            
+            // Clean up drag over effects from both row types
+            document.querySelectorAll('.drag-over').forEach(el => {
+                el.classList.remove('drag-over');
+            });
+            
+            draggedElement = null;
+            draggedOver = null;
+        }, 100);
+    });
+    
+    // Drag over event
+    row.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        
+        if (draggedElement && draggedElement !== row) {
+            row.classList.add('drag-over');
+            draggedOver = row;
+        }
+        
+        return false; // Ensure drop is allowed
+    });
+    
+    // Drag leave event
+    row.addEventListener('dragleave', (e) => {
+        // Only remove drag-over if we're actually leaving the element
+        if (!row.contains(e.relatedTarget)) {
+            row.classList.remove('drag-over');
+        }
+    });
+    
+    // Drop event
+    row.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Alternative approach: find dragged element by class if variables are null
+        let actualDraggedElement = draggedElement;
+        let actualDraggedOver = draggedOver || row;
+        
+        if (!actualDraggedElement) {
+            // Find element with dragging class
+            actualDraggedElement = document.querySelector('.dragging');
+        }
+        
+        if (actualDraggedElement && actualDraggedOver && actualDraggedElement !== actualDraggedOver) {
+            const container = actualDraggedElement.parentNode;
+            
+            // Get all children before manipulation
+            const allElements = Array.from(container.children);
+            const draggedElementIndex = allElements.indexOf(actualDraggedElement);
+            const targetElementIndex = allElements.indexOf(actualDraggedOver);
+            
+            if (draggedElementIndex !== -1 && targetElementIndex !== -1 && draggedElementIndex !== targetElementIndex) {
+                // Use a simpler approach: insertBefore with proper positioning
+                if (draggedElementIndex < targetElementIndex) {
+                    // Moving down - insert after target
+                    container.insertBefore(actualDraggedElement, actualDraggedOver.nextSibling);
+                } else {
+                    // Moving up - insert before target
+                    container.insertBefore(actualDraggedElement, actualDraggedOver);
+                }
+                
+                // Mark as modified
+                markAsModified();
+                
+                // Show success feedback
+                showDragDropFeedback();
+            }
+        }
+        
+        // Clean up
+        row.classList.remove('drag-over');
+        
+        return false;
+    });
+    
+    // Make drag handle more obvious
+    dragHandle.addEventListener('mouseenter', () => {
+        dragHandle.title = 'Drag to reorder this exercise';
+        dragHandle.style.transform = 'scale(1.1)';
+    });
+    
+    dragHandle.addEventListener('mouseleave', () => {
+        dragHandle.style.transform = 'scale(1)';
+    });
+    
+    // Also add drop event to container to catch drops between elements
+    const container = row.parentNode;
+    if (container && !container.hasAttribute('data-drop-setup')) {
+        container.setAttribute('data-drop-setup', 'true');
+        
+        container.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            return false;
+        });
+        
+        container.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        });
+    }
+}
+
+// Show feedback when exercises are reordered
+function showDragDropFeedback() {
+    // Create temporary feedback element
+    const feedback = document.createElement('div');
+    feedback.textContent = 'Exercise order updated';
+    feedback.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #00ff37; color: #000; padding: 10px 15px; border-radius: 5px; font-weight: bold; font-size: 14px; z-index: 10000; animation: fadeInOut 2s ease;';
+    
+    // Add fade animation
+    const style = document.createElement('style');
+    style.textContent = '@keyframes fadeInOut { 0% { opacity: 0; transform: translateX(100%); } 20% { opacity: 1; transform: translateX(0); } 80% { opacity: 1; transform: translateX(0); } 100% { opacity: 0; transform: translateX(100%); } }';
+    document.head.appendChild(style);
+    
+    document.body.appendChild(feedback);
+    
+    // Remove after animation
+    setTimeout(() => {
+        if (feedback.parentNode) {
+            feedback.parentNode.removeChild(feedback);
+        }
+        if (style.parentNode) {
+            style.parentNode.removeChild(style);
+        }
+    }, 2000);
 }

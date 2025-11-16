@@ -479,20 +479,35 @@ BUTTON
     background: rgba(0, 255, 55, 0.2);
 }
 
-.exercise-row.dragging {
+.exercise-row.dragging,
+.detailed-exercise-row.dragging {
     opacity: 0.5;
     transform: scale(0.95);
     transition: all 0.2s ease;
 }
 
-.exercise-row.drag-over {
+.exercise-row.drag-over,
+.detailed-exercise-row.drag-over {
     border: 2px dashed #00ff37;
     background: rgba(0, 255, 55, 0.1);
     transform: translateY(-2px);
     transition: all 0.2s ease;
 }
 
-.exercises-container.drag-active {
+.exercises-container.drag-active,
+.exercises-list.drag-active {
     background: rgba(0, 255, 55, 0.05);
     border-radius: 8px;
+}
+
+/* Ensure proper flexbox ordering for drag and drop */
+.exercises-list,
+.exercises-container {
+    display: flex;
+    flex-direction: column;
+}
+
+.exercise-row,
+.detailed-exercise-row {
+    order: initial;
 }

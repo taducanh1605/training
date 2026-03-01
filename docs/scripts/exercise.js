@@ -35,7 +35,8 @@ function calculateWorkoutTimeEstimate(workoutData) {
         
         // 20s buffer per round + rest time after this exercise (except for last exercise)
         const bufferTime = exerciseRounds * 20;
-        const postExerciseRest = restTime;
+        const postExerciseRest = restTime * (exerciseRounds - (index === 0 ? 1 : 0));
+        postExerciseRest = postExerciseRest > 0 ? postExerciseRest : 0; // Ensure no negative rest time
         
         totalTime += totalExerciseTime + bufferTime + postExerciseRest;
     });

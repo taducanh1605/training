@@ -27,15 +27,15 @@ function calculateWorkoutTimeEstimate(workoutData) {
         const movements = exercise.split('+');
         const movementCount = movements.length;
         
-        // Each movement takes average 3 seconds
-        const exerciseTime = movementCount * 60; // 90s for each movement
+        // Each movement takes average 60 seconds
+        const exerciseTime = movementCount * 60; // 60s for each movement
         
         // Total time for all rounds of this exercise
         const totalExerciseTime = exerciseTime * exerciseRounds;
         
         // 20s buffer per round + rest time after this exercise (except for last exercise)
         const bufferTime = exerciseRounds * 20;
-        const postExerciseRest = (index < exercises.length - 1) ? restTime : 0;
+        const postExerciseRest = restTime;
         
         totalTime += totalExerciseTime + bufferTime + postExerciseRest;
     });

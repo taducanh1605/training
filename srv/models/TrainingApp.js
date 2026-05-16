@@ -329,9 +329,6 @@ class TrainingApp {
     const { exercise_id, exercise_name, progress_status, workout_time } = data;
     const today = new Date().toISOString().slice(0, 10);
 
-    // Extract the progress count from the status string (format: ...***time***count)
-    const newCount = parseInt((progress_status || '').split('***')[5]) || 0;
-
     try {
       // Look for existing in-progress record for this workout
       const existing = await this.get(
@@ -342,11 +339,14 @@ class TrainingApp {
       );
 
       if (existing) {
-        // Only update when the new count is >= the stored count.
-        // This prevents a stale/slower device from overwriting progress
-        // that a faster device already saved to the DB.
-        const existingCount = parseInt((existing.progress_status || '').split('***')[5]) || 0;
-        if (newCount >= existingCount) {
+        // Only update when the new savedAt timestamp is >= the stored savedAt.
+        // This prevents a stale device from overwriting progress that another
+        // device already saved, while still allowing the Back button (which
+        // decreases count but writes a fresh timestamp) to update correctly.
+        // Old data without savedAt (index[6]) defaults to 0 so any new write wins.
+        const existingSavedAt = parseInt((existing.progress_status || '').split('***')[6]) || 0;
+        const newSavedAt = parseInt((progress_status || '').split('***')[6]) || 0;
+        if (newSavedAt >= existingSavedAt) {
           await this.run(
             `UPDATE histo SET progress_status = ?, workout_time = ?, workout_date = ? WHERE id = ?`,
             [progress_status, workout_time || 0, today, existing.id]

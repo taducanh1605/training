@@ -4,7 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { useOnlineStatus } from './hooks/useOnlineStatus.js';
 import { processSyncQueue } from './services/syncService.js';
 import { getCurrentWorkout } from './services/api.js';
-import { STORAGE_KEYS, getItem, setItem } from './services/storage.js';
+import { STORAGE_KEYS, getItem, setItem, removeItem } from './services/storage.js';
 import Header from './components/Header.jsx';
 import ExercisePlayer from './components/ExercisePlayer.jsx';
 import ExerciseList from './components/ExerciseList.jsx';
@@ -14,17 +14,17 @@ import MentorManager from './components/MentorManager.jsx';
 import ExerciseEditor from './components/ExerciseEditor.jsx';
 import './App.css';
 
-// Compare two workout progress strings and return the one with the highest count.
-// Format: textMode***gen***level***program***time***count
+// Compare two workout progress strings and return the most recently saved one.
+// Format: textMode***gen***level***program***time***count***savedAt
 //
-// NOTE: "time" is elapsed workout seconds, NOT a wall-clock timestamp.
-// It cannot reliably indicate which save is more recent across devices.
-// Only "count" is a reliable progress indicator.
+// savedAt (index[6]) is a unix ms timestamp appended on every save.
+// It correctly handles Back button (count goes down but savedAt is fresh).
+// Old data without index[6] defaults to savedAt=0 so any new write wins.
 //
 // Rules:
 //   Different programs: DB wins (server holds the latest selection)
-//   Same program: higher count wins (further workout progress)
-//   Equal count: DB wins (DB is the shared source of truth)
+//   Same program: higher savedAt wins (the most recently written state)
+//   Equal savedAt: DB wins (DB is the shared source of truth)
 function pickMostRecentWorkout(local, db) {
   if (!local && !db) return null;
   if (local && !db) return local;
@@ -32,17 +32,18 @@ function pickMostRecentWorkout(local, db) {
 
   const lp = local.split('***');
   const dp = db.split('***');
-  const lCount = parseInt(lp[5]) || 0;
-  const dCount = parseInt(dp[5]) || 0;
 
   // Different programs: DB is authoritative
   if (lp[3] !== dp[3]) return db;
 
-  // Same program: higher count = further progress
-  if (dCount > lCount) return db;
-  if (lCount > dCount) return local;
+  const lSavedAt = parseInt(lp[6]) || 0;
+  const dSavedAt = parseInt(dp[6]) || 0;
 
-  // Equal count: DB is authoritative
+  // Same program: most recently written state wins
+  if (lSavedAt > dSavedAt) return local;
+  if (dSavedAt > lSavedAt) return db;
+
+  // Equal savedAt: DB is authoritative
   return db;
 }
 
@@ -72,10 +73,18 @@ function AppContent() {
         }
       });
 
-      // After login, always fetch DB state so we can compare with localStorage.
-      // Flush any queued offline saves first so DB reflects the true latest state.
       const token = getItem(STORAGE_KEYS.TOKEN);
       if (token) {
+        // If the user explicitly cleared their workout just before this reload,
+        // skip the DB lookup entirely so the stale SW-cached GET response does
+        // not restore the old workout.
+        if (getItem(STORAGE_KEYS.RESUME_CLEARED)) {
+          removeItem(STORAGE_KEYS.RESUME_CLEARED);
+          return;
+        }
+
+        // Flush any queued offline saves so DB reflects the true latest state.
+        // Then fetch DB state to compare with localStorage on restore.
         await processSyncQueue();
         try {
           const result = await getCurrentWorkout();
@@ -97,7 +106,7 @@ function AppContent() {
     if (!bestWorkout) return;
 
     const parts = bestWorkout.split('***');
-    if (parts.length !== 6) return;
+    if (parts.length < 6) return;
     const [tm, gen, level, program, timeStr, countStr] = parts;
 
     const dataEx = getDataForGen(gen);

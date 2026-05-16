@@ -378,7 +378,7 @@ export function WorkoutProvider({ children }) {
       }
     }
 
-    const resumeStr = buildResume(s.textMode, s.selectGen, s.selectLvl, s.programName, s.time, s.count);
+    const resumeStr = buildResume(s.textMode, s.selectGen, s.selectLvl, s.programName, s.time, s.count, Date.now());
     setItem(STORAGE_KEYS.RESUME, resumeStr);
     saveWorkoutProgressToDB(s);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -392,7 +392,7 @@ export function WorkoutProvider({ children }) {
       const [newOrder, newRound] = getOrder(newCount, s.exSet);
       setExOrder(newOrder);
       setExRound(newRound);
-      setItem(STORAGE_KEYS.RESUME, buildResume(s.textMode, s.selectGen, s.selectLvl, s.programName, s.time, newCount));
+      setItem(STORAGE_KEYS.RESUME, buildResume(s.textMode, s.selectGen, s.selectLvl, s.programName, s.time, newCount, Date.now()));
       saveWorkoutProgressToDB({ ...s, count: newCount });
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -407,7 +407,7 @@ export function WorkoutProvider({ children }) {
       const [newOrder, newRound] = getOrder(newCount, s.exSet);
       setExOrder(newOrder);
       setExRound(newRound);
-      setItem(STORAGE_KEYS.RESUME, buildResume(s.textMode, s.selectGen, s.selectLvl, s.programName, s.time, newCount));
+      setItem(STORAGE_KEYS.RESUME, buildResume(s.textMode, s.selectGen, s.selectLvl, s.programName, s.time, newCount, Date.now()));
       saveWorkoutProgressToDB({ ...s, count: newCount });
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -416,7 +416,10 @@ export function WorkoutProvider({ children }) {
     const token = getItem(STORAGE_KEYS.TOKEN);
     if (!token) return;
     const exerciseId = [vmRef.textMode, vmRef.selectGen, vmRef.selectLvl, vmRef.programName].join('***');
-    const progressStatus = [vmRef.textMode, vmRef.selectGen, vmRef.selectLvl, vmRef.programName, vmRef.time, vmRef.count].join('***');
+    // Include the current timestamp as savedAt so the server can determine
+    // which write is the most recent, even when count goes backward (Back button).
+    const savedAt = Date.now();
+    const progressStatus = [vmRef.textMode, vmRef.selectGen, vmRef.selectLvl, vmRef.programName, vmRef.time, vmRef.count, savedAt].join('***');
     const payload = {
       exercise_id: exerciseId,
       exercise_name: vmRef.programName,
@@ -472,6 +475,10 @@ export function WorkoutProvider({ children }) {
       }
     }
     removeItem(STORAGE_KEYS.RESUME);
+    // Set the cleared flag so restoreBestWorkoutState skips the DB/cache lookup
+    // on the next page load. This prevents the SW-cached GET response from
+    // restoring the old workout when the user is offline.
+    setItem(STORAGE_KEYS.RESUME_CLEARED, '1');
     window.location.reload();
   }, []);
 

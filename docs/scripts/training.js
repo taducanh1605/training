@@ -359,8 +359,8 @@ var vm = new Vue({
                 }
             }
 
-            // Save training state to localStorage
-            localStorage.setItem('training.resume', [that.textMode, that.selectGen, that.selectLvl, that.programName, that.time, that.count].join('***'));
+            // Save training state to localStorage with current timestamp for cross-device sync
+            localStorage.setItem('training.resume', [that.textMode, that.selectGen, that.selectLvl, that.programName, that.time, that.count, Date.now()].join('***'));
             // Persist workout state to DB so it can be restored on another device
             saveWorkoutProgressToDB(that);
         },
@@ -370,7 +370,7 @@ var vm = new Vue({
                 this.count += 1;
                 this.rest = 0;
                 [this.exOrder, this.exRound] = getOrder(this.count);
-                localStorage.setItem('training.resume', [this.textMode, this.selectGen, this.selectLvl, this.programName, this.time, this.count].join('***'));
+                localStorage.setItem('training.resume', [this.textMode, this.selectGen, this.selectLvl, this.programName, this.time, this.count, Date.now()].join('***'));
                 saveWorkoutProgressToDB(this);
             }
         },
@@ -383,7 +383,7 @@ var vm = new Vue({
                 this.count -= 1;
                 this.rest = 0;
                 [this.exOrder, this.exRound] = getOrder(this.count);
-                localStorage.setItem('training.resume', [this.textMode, this.selectGen, this.selectLvl, this.programName, this.time, this.count].join('***'));
+                localStorage.setItem('training.resume', [this.textMode, this.selectGen, this.selectLvl, this.programName, this.time, this.count, Date.now()].join('***'));
                 saveWorkoutProgressToDB(this);
             }
         },
@@ -694,18 +694,17 @@ document.addEventListener('DOMContentLoaded', async function () {
 });
 
 /*----------------------------------------------------------------------
-Compare two workout progress strings and return the one with the highest
-exercise count. Both are in format: textMode***gen***level***program***time***count.
+Compare two workout progress strings and return the most recently saved one.
+Format: textMode***gen***level***program***time***count***savedAt
 
-NOTE: The "time" field is elapsed seconds within the workout session — NOT
-a wall-clock timestamp. It cannot be used to determine which save is more
-recent across devices. Only "count" (index [5]) is a reliable indicator
-of how far the user has progressed.
+savedAt (index[6]) is a unix ms timestamp appended on every save.
+It correctly handles the Back button (count goes down but savedAt is fresh).
+Old data without index[6] defaults to savedAt=0 so any new write always wins.
 
 Rules:
   - If programs differ: DB wins (server holds the latest program selection)
-  - Same program: higher count wins (further progress in the workout)
-  - Equal count: DB wins (DB is the shared source of truth)
+  - Same program: higher savedAt wins (the most recently written state)
+  - Equal savedAt: DB wins (DB is the shared source of truth)
 ----------------------------------------------------------------------*/
 function pickMostRecentWorkout(local, db) {
     if (!local && !db) return null;
@@ -714,17 +713,18 @@ function pickMostRecentWorkout(local, db) {
 
     const localParts = local.split('***');
     const dbParts = db.split('***');
-    const localCount = parseInt(localParts[5]) || 0;
-    const dbCount = parseInt(dbParts[5]) || 0;
 
     // Different programs: DB is authoritative (most recent device chose it)
     if (localParts[3] !== dbParts[3]) return db;
 
-    // Same program: the higher count = further progress = correct state
-    if (dbCount > localCount) return db;
-    if (localCount > dbCount) return local;
+    const localSavedAt = parseInt(localParts[6]) || 0;
+    const dbSavedAt = parseInt(dbParts[6]) || 0;
 
-    // Equal count: DB is authoritative (shared source of truth)
+    // Same program: the most recently written state is the correct one
+    if (localSavedAt > dbSavedAt) return local;
+    if (dbSavedAt > localSavedAt) return db;
+
+    // Equal savedAt: DB is authoritative (shared source of truth)
     return db;
 }
 
@@ -734,6 +734,15 @@ whichever has the highest count. Flushes any pending offline saves first
 so DB is fully up to date before the comparison.
 ----------------------------------------------------------------------*/
 async function restoreBestWorkoutState() {
+    // If the user explicitly cleared their workout just before this reload,
+    // skip DB lookup entirely so the SW-cached GET response does not restore
+    // the old workout when the user is offline.
+    if (localStorage.getItem('training.resume.cleared')) {
+        localStorage.removeItem('training.resume.cleared');
+        checkSavedLvl();
+        return;
+    }
+
     const localWorkout = localStorage.getItem('training.resume');
     const token = localStorage.getItem('token');
 
@@ -898,6 +907,10 @@ async function clearSavedWorkoutAndRefresh() {
     }
 
     localStorage.removeItem('training.resume');
+    // Set the cleared flag so restoreBestWorkoutState skips the DB/cache lookup
+    // on the next page load. This prevents the SW-cached GET response from
+    // restoring the old workout when the user is offline.
+    localStorage.setItem('training.resume.cleared', '1');
     window.location.reload();
 }
 
@@ -1041,7 +1054,10 @@ function saveWorkoutProgressToDB(vmRef) {
     if (!token) return; // Only save when logged in
 
     const exerciseId = [vmRef.textMode, vmRef.selectGen, vmRef.selectLvl, vmRef.programName].join('***');
-    const progressStatus = [vmRef.textMode, vmRef.selectGen, vmRef.selectLvl, vmRef.programName, vmRef.time, vmRef.count].join('***');
+    // Include the current timestamp as savedAt so the server can determine
+    // which write is the most recent, even when count goes backward (Back button).
+    const savedAt = Date.now();
+    const progressStatus = [vmRef.textMode, vmRef.selectGen, vmRef.selectLvl, vmRef.programName, vmRef.time, vmRef.count, savedAt].join('***');
 
     const payload = {
         exercise_id: exerciseId,

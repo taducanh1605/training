@@ -11,6 +11,37 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
     <link rel="stylesheet" href="./css/training.css"/>
+    <script>
+        // Register service worker for offline support
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then((reg) => {
+                        console.log('[App] Service Worker registered, scope:', reg.scope);
+                        // Listen for updates
+                        reg.addEventListener('updatefound', () => {
+                            const newWorker = reg.installing;
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    // New version available, notify SW to skip waiting
+                                    newWorker.postMessage({ type: 'SKIP_WAITING' });
+                                }
+                            });
+                        });
+                    })
+                    .catch((err) => console.warn('[App] Service Worker registration failed:', err));
+
+                // Listen for SW-triggered sync queue processing
+                navigator.serviceWorker.addEventListener('message', (event) => {
+                    if (event.data && event.data.type === 'SW_PROCESS_SYNC_QUEUE') {
+                        if (typeof processSyncQueue === 'function') {
+                            processSyncQueue();
+                        }
+                    }
+                });
+            });
+        }
+    </script>
 </head>
 <body>
     <div id="main-page">

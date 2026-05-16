@@ -304,18 +304,18 @@ Write-Status "Deploying on server..." $Blue
 $deployCommands = @(
     "cd $TargetFolder",
     "echo 'Loading Docker image...'",
-    "docker load -i $tarFileName",
+    "podman load -i $tarFileName",
     "echo 'Stopping existing container...'",
-    "docker stop $AppName 2>/dev/null || true",
-    "docker rm $AppName 2>/dev/null || true",
+    "podman stop $AppName 2>/dev/null || true",
+    "podman rm $AppName 2>/dev/null || true",
     "echo 'Creating db directory...'",
     "mkdir -p ./db/$AppName",
     "echo 'Starting new container...'",
-    "docker run -d --name $AppName -p ${AppPort}:${AppPort} -e NODE_ENV=production -e PORT=${AppPort} --user root -v ./db/${AppName}:/app/db -v ./.env_${AppName}:/app/.env:ro --restart unless-stopped ${ImageName}:${ImageTag}",
+    "podman run -d --name $AppName -p ${AppPort}:${AppPort} -e NODE_ENV=production -e PORT=${AppPort} --user root -v ./db/${AppName}:/app/db -v ./.env_${AppName}:/app/.env:ro --restart unless-stopped ${ImageName}:${ImageTag}",
     "echo 'Cleaning up tar file...'",
     "rm -f $tarFileName",
     "echo 'Deployment completed successfully!'",
-    "docker ps | grep $AppName"
+    "podman ps | grep $AppName"
 )
 
 $deployScript = $deployCommands -join " && "

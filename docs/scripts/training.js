@@ -359,8 +359,10 @@ var vm = new Vue({
                 }
             }
 
-            // [2025-05-11-DA] save state of training
+            // Save training state to localStorage
             localStorage.setItem('training.resume', [that.textMode, that.selectGen, that.selectLvl, that.programName, that.time, that.count].join('***'));
+            // Persist workout state to DB so it can be restored on another device
+            saveWorkoutProgressToDB(that);
         },
 
         handleNext() {
@@ -369,6 +371,7 @@ var vm = new Vue({
                 this.rest = 0;
                 [this.exOrder, this.exRound] = getOrder(this.count);
                 localStorage.setItem('training.resume', [this.textMode, this.selectGen, this.selectLvl, this.programName, this.time, this.count].join('***'));
+                saveWorkoutProgressToDB(this);
             }
         },
 
@@ -381,6 +384,7 @@ var vm = new Vue({
                 this.rest = 0;
                 [this.exOrder, this.exRound] = getOrder(this.count);
                 localStorage.setItem('training.resume', [this.textMode, this.selectGen, this.selectLvl, this.programName, this.time, this.count].join('***'));
+                saveWorkoutProgressToDB(this);
             }
         },
 
@@ -684,10 +688,13 @@ Check for saved workout / saved gen when the page loads
 document.addEventListener('DOMContentLoaded', async function () {
     // Check login and update textMode first
     await checkLoginAndUpdateTextMode();
-    
+
+    // Try localStorage first; if not found and user is logged in, try DB fallback
     if (!checkSavedWorkout()) {
-        // choose lvl if found
-        checkSavedLvl();
+        const restored = await checkDBWorkoutFallback();
+        if (!restored) {
+            checkSavedLvl();
+        }
     }
 });
 
@@ -802,9 +809,28 @@ function restoreSavedWorkout(textMode, gen, level, program, time, count) {
 }
 
 /*----------------------------------------------------------------------
-Clear the saved workout and refresh the page
+Clear the saved workout and refresh the page.
+Before refreshing, mark the current workout as done in the DB so data
+is consistent when the user selects a new program.
 ----------------------------------------------------------------------*/
-function clearSavedWorkoutAndRefresh() {
+async function clearSavedWorkoutAndRefresh() {
+    const token = localStorage.getItem('token');
+    const savedWorkout = localStorage.getItem('training.resume');
+
+    // If logged in and a workout is in progress, mark it complete in DB
+    if (token && savedWorkout) {
+        const parts = savedWorkout.split('***');
+        const programName = parts[3] || '';
+        if (programName) {
+            try {
+                await callAPI('/api/user/workout-progress/complete', 'PUT', { exercise_name: programName });
+            } catch (e) {
+                // Enqueue for later sync if API call fails (e.g. offline)
+                addToSyncQueue({ type: 'complete', exercise_name: programName });
+            }
+        }
+    }
+
     localStorage.removeItem('training.resume');
     window.location.reload();
 }
@@ -939,3 +965,113 @@ document.addEventListener('visibilitychange', function() {
         }, 100);
     }
 });
+
+/*----------------------------------------------------------------------
+Save current workout state to DB (histo table).
+Called whenever training.resume is updated in localStorage.
+----------------------------------------------------------------------*/
+function saveWorkoutProgressToDB(vmRef) {
+    const token = localStorage.getItem('token');
+    if (!token) return; // Only save when logged in
+
+    const exerciseId = [vmRef.textMode, vmRef.selectGen, vmRef.selectLvl, vmRef.programName].join('***');
+    const progressStatus = [vmRef.textMode, vmRef.selectGen, vmRef.selectLvl, vmRef.programName, vmRef.time, vmRef.count].join('***');
+
+    const payload = {
+        exercise_id: exerciseId,
+        exercise_name: vmRef.programName,
+        progress_status: progressStatus,
+        workout_time: vmRef.time
+    };
+
+    callAPI('/api/user/workout-progress', 'POST', payload).catch(() => {
+        // If API call fails (offline), add to sync queue
+        addToSyncQueue({ type: 'progress', ...payload });
+    });
+}
+
+/*----------------------------------------------------------------------
+DB fallback: if localStorage has no saved workout but user is logged in,
+check DB for an in-progress workout and restore it.
+----------------------------------------------------------------------*/
+async function checkDBWorkoutFallback() {
+    const token = localStorage.getItem('token');
+    if (!token) return false;
+
+    try {
+        const result = await callAPI('/api/user/workout-progress/current');
+        if (result && result.data && result.data.progress_status && result.data.progress_status !== 'done') {
+            const progressStatus = result.data.progress_status;
+            // Restore to localStorage and trigger restore
+            localStorage.setItem('training.resume', progressStatus);
+            checkSavedWorkout();
+            return true;
+        }
+    } catch (e) {
+        // Silently fail - no DB record to restore
+    }
+    return false;
+}
+
+/*----------------------------------------------------------------------
+Sync queue: store failed API calls in localStorage and replay when online.
+----------------------------------------------------------------------*/
+const SYNC_QUEUE_KEY = 'training.syncQueue';
+
+function addToSyncQueue(item) {
+    try {
+        const queue = JSON.parse(localStorage.getItem(SYNC_QUEUE_KEY) || '[]');
+        queue.push({ ...item, timestamp: Date.now() });
+        localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(queue));
+    } catch (e) {
+        console.warn('[Sync] Could not add to sync queue:', e);
+    }
+}
+
+async function processSyncQueue() {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    let queue = [];
+    try {
+        queue = JSON.parse(localStorage.getItem(SYNC_QUEUE_KEY) || '[]');
+    } catch (e) {
+        return;
+    }
+
+    if (queue.length === 0) return;
+
+    const remaining = [];
+    for (const item of queue) {
+        try {
+            if (item.type === 'progress') {
+                await callAPI('/api/user/workout-progress', 'POST', {
+                    exercise_id: item.exercise_id,
+                    exercise_name: item.exercise_name,
+                    progress_status: item.progress_status,
+                    workout_time: item.workout_time
+                });
+            } else if (item.type === 'complete') {
+                await callAPI('/api/user/workout-progress/complete', 'PUT', {
+                    exercise_name: item.exercise_name
+                });
+            }
+            // Item processed successfully, do not push to remaining
+        } catch (e) {
+            remaining.push(item); // Keep for next retry
+        }
+    }
+
+    localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(remaining));
+
+    if (remaining.length < queue.length) {
+        console.log(`[Sync] Processed ${queue.length - remaining.length} queued item(s).`);
+    }
+}
+
+// Process sync queue when the app comes back online
+window.addEventListener('online', () => {
+    console.log('[App] Back online, processing sync queue...');
+    processSyncQueue();
+});
+

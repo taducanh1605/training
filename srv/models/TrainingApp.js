@@ -322,6 +322,85 @@ class TrainingApp {
     }
   }
 
+  // Upsert current in-progress workout state into histo.
+  // If a non-done record for this user+exercise_id exists today, update it.
+  // Otherwise insert a new record.
+  async upsertWorkoutProgress(user_id, data) {
+    const { exercise_id, exercise_name, progress_status, workout_time } = data;
+    const today = new Date().toISOString().slice(0, 10);
+
+    try {
+      // Look for existing in-progress record for this workout today
+      const existing = await this.get(
+        `SELECT id FROM histo 
+         WHERE user_id = ? AND exercise_id = ? AND progress_status != 'done' 
+         ORDER BY created_at DESC LIMIT 1`,
+        [user_id, exercise_id]
+      );
+
+      if (existing) {
+        // Update existing in-progress record
+        await this.run(
+          `UPDATE histo SET progress_status = ?, workout_time = ?, workout_date = ? WHERE id = ?`,
+          [progress_status, workout_time || 0, today, existing.id]
+        );
+        return { success: true, id: existing.id, action: 'updated' };
+      } else {
+        // Insert new record
+        const result = await this.run(
+          `INSERT INTO histo (user_id, exercise_id, exercise_name, progress_status, workout_time, workout_date) 
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [user_id, exercise_id, exercise_name, progress_status, workout_time || 0, today]
+        );
+        return { success: true, id: result.lastID, action: 'inserted' };
+      }
+    } catch (error) {
+      console.error('Error upserting workout progress:', error);
+      return { error: 'Failed to upsert workout progress', details: error.message };
+    }
+  }
+
+  // Mark the latest in-progress workout for user as done.
+  async completeWorkoutProgress(user_id, exercise_name) {
+    try {
+      const result = await this.run(
+        `UPDATE histo SET progress_status = 'done' 
+         WHERE id = (
+           SELECT id FROM histo 
+           WHERE user_id = ? AND exercise_name = ? AND progress_status != 'done'
+           ORDER BY created_at DESC LIMIT 1
+         )`,
+        [user_id, exercise_name]
+      );
+
+      if (result.changes > 0) {
+        return { success: true, message: 'Workout marked as done' };
+      } else {
+        // No in-progress record found, still return success (idempotent)
+        return { success: true, message: 'No in-progress workout found, nothing to complete' };
+      }
+    } catch (error) {
+      console.error('Error completing workout progress:', error);
+      return { error: 'Failed to complete workout progress', details: error.message };
+    }
+  }
+
+  // Get the most recent in-progress workout for user (progress_status != 'done').
+  async getCurrentWorkoutProgress(user_id) {
+    try {
+      const record = await this.get(
+        `SELECT * FROM histo 
+         WHERE user_id = ? AND progress_status != 'done' 
+         ORDER BY created_at DESC LIMIT 1`,
+        [user_id]
+      );
+      return record || null;
+    } catch (error) {
+      console.error('Error getting current workout progress:', error);
+      return null;
+    }
+  }
+
   // === PROGS METHODS ===
   
   // Kiểm tra quyền mentor có thể edit program của student

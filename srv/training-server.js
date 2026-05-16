@@ -1296,6 +1296,88 @@ app.post('/api/mentor/update-student-program/:studentId', authenticateToken, asy
 });
 
 /**
+ * ROUTE: Save or update current in-progress workout state in histo table.
+ * Called every time training.resume is updated in localStorage.
+ */
+app.post('/api/user/workout-progress', authenticateToken, async (req, res) => {
+  try {
+    const { exercise_id, exercise_name, progress_status, workout_time } = req.body;
+
+    if (!exercise_id || !exercise_name || !progress_status) {
+      return res.status(400).json({
+        success: false,
+        message: 'exercise_id, exercise_name, and progress_status are required',
+        error: 'MISSING_FIELDS'
+      });
+    }
+
+    const result = await trainingApp.upsertWorkoutProgress(req.user.id, {
+      exercise_id,
+      exercise_name,
+      progress_status,
+      workout_time: workout_time || 0
+    });
+
+    if (result.error) {
+      return res.status(500).json({ success: false, message: result.error, error: 'UPSERT_FAILED' });
+    }
+
+    res.json({ success: true, data: result, message: 'Workout progress saved' });
+  } catch (error) {
+    console.error('Save workout progress error:', error);
+    res.status(500).json({ success: false, message: 'Server error', error: 'SERVER_ERROR' });
+  }
+});
+
+/**
+ * ROUTE: Mark the current in-progress workout as done.
+ * Called when the user clicks the "choose another program" button.
+ */
+app.put('/api/user/workout-progress/complete', authenticateToken, async (req, res) => {
+  try {
+    const { exercise_name } = req.body;
+
+    if (!exercise_name) {
+      return res.status(400).json({
+        success: false,
+        message: 'exercise_name is required',
+        error: 'MISSING_FIELDS'
+      });
+    }
+
+    const result = await trainingApp.completeWorkoutProgress(req.user.id, exercise_name);
+
+    if (result.error) {
+      return res.status(500).json({ success: false, message: result.error, error: 'COMPLETE_FAILED' });
+    }
+
+    res.json({ success: true, data: result, message: 'Workout marked as complete' });
+  } catch (error) {
+    console.error('Complete workout progress error:', error);
+    res.status(500).json({ success: false, message: 'Server error', error: 'SERVER_ERROR' });
+  }
+});
+
+/**
+ * ROUTE: Get the most recent in-progress workout from histo for fallback restore.
+ * Used when localStorage is cleared but user is logged in.
+ */
+app.get('/api/user/workout-progress/current', authenticateToken, async (req, res) => {
+  try {
+    const record = await trainingApp.getCurrentWorkoutProgress(req.user.id);
+
+    res.json({
+      success: true,
+      data: record,
+      message: record ? 'In-progress workout found' : 'No in-progress workout'
+    });
+  } catch (error) {
+    console.error('Get current workout progress error:', error);
+    res.status(500).json({ success: false, message: 'Server error', error: 'SERVER_ERROR' });
+  }
+});
+
+/**
  * ROUTE: API tổng quát cho Training App
  */
 app.all('/api/training/:endpoint(*)', authenticateToken, async (req, res) => {

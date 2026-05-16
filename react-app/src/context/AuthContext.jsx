@@ -29,6 +29,11 @@ export function AuthProvider({ children }) {
   }, []);
 
   const checkLogin = useCallback(async (setWorkoutData) => {
+    // Skip API call entirely when there is no token to avoid unnecessary 401 errors.
+    // This mirrors the Vue.js behaviour where checkLoginAndFetchToken() exits early
+    // when localStorage.token is absent.
+    if (!getItem(STORAGE_KEYS.TOKEN)) return;
+
     try {
       const response = await getTrainingExercises();
       const data = response.data;

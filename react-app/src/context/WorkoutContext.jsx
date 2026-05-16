@@ -342,13 +342,18 @@ export function WorkoutProvider({ children }) {
 
     if (s.count === 0) setShowSwitchBtn(true);
 
+    // Track the count that will actually be saved. In React, setCount() is async so
+    // stateRef.current.count won't update within this handler. We must track the new
+    // value in a local variable to pass the correct count to buildResume/saveWorkoutProgressToDB.
+    let savedCount = s.count;
+
     if (s.flagStart === 0) {
       setFlagStart(1);
       if (s.rest === 0 && s.count === 0) {
         ring('start.wav');
-        const newCount = 1;
-        setCount(newCount);
-        const [newOrder, newRound] = getOrder(newCount, s.exSet);
+        savedCount = 1;
+        setCount(savedCount);
+        const [newOrder, newRound] = getOrder(savedCount, s.exSet);
         setExOrder(newOrder);
         setExRound(newRound);
       }
@@ -359,16 +364,15 @@ export function WorkoutProvider({ children }) {
     } else {
       if (s.count < s.exSumSet) {
         ring('breaktime.wav');
-        const newCount = s.count + 1;
-        setCount(newCount);
-        const [newOrder, newRound] = getOrder(newCount, s.exSet);
+        savedCount = s.count + 1;
+        setCount(savedCount);
+        const [newOrder, newRound] = getOrder(savedCount, s.exSet);
         setExOrder(newOrder);
         setExRound(newRound);
         setRest(s.exRest[newOrder]);
       } else if (s.count === s.exSumSet) {
         ring('finish.wav');
-        const newCount = s.count + 1;
-        setCount(newCount);
+        setCount(s.count + 1);
         setFlagStart(2);
         if (getItem(STORAGE_KEYS.RESUME)) {
           removeItem(STORAGE_KEYS.RESUME);
@@ -378,9 +382,9 @@ export function WorkoutProvider({ children }) {
       }
     }
 
-    const resumeStr = buildResume(s.textMode, s.selectGen, s.selectLvl, s.programName, s.time, s.count, Date.now());
+    const resumeStr = buildResume(s.textMode, s.selectGen, s.selectLvl, s.programName, s.time, savedCount, Date.now());
     setItem(STORAGE_KEYS.RESUME, resumeStr);
-    saveWorkoutProgressToDB(s);
+    saveWorkoutProgressToDB({ ...s, count: savedCount });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleNext = useCallback(() => {

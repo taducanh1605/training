@@ -689,14 +689,72 @@ document.addEventListener('DOMContentLoaded', async function () {
     // Check login and update textMode first
     await checkLoginAndUpdateTextMode();
 
-    // Try localStorage first; if not found and user is logged in, try DB fallback
-    if (!checkSavedWorkout()) {
-        const restored = await checkDBWorkoutFallback();
-        if (!restored) {
-            checkSavedLvl();
+    // Always compare localStorage with DB to ensure the most recent state wins
+    await restoreBestWorkoutState();
+});
+
+/*----------------------------------------------------------------------
+Compare two workout progress strings and return the more recent one.
+Both are in format: textMode***gen***level***program***time***count.
+If programs differ, DB wins (server holds the latest selection).
+If same program, the higher count wins; time is used as a tiebreaker.
+----------------------------------------------------------------------*/
+function pickMostRecentWorkout(local, db) {
+    if (!local && !db) return null;
+    if (local && !db) return local;
+    if (!local && db) return db;
+
+    const localParts = local.split('***');
+    const dbParts = db.split('***');
+    const localCount = parseInt(localParts[5]) || 0;
+    const dbCount = parseInt(dbParts[5]) || 0;
+    const localTime = parseInt(localParts[4]) || 0;
+    const dbTime = parseInt(dbParts[4]) || 0;
+
+    // Different programs: DB is authoritative (it was saved by the most recent device)
+    if (localParts[3] !== dbParts[3]) return db;
+
+    // Same program: higher count means further progress
+    if (dbCount > localCount) return db;
+    if (localCount > dbCount) return local;
+
+    // Same count: higher time means more recent save
+    return dbTime > localTime ? db : local;
+}
+
+/*----------------------------------------------------------------------
+Fetch DB state when logged in, compare with localStorage, and restore
+whichever is the most recent. This ensures multi-device sync is correct:
+the device with the latest progress always wins on any page load.
+----------------------------------------------------------------------*/
+async function restoreBestWorkoutState() {
+    const localWorkout = localStorage.getItem('training.resume');
+    const token = localStorage.getItem('token');
+
+    let dbWorkout = null;
+    if (token) {
+        try {
+            const result = await callAPI('/api/user/workout-progress/current');
+            if (result && result.data && result.data.progress_status && result.data.progress_status !== 'done') {
+                dbWorkout = result.data.progress_status;
+            }
+        } catch (e) {
+            // Silently fail - will fall back to localStorage if available
         }
     }
-});
+
+    const bestWorkout = pickMostRecentWorkout(localWorkout, dbWorkout);
+
+    if (bestWorkout) {
+        // Overwrite localStorage with the most recent state before restoring
+        localStorage.setItem('training.resume', bestWorkout);
+        checkSavedWorkout();
+        return;
+    }
+
+    // No active workout found anywhere, try restoring level selection
+    checkSavedLvl();
+}
 
 /*----------------------------------------------------------------------
 Check if there's a saved workout and restore it

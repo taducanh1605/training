@@ -694,10 +694,18 @@ document.addEventListener('DOMContentLoaded', async function () {
 });
 
 /*----------------------------------------------------------------------
-Compare two workout progress strings and return the more recent one.
-Both are in format: textMode***gen***level***program***time***count.
-If programs differ, DB wins (server holds the latest selection).
-If same program, the higher count wins; time is used as a tiebreaker.
+Compare two workout progress strings and return the one with the highest
+exercise count. Both are in format: textMode***gen***level***program***time***count.
+
+NOTE: The "time" field is elapsed seconds within the workout session — NOT
+a wall-clock timestamp. It cannot be used to determine which save is more
+recent across devices. Only "count" (index [5]) is a reliable indicator
+of how far the user has progressed.
+
+Rules:
+  - If programs differ: DB wins (server holds the latest program selection)
+  - Same program: higher count wins (further progress in the workout)
+  - Equal count: DB wins (DB is the shared source of truth)
 ----------------------------------------------------------------------*/
 function pickMostRecentWorkout(local, db) {
     if (!local && !db) return null;
@@ -708,24 +716,22 @@ function pickMostRecentWorkout(local, db) {
     const dbParts = db.split('***');
     const localCount = parseInt(localParts[5]) || 0;
     const dbCount = parseInt(dbParts[5]) || 0;
-    const localTime = parseInt(localParts[4]) || 0;
-    const dbTime = parseInt(dbParts[4]) || 0;
 
-    // Different programs: DB is authoritative (it was saved by the most recent device)
+    // Different programs: DB is authoritative (most recent device chose it)
     if (localParts[3] !== dbParts[3]) return db;
 
-    // Same program: higher count means further progress
+    // Same program: the higher count = further progress = correct state
     if (dbCount > localCount) return db;
     if (localCount > dbCount) return local;
 
-    // Same count: higher time means more recent save
-    return dbTime > localTime ? db : local;
+    // Equal count: DB is authoritative (shared source of truth)
+    return db;
 }
 
 /*----------------------------------------------------------------------
 Fetch DB state when logged in, compare with localStorage, and restore
-whichever is the most recent. This ensures multi-device sync is correct:
-the device with the latest progress always wins on any page load.
+whichever has the highest count. Flushes any pending offline saves first
+so DB is fully up to date before the comparison.
 ----------------------------------------------------------------------*/
 async function restoreBestWorkoutState() {
     const localWorkout = localStorage.getItem('training.resume');
@@ -733,6 +739,8 @@ async function restoreBestWorkoutState() {
 
     let dbWorkout = null;
     if (token) {
+        // Flush any queued offline saves so DB reflects the true latest state
+        await processSyncQueue();
         try {
             const result = await callAPI('/api/user/workout-progress/current');
             if (result && result.data && result.data.progress_status && result.data.progress_status !== 'done') {
@@ -746,7 +754,7 @@ async function restoreBestWorkoutState() {
     const bestWorkout = pickMostRecentWorkout(localWorkout, dbWorkout);
 
     if (bestWorkout) {
-        // Overwrite localStorage with the most recent state before restoring
+        // Overwrite localStorage with the best known state before restoring
         localStorage.setItem('training.resume', bestWorkout);
         checkSavedWorkout();
         return;

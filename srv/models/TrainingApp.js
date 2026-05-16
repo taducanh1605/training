@@ -329,21 +329,29 @@ class TrainingApp {
     const { exercise_id, exercise_name, progress_status, workout_time } = data;
     const today = new Date().toISOString().slice(0, 10);
 
+    // Extract the progress count from the status string (format: ...***time***count)
+    const newCount = parseInt((progress_status || '').split('***')[5]) || 0;
+
     try {
-      // Look for existing in-progress record for this workout today
+      // Look for existing in-progress record for this workout
       const existing = await this.get(
-        `SELECT id FROM histo 
+        `SELECT id, progress_status FROM histo 
          WHERE user_id = ? AND exercise_id = ? AND progress_status != 'done' 
          ORDER BY created_at DESC LIMIT 1`,
         [user_id, exercise_id]
       );
 
       if (existing) {
-        // Update existing in-progress record
-        await this.run(
-          `UPDATE histo SET progress_status = ?, workout_time = ?, workout_date = ? WHERE id = ?`,
-          [progress_status, workout_time || 0, today, existing.id]
-        );
+        // Only update when the new count is >= the stored count.
+        // This prevents a stale/slower device from overwriting progress
+        // that a faster device already saved to the DB.
+        const existingCount = parseInt((existing.progress_status || '').split('***')[5]) || 0;
+        if (newCount >= existingCount) {
+          await this.run(
+            `UPDATE histo SET progress_status = ?, workout_time = ?, workout_date = ? WHERE id = ?`,
+            [progress_status, workout_time || 0, today, existing.id]
+          );
+        }
         return { success: true, id: existing.id, action: 'updated' };
       } else {
         // Insert new record

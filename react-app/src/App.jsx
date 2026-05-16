@@ -14,9 +14,17 @@ import MentorManager from './components/MentorManager.jsx';
 import ExerciseEditor from './components/ExerciseEditor.jsx';
 import './App.css';
 
-// Compare two workout progress strings and return the more recent one.
+// Compare two workout progress strings and return the one with the highest count.
 // Format: textMode***gen***level***program***time***count
-// If programs differ, DB wins. If same program, higher count wins.
+//
+// NOTE: "time" is elapsed workout seconds, NOT a wall-clock timestamp.
+// It cannot reliably indicate which save is more recent across devices.
+// Only "count" is a reliable progress indicator.
+//
+// Rules:
+//   Different programs: DB wins (server holds the latest selection)
+//   Same program: higher count wins (further workout progress)
+//   Equal count: DB wins (DB is the shared source of truth)
 function pickMostRecentWorkout(local, db) {
   if (!local && !db) return null;
   if (local && !db) return local;
@@ -26,18 +34,16 @@ function pickMostRecentWorkout(local, db) {
   const dp = db.split('***');
   const lCount = parseInt(lp[5]) || 0;
   const dCount = parseInt(dp[5]) || 0;
-  const lTime = parseInt(lp[4]) || 0;
-  const dTime = parseInt(dp[4]) || 0;
 
-  // Different programs: DB is authoritative (saved by most recent device)
+  // Different programs: DB is authoritative
   if (lp[3] !== dp[3]) return db;
 
-  // Same program: higher count means further progress
+  // Same program: higher count = further progress
   if (dCount > lCount) return db;
   if (lCount > dCount) return local;
 
-  // Same count: higher time is more recent
-  return dTime > lTime ? db : local;
+  // Equal count: DB is authoritative
+  return db;
 }
 
 function AppContent() {
@@ -67,9 +73,10 @@ function AppContent() {
       });
 
       // After login, always fetch DB state so we can compare with localStorage.
-      // This ensures the most recent progress wins on any device's page load.
+      // Flush any queued offline saves first so DB reflects the true latest state.
       const token = getItem(STORAGE_KEYS.TOKEN);
       if (token) {
+        await processSyncQueue();
         try {
           const result = await getCurrentWorkout();
           if (result && result.data && result.data.progress_status && result.data.progress_status !== 'done') {

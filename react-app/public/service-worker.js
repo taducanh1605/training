@@ -1,4 +1,4 @@
-const CACHE_NAME = 'training-react-v1';
+const CACHE_NAME = 'training-react-v2';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -62,17 +62,18 @@ self.addEventListener('fetch', (event) => {
 });
 
 async function cacheFirst(request) {
-  const cached = await caches.match(request);
+  // Open the versioned cache by name to avoid stale matches from old cache versions
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(request);
   if (cached) return cached;
   try {
     const networkResponse = await fetch(request);
     if (networkResponse && networkResponse.status === 200) {
-      const cache = await caches.open(CACHE_NAME);
       cache.put(request, networkResponse.clone());
     }
     return networkResponse;
   } catch (error) {
-    if (request.headers.get('accept') && request.headers.get('accept').includes('text/html')) {
+    if (request.headers.get('accept')&& request.headers.get('accept').includes('text/html')) {
       return new Response(
         '<html><body style="font-family:sans-serif;text-align:center;padding:40px"><h2>Offline</h2><p>Please check your connection.</p></body></html>',
         { headers: { 'Content-Type': 'text/html' } }
@@ -91,7 +92,8 @@ async function networkFirst(request) {
     }
     return networkResponse;
   } catch (error) {
-    const cached = await caches.match(request);
+    const cache = await caches.open(CACHE_NAME);
+    const cached = await cache.match(request);
     if (cached) return cached;
     return new Response(
       JSON.stringify({ success: false, error: 'OFFLINE', message: 'You are offline' }),

@@ -1,7 +1,7 @@
 // Service Worker for Training App
 // Handles offline caching and background sync
 
-const CACHE_NAME = 'training-app-v1';
+const CACHE_NAME = 'training-app-v2';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -90,7 +90,9 @@ self.addEventListener('fetch', (event) => {
 
 // Cache-first strategy: serve from cache, fall back to network and update cache
 async function cacheFirst(request) {
-  const cached = await caches.match(request);
+  // Open the versioned cache by name to avoid stale matches from old cache versions
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(request);
   if (cached) {
     return cached;
   }
@@ -98,7 +100,6 @@ async function cacheFirst(request) {
   try {
     const networkResponse = await fetch(request);
     if (networkResponse && networkResponse.status === 200) {
-      const cache = await caches.open(CACHE_NAME);
       cache.put(request, networkResponse.clone());
     }
     return networkResponse;
@@ -127,7 +128,8 @@ async function networkFirst(request) {
     return networkResponse;
   } catch (error) {
     console.warn('[SW] Network-first fell back to cache for:', request.url);
-    const cached = await caches.match(request);
+    const cache = await caches.open(CACHE_NAME);
+    const cached = await cache.match(request);
     if (cached) {
       return cached;
     }

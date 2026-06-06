@@ -320,7 +320,9 @@ var vm = new Vue({
                     }
                 }
                 else if ((this.flagStart == 2) && (inputCSV.checkHIIT == 1)) {
-                    exportCSV();
+                    // exportCSV();
+                    clearSavedWorkout(false);
+                    return;
                 }
                 else if (this.rest > 0) {
                     this.flagStart = 0;
@@ -345,16 +347,10 @@ var vm = new Vue({
                         */
                     }
                     else if (this.count == this.exSumSet) {
-                        ring("finish.wav");
                         this.count += 1;
                         this.flagStart = 2;
-                        clearSavedWorkoutAndRefresh(false);
-                        // saveWorkoutProgressToDB(that);
-                        // if (localStorage.getItem('training.resume')) {
-                        //     // [2025-05-14-DA] clear saved workout
-                        //     localStorage.removeItem('training.resume');
-                        //     localStorage.setItem('training.done', that.programName);
-                        // }
+                        clearSavedWorkout(false);
+                        ring("finish.wav");
                         return;
                         // if (inputCSV.checkHIIT == 1) {exportCSV()};
                     }
@@ -867,7 +863,7 @@ function restoreSavedWorkout(textMode, gen, level, program, time, count) {
     let maxCount = vm.exSumSet;
     if (count < 0) count = 0;
     if (count > maxCount) {
-        clearSavedWorkoutAndRefresh();
+        clearSavedWorkout();
         return;
     }
 
@@ -898,7 +894,7 @@ Clear the saved workout and refresh the page.
 Before refreshing, mark the current workout as done in the DB so data
 is consistent when the user selects a new program.
 ----------------------------------------------------------------------*/
-async function clearSavedWorkoutAndRefresh(refresh = true) {
+async function clearSavedWorkout(refresh = true) {
     const token = localStorage.getItem('token');
     const savedWorkout = localStorage.getItem('training.resume');
 
@@ -936,7 +932,7 @@ function addSwitchProgramButton() {
     const switchProgramBtn = document.createElement('button');
     switchProgramBtn.innerText = 'Click to choose an other program';
     switchProgramBtn.className = 'btn selectProg mb-3 mt-3 switch-program-btn';
-    switchProgramBtn.onclick = clearSavedWorkoutAndRefresh;
+    switchProgramBtn.onclick = clearSavedWorkout;
 
     // [2025-03-25-DA] style the button
     switchProgramBtn.style.margin = '5px auto';

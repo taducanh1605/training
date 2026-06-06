@@ -348,11 +348,13 @@ var vm = new Vue({
                         ring("finish.wav");
                         this.count += 1;
                         this.flagStart = 2;
-                        if (localStorage.getItem('training.resume')) {
-                            // [2025-05-14-DA] clear saved workout
-                            localStorage.removeItem('training.resume');
-                            localStorage.setItem('training.done', that.programName);
-                        }
+                        clearSavedWorkoutAndRefresh(false);
+                        // saveWorkoutProgressToDB(that);
+                        // if (localStorage.getItem('training.resume')) {
+                        //     // [2025-05-14-DA] clear saved workout
+                        //     localStorage.removeItem('training.resume');
+                        //     localStorage.setItem('training.done', that.programName);
+                        // }
                         return;
                         // if (inputCSV.checkHIIT == 1) {exportCSV()};
                     }
@@ -861,6 +863,14 @@ function restoreSavedWorkout(textMode, gen, level, program, time, count) {
     // Load the program data
     inputCSV.selectHandle(gen);
 
+    // verify count is within bounds, if count > max -> the exercise is finished -> don't restore
+    let maxCount = vm.exSumSet;
+    if (count < 0) count = 0;
+    if (count > maxCount) {
+        clearSavedWorkoutAndRefresh();
+        return;
+    }
+
     // Set the time and count
     vm.time = time;
 
@@ -888,7 +898,7 @@ Clear the saved workout and refresh the page.
 Before refreshing, mark the current workout as done in the DB so data
 is consistent when the user selects a new program.
 ----------------------------------------------------------------------*/
-async function clearSavedWorkoutAndRefresh() {
+async function clearSavedWorkoutAndRefresh(refresh = true) {
     const token = localStorage.getItem('token');
     const savedWorkout = localStorage.getItem('training.resume');
 
@@ -911,7 +921,7 @@ async function clearSavedWorkoutAndRefresh() {
     // on the next page load. This prevents the SW-cached GET response from
     // restoring the old workout when the user is offline.
     localStorage.setItem('training.resume.cleared', '1');
-    window.location.reload();
+    if (refresh) window.location.reload();
 }
 
 /*----------------------------------------------------------------------

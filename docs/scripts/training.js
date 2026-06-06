@@ -319,8 +319,10 @@ var vm = new Vue({
                         [this.exOrder, this.exRound] = getOrder(this.count);
                     }
                 }
-                else if ((this.flagStart == 2) && (inputCSV.checkHIIT == 1)) {
-                    // exportCSV();
+                else if (this.flagStart == 2) {
+                    if (inputCSV.checkHIIT == 1) {
+                        exportCSV();
+                    }
                     clearSavedWorkout();
                     return;
                 }
@@ -902,6 +904,7 @@ async function clearSavedWorkout(refresh = true) {
     if (token && savedWorkout) {
         const parts = savedWorkout.split('***');
         const programName = parts[3] || '';
+        localStorage.setItem('training.done', programName);
         if (programName) {
             try {
                 await callAPI('/api/user/workout-progress/complete', 'PUT', { exercise_name: programName });

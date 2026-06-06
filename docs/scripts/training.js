@@ -321,7 +321,7 @@ var vm = new Vue({
                 }
                 else if ((this.flagStart == 2) && (inputCSV.checkHIIT == 1)) {
                     // exportCSV();
-                    clearSavedWorkout(false);
+                    clearSavedWorkout();
                     return;
                 }
                 else if (this.rest > 0) {

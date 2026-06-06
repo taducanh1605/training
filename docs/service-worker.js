@@ -78,6 +78,9 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  event.respondWith(networkFirst(request));
+
+  /*
   // API calls: network-first, fall back to cache if available
   if (url.pathname.startsWith('/api/') || url.hostname.includes('pika-proxy')) {
     event.respondWith(networkFirst(request));
@@ -86,6 +89,7 @@ self.addEventListener('fetch', (event) => {
 
   // Static assets: cache-first strategy
   event.respondWith(cacheFirst(request));
+  */
 });
 
 // Cache-first strategy: serve from cache, fall back to network and update cache

@@ -1,4 +1,4 @@
-const API_BASE = 'https://pika-proxy.taducanhbkhn.workers.dev/port/52445';
+const API_BASE = 'https://pika-proxy.taducanhbkhn.workers.dev/port/32445';
 
 export { API_BASE };
 

@@ -414,13 +414,21 @@ class TrainingApp {
   // Kiểm tra quyền mentor có thể edit program của student
   async canMentorEditStudent(mentor_user_id, student_user_id) {
     try {
+      const mentorUserIdInt = Number(mentor_user_id);
+      const studentUserIdInt = Number(student_user_id);
+
+      if (!Number.isSafeInteger(mentorUserIdInt) || mentorUserIdInt <= 0 ||
+          !Number.isSafeInteger(studentUserIdInt) || studentUserIdInt <= 0) {
+        return { allowed: false, reason: 'Invalid user id format' };
+      }
+
       // Nếu edit chính mình thì luôn được phép
-      if (mentor_user_id === student_user_id) {
+      if (mentorUserIdInt === studentUserIdInt) {
         return { allowed: true, reason: 'self' };
       }
 
       // Lấy mentor_id của mentor (từ profiles)
-      const mentorProfile = await this.get('SELECT mentor_id FROM profiles WHERE user_id = ?', [mentor_user_id]);
+      const mentorProfile = await this.get('SELECT mentor_id FROM profiles WHERE user_id = ?', [mentorUserIdInt]);
       if (!mentorProfile || !mentorProfile.mentor_id) {
         return { allowed: false, reason: 'Mentor not found or has no mentor_id' };
       }
@@ -429,7 +437,7 @@ class TrainingApp {
       // Bảng mentors có: mentor_id (TEXT) và student_user_id (INTEGER)
       const mentorRelation = await this.get(
         'SELECT id FROM mentors WHERE mentor_id = ? AND student_user_id = ?',
-        [mentorProfile.mentor_id, student_user_id]
+        [mentorProfile.mentor_id, studentUserIdInt]
       );
 
       if (!mentorRelation) {

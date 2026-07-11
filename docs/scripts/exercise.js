@@ -159,7 +159,8 @@ function areExercisesEquivalent(a, b) {
 }
 
 async function verifyUserExercisesOnServer(expectedExercises) {
-    const latest = await getUserExercises();
+    const userId = await getCurrentUserIdForMentorSave();
+    const latest = await callExerciseAPI(`/api/mentor/student-exercises/${userId}`, 'GET');
     if (!latest || !latest.success) {
         return { ok: false, reason: 'Cannot read exercises from server after save' };
     }

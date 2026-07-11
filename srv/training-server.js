@@ -65,6 +65,14 @@ const APP_CONFIG = {
   port: 2445
 };
 
+function parseStrictPositiveInt(value) {
+  const raw = String(value ?? '').trim();
+  if (!/^\d+$/.test(raw)) return null;
+  const parsed = Number(raw);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) return null;
+  return parsed;
+}
+
 /**
  * HÀM ĐĂNG KÝ APP KHI KHỞI ĐỘNG
  */
@@ -653,14 +661,22 @@ app.get('/api/mentor/students', authenticateToken, async (req, res) => {
  */
 app.get('/api/mentor/student-exercises/:student_user_id', authenticateToken, async (req, res) => {
   try {
-    const studentUserId = parseInt(req.params.student_user_id);
-    const mentorUserId = req.user.id;
+    const studentUserId = parseStrictPositiveInt(req.params.student_user_id);
+    const mentorUserId = parseStrictPositiveInt(req.user.id);
 
-    if (!studentUserId || isNaN(studentUserId)) {
+    if (!studentUserId) {
       return res.status(400).json({
         success: false,
         message: 'Valid student user ID is required',
         error: 'INVALID_STUDENT_ID'
+      });
+    }
+
+    if (!mentorUserId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid authenticated user id',
+        error: 'INVALID_AUTH_USER_ID'
       });
     }
 
@@ -695,15 +711,23 @@ app.get('/api/mentor/student-exercises/:student_user_id', authenticateToken, asy
  */
 app.put('/api/mentor/student-exercises/:student_user_id', authenticateToken, async (req, res) => {
   try {
-    const studentUserId = parseInt(req.params.student_user_id);
-    const mentorUserId = req.user.id;
+    const studentUserId = parseStrictPositiveInt(req.params.student_user_id);
+    const mentorUserId = parseStrictPositiveInt(req.user.id);
     const { exercises } = req.body;
 
-    if (!studentUserId || isNaN(studentUserId)) {
+    if (!studentUserId) {
       return res.status(400).json({
         success: false,
         message: 'Valid student user ID is required',
         error: 'INVALID_STUDENT_ID'
+      });
+    }
+
+    if (!mentorUserId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid authenticated user id',
+        error: 'INVALID_AUTH_USER_ID'
       });
     }
 

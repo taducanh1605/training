@@ -734,7 +734,7 @@ function stripHtml(value) {
 function extractPlainExerciseName(name) {
     if (!name) return '';
     name = name.replace("xMax", "x");
-    if (name.lasIndexOf(' x') > -1) {
+    if (name.lastIndexOf(' x') > -1) {
         name = name.substring(0, name.lastIndexOf(' x'));
     }
     return name.trim();

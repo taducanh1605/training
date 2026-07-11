@@ -610,7 +610,7 @@ HIIT helpers
 function transformExerciseToken(nameI, exerciseIndex, tokenIndex) {
     if (!nameI || typeof nameI !== 'string') return null;
 
-    const hiitMatch = nameI.match(/xhiit-(\d+\??)-(\d+\??)-(\d+\??)$/i);
+    const hiitMatch = nameI.match(/xhiit-(\d+\??)-(\d+\??)-(\d+\??).$/i);
     if (hiitMatch) {
         const values = hiitMatch.slice(1).map(part => parseInt(part.replace('?', ''), 10) || 0);
         const editable = hiitMatch.some(part => part.includes('?'));

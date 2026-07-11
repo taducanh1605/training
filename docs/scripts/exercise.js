@@ -159,7 +159,7 @@ function showExerciseEditor() {
     const exerciseEditor = document.getElementById('exercise-editor-container');
     if (exerciseEditor) {
         exerciseEditor.style.display = 'block';
-        loadCurrentExercisesForEdit();
+        loadCurrentExercisesForEdit(inputCSV.dataUsers, 'ProgUsers');
         
         // Auto scroll to exercise editor
         setTimeout(() => {
@@ -193,19 +193,12 @@ function hideExerciseEditor() {
     }
 }
 
-// Load current exercises for editing (from localStorage first, then ProgUsers)
-function loadCurrentExercisesForEdit() {
+// Load current exercises for editing from provided data source only.
+// Do not read from localStorage here to avoid showing unsynced/stale data as if server saved it.
+function loadCurrentExercisesForEdit(sourceExercises = null, sourceLabel = 'provided source') {
     try {
-        // Check localStorage first
-        let exerciseData = getLocalStorageExercises();
-        
-        if (!exerciseData) {
-            // Load from inputCSV.dataUsers (ProgUsers)
-            exerciseData = inputCSV.dataUsers;
-            console.log('Loading exercises from ProgUsers:', exerciseData);
-        } else {
-            console.log('Loading exercises from localStorage:', exerciseData);
-        }
+        const exerciseData = sourceExercises || inputCSV.dataUsers;
+        console.log(`Loading exercises from ${sourceLabel}:`, exerciseData);
         
         if (exerciseData && Object.keys(exerciseData).length > 0) {
             currentExerciseData = exerciseData;
@@ -612,7 +605,11 @@ function markAsModified() {
     
     if (saveBtn) {
         saveBtn.style.background = '#ff6600';
-        saveBtn.textContent = 'Save Changes *';
+        if (window.activeStudentSaveUserId && window.activeStudentSaveName) {
+            saveBtn.textContent = `Save Changes for ${window.activeStudentSaveName} *`;
+        } else {
+            saveBtn.textContent = 'Save Changes *';
+        }
     }
 }
 
@@ -1052,8 +1049,15 @@ function createActionButtonsHeader(container) {
     cancelBtn.style.cssText = 'background: #888; color: #fff; padding: 8px 12px; border: none; border-radius: 5px; cursor: pointer; font-size: 13px;';
     
     const saveBtn = document.createElement('button');
-    saveBtn.textContent = 'Save Changes';
-    saveBtn.onclick = submitExerciseChanges;
+    if (window.activeStudentSaveUserId && typeof saveStudentExerciseChanges === 'function') {
+        const studentLabel = window.activeStudentSaveName || 'Student';
+        const studentId = window.activeStudentSaveUserId;
+        saveBtn.textContent = `Save Changes for ${studentLabel}`;
+        saveBtn.onclick = async () => saveStudentExerciseChanges(studentId);
+    } else {
+        saveBtn.textContent = 'Save Changes';
+        saveBtn.onclick = submitExerciseChanges;
+    }
     saveBtn.id = 'save-changes-btn';
     saveBtn.style.cssText = 'background: #00ff37; color: #000; padding: 8px 12px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 13px;';
     

@@ -7,6 +7,36 @@ let currentStudentsList = [];
 let currentSelectedUser = null;
 let mentorExerciseData = {};
 let currentSelectedStudentId = null;
+const MENTOR_STUDENTS_CACHE_KEY = 'training.mentor.studentsCache';
+
+function cacheStudentsList(students) {
+    try {
+        localStorage.setItem(MENTOR_STUDENTS_CACHE_KEY, JSON.stringify(students || []));
+    } catch (e) {
+        console.warn('Could not cache students list:', e);
+    }
+}
+
+function getCachedStudentsList() {
+    try {
+        const raw = localStorage.getItem(MENTOR_STUDENTS_CACHE_KEY);
+        return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+        console.warn('Could not parse cached students list:', e);
+        return [];
+    }
+}
+
+async function parseJsonResponseSafe(response) {
+    const bodyText = await response.text();
+    if (!bodyText || !bodyText.trim()) return null;
+    try {
+        return JSON.parse(bodyText);
+    } catch (e) {
+        console.error('Invalid JSON response:', e);
+        return null;
+    }
+}
 
 // Show mentor editor form
 function showMentorEditor() {
@@ -84,25 +114,50 @@ async function loadStudentsList() {
     try {
         const response = await fetch(`${API_BASE}/api/mentor/students`, {
             method: 'GET',
+            cache: 'no-store',
             headers: {
                 'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
             }
         });
 
-        const result = await response.json();
+        if (response.status === 304) {
+            const cached = getCachedStudentsList();
+            if (cached.length > 0) {
+                currentStudentsList = cached;
+                displayStudentsList();
+                return;
+            }
+
+            // Keep existing list when backend reports no change.
+            if (currentStudentsList.length > 0) {
+                displayStudentsList();
+                return;
+            }
+
+            currentStudentsList = [];
+            displayStudentsList();
+            return;
+        }
+
+        const result = await parseJsonResponseSafe(response);
         
-        if (result.success) {
+        if (response.ok && result && result.success) {
             currentStudentsList = result.students || [];
+            cacheStudentsList(currentStudentsList);
             displayStudentsList();
         } else {
-            console.error('Error loading students:', result.error);
-            currentStudentsList = [];
+            console.error('Error loading students:', result ? result.error : `HTTP ${response.status}`);
+            const cached = getCachedStudentsList();
+            currentStudentsList = cached.length > 0 ? cached : currentStudentsList;
             displayStudentsList();
         }
     } catch (error) {
         console.error('Error loading students:', error);
-        currentStudentsList = [];
+        const cached = getCachedStudentsList();
+        currentStudentsList = cached.length > 0 ? cached : currentStudentsList;
         displayStudentsList();
     }
 }
@@ -399,47 +454,39 @@ async function loadStudentExercisesForEdit(student) {
         const token = localStorage.getItem('token');
         const response = await fetch(`${API_BASE}/api/mentor/student-exercises/${student.user_id}`, {
             method: 'GET',
+            cache: 'no-store',
             headers: {
                 'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
             }
         });
 
-        const result = await response.json();
+        const result = await parseJsonResponseSafe(response);
         
-        if (result.success && result.exercises) {
+        if (response.ok && result && result.success && result.exercises) {
             // Store student exercise data
             mentorExerciseData[student.user_id] = result.exercises;
             
             // Call existing exercise loading function if available
             if (typeof loadCurrentExercisesForEdit === 'function') {
-                // Temporarily override the data source for loadCurrentExercisesForEdit
-                const originalLocalStorage = localStorage.getItem('training.editedExercises');
-                localStorage.setItem('training.editedExercises', JSON.stringify(result.exercises));
-                
-                // Load exercises using existing function
-                await loadCurrentExercisesForEdit();
+                // Load student exercises directly, without using localStorage as a transport layer.
+                await loadCurrentExercisesForEdit(result.exercises, `student:${student.user_id}`);
                 
                 // Store reference for saving later and setup interceptor
                 currentSelectedStudentId = student.user_id;
                 setupStudentSaveInterceptor(student);
-                
-                // Restore original localStorage if it existed
-                if (originalLocalStorage) {
-                    localStorage.setItem('training.editedExercises', originalLocalStorage);
-                } else {
-                    localStorage.removeItem('training.editedExercises');
-                }
             } else {
                 // Fallback: display basic exercise list
                 displayBasicExerciseList(result.exercises, student);
             }
-        } else if (result.error && result.error.includes('No workout program found')) {
+        } else if (result && result.error && result.error.includes('No workout program found')) {
             // Student has no exercises yet, show create option
             displayNoExercisesMessage(student);
         } else {
             // Permission denied or other error
-            const errorMessage = result.message || 'Failed to load student exercises';
+            const errorMessage = (result && result.message) || `Failed to load student exercises (HTTP ${response.status})`;
             if (exerciseList) {
                 exerciseList.innerHTML = `
                     <div style="text-align: center; padding: 20px;">
@@ -481,46 +528,34 @@ async function loadStudentExercisesForEdit(student) {
 
 // Setup interceptor to redirect exercise saves to student API
 function setupStudentSaveInterceptor(student) {
-    // Store original submit function if it exists
-    if (typeof submitExerciseChanges !== 'undefined' && !window.originalSubmitExerciseChanges) {
-        window.originalSubmitExerciseChanges = submitExerciseChanges;
+    // Keep an explicit student save context so save button rendering can bind
+    // directly to mentor endpoint without timing-dependent interception.
+    currentSelectedStudentId = student.user_id;
+    window.activeStudentSaveUserId = student.user_id;
+    window.activeStudentSaveName = student.custom_name || student.user_name;
+
+    const saveBtn = document.getElementById('save-changes-btn') || document.querySelector('button[onclick*="submitExerciseChanges"]');
+    if (saveBtn) {
+        saveBtn.onclick = async function() {
+            return await saveStudentExerciseChanges(student.user_id);
+        };
+        saveBtn.textContent = `Save Changes for ${student.custom_name || student.user_name}`;
     }
-    
-    // Override the global submitExerciseChanges function
-    window.submitExerciseChanges = async function() {
-        console.log('Intercepted save for student:', student.user_id);
-        return await saveStudentExerciseChanges(student.user_id);
-    };
-    
-    // Also override save button onclick if it exists
-    setTimeout(() => {
-        const saveBtn = document.getElementById('save-changes-btn') || document.querySelector('button[onclick*="submitExerciseChanges"]');
-        if (saveBtn) {
-            saveBtn.onclick = async function() {
-                return await saveStudentExerciseChanges(student.user_id);
-            };
-            // Update button text to show it's for student
-            if (saveBtn.textContent && saveBtn.textContent.includes('Save')) {
-                saveBtn.textContent = `Save Changes for ${student.custom_name || student.user_name}`;
-            }
-        }
-    }, 500);
 }
 
 // Restore original save functions when switching back to mentor
 function restoreOriginalSaveFunction() {
-    if (window.originalSubmitExerciseChanges) {
-        window.submitExerciseChanges = window.originalSubmitExerciseChanges;
-    }
     currentSelectedStudentId = null;
+    window.activeStudentSaveUserId = null;
+    window.activeStudentSaveName = null;
     
     // Restore save button
     setTimeout(() => {
         const saveBtn = document.getElementById('save-changes-btn') || document.querySelector('button[onclick*="submitExerciseChanges"]');
         if (saveBtn && saveBtn.textContent && saveBtn.textContent.includes('for ')) {
             saveBtn.textContent = 'Save Changes';
-            if (window.originalSubmitExerciseChanges) {
-                saveBtn.onclick = window.originalSubmitExerciseChanges;
+            if (typeof submitExerciseChanges === 'function') {
+                saveBtn.onclick = submitExerciseChanges;
             }
         }
     }, 100);
@@ -569,18 +604,19 @@ async function saveStudentExerciseChanges(studentUserId) {
 
         const response = await fetch(`${API_BASE}/api/mentor/student-exercises/${studentUserId}`, {
             method: 'PUT',
+            cache: 'no-store',
             headers: {
                 'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
             },
             body: JSON.stringify({ exercises: exercises })
         });
 
-        const result = await response.json();
+        const result = await parseJsonResponseSafe(response);
         
-        if (result.success) {
-            // Clear localStorage exercises
-            localStorage.removeItem('training.editedExercises');
+        if (response.ok && result && result.success) {
             
             // Reset save button state (remove *)
             const saveBtn = document.getElementById('save-changes-btn') || document.querySelector('button[onclick*="submitExerciseChanges"]');
@@ -598,8 +634,8 @@ async function saveStudentExerciseChanges(studentUserId) {
             alert('Student exercises updated successfully!');
             return { success: true };
         } else {
-            alert('Error saving student exercises: ' + (result.message || 'Unknown error'));
-            return { error: result.message || 'Save failed' };
+            alert('Error saving student exercises: ' + ((result && result.message) || `HTTP ${response.status}`));
+            return { error: (result && result.message) || 'Save failed' };
         }
     } catch (error) {
         console.error('Error saving student exercises:', error);

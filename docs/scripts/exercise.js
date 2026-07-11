@@ -1212,13 +1212,22 @@ function displayWorkoutsView(container) {
     
     workoutsDiv.appendChild(workoutsList);
     
-    // Add workout button
+    const actionBar = document.createElement('div');
+    actionBar.style.cssText = 'display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;';
+
+    const importWorkoutBtn = document.createElement('button');
+    importWorkoutBtn.textContent = 'Import Program Copy';
+    importWorkoutBtn.onclick = () => importWorkoutCopy();
+    importWorkoutBtn.style.cssText = 'background: #8a5cff; color: #fff; padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;';
+
     const addWorkoutBtn = document.createElement('button');
     addWorkoutBtn.textContent = '+ Add New Workout';
     addWorkoutBtn.onclick = () => addNewWorkoutNavigation();
-    addWorkoutBtn.style.cssText = 'background: #00a2ff; color: #fff; padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; width: 100%;';
-    
-    workoutsDiv.appendChild(addWorkoutBtn);
+    addWorkoutBtn.style.cssText = 'background: #00a2ff; color: #fff; padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;';
+
+    actionBar.appendChild(importWorkoutBtn);
+    actionBar.appendChild(addWorkoutBtn);
+    workoutsDiv.appendChild(actionBar);
     container.appendChild(workoutsDiv);
 }
 
@@ -1312,6 +1321,12 @@ function displayExercisesView(container) {
     header.textContent = `Editing: ${currentWorkoutKey}`;
     header.style.cssText = 'color: #ff8c00; margin: 0 0 10px 0; font-size: 18px; text-align: center;';
     exercisesDiv.appendChild(header);
+
+    const copyBtn = document.createElement('button');
+    copyBtn.textContent = 'Copy This Program';
+    copyBtn.onclick = copyCurrentWorkoutProgram;
+    copyBtn.style.cssText = 'background: #00ff37; color: #000; border: none; padding: 10px 16px; border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: bold; width: 100%; margin-bottom: 14px;';
+    exercisesDiv.appendChild(copyBtn);
     
     const timeEstimateDiv = document.createElement('div');
     timeEstimateDiv.textContent = `⏱️ Estimated Time: ${formatTimeEstimate(timeEstimate)}`;
@@ -1553,6 +1568,194 @@ function addNewWorkoutNavigation() {
         markAsModified();
         displayNavigationExerciseEditor(); // Refresh the navigation view
     }
+}
+
+function copyCurrentWorkoutProgram() {
+    if (!currentLevelKey || !currentWorkoutKey || !currentExerciseData[currentLevelKey] || !currentExerciseData[currentLevelKey][currentWorkoutKey]) {
+        alert('No workout selected to copy');
+        return;
+    }
+
+    const payload = buildWorkoutCopyPayload(currentLevelKey, currentWorkoutKey);
+    if (!payload) {
+        alert('Unable to build workout JSON for this program');
+        return;
+    }
+    const jsonText = JSON.stringify(payload, null, 2);
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(jsonText).then(() => {
+            alert('Workout copied to clipboard as JSON');
+        }).catch(() => {
+            showJsonInputDialog('Copy this program', 'Clipboard access was blocked. Copy the JSON below manually.', jsonText, true);
+        });
+        return;
+    }
+
+    showJsonInputDialog('Copy this program', 'Clipboard access is not available. Copy the JSON below manually.', jsonText, true);
+}
+
+async function importWorkoutCopy() {
+    if (!currentLevelKey) {
+        alert('Select a level first');
+        return;
+    }
+
+    let clipboardText = '';
+    try {
+        if (navigator.clipboard && navigator.clipboard.readText) {
+            clipboardText = await navigator.clipboard.readText();
+        }
+    } catch (error) {
+        clipboardText = '';
+    }
+
+    const parsed = parseWorkoutCopyPayload(clipboardText);
+    if (parsed) {
+        applyImportedWorkoutCopy(parsed);
+        return;
+    }
+
+    showJsonInputDialog(
+        'Import Program Copy',
+        'Paste the JSON for a workout copy below.',
+        clipboardText || '',
+        false,
+        (value) => {
+            const manualParsed = parseWorkoutCopyPayload(value);
+            if (!manualParsed) {
+                alert('Clipboard content is not valid workout JSON');
+                return false;
+            }
+            applyImportedWorkoutCopy(manualParsed);
+            return true;
+        }
+    );
+}
+
+function buildWorkoutCopyPayload(levelKey, workoutKey) {
+    const levelData = currentExerciseData && currentExerciseData[levelKey];
+    if (!levelData || !levelData[workoutKey]) return null;
+
+    const workoutData = levelData[workoutKey];
+    return {
+        type: 'training-workout-copy',
+        version: 1,
+        levelName: levelKey,
+        workoutName: workoutKey,
+        workoutData: JSON.parse(JSON.stringify(workoutData))
+    };
+}
+
+function parseWorkoutCopyPayload(rawText) {
+    if (!rawText || !rawText.trim()) return null;
+
+    try {
+        const parsed = JSON.parse(rawText);
+
+        if (Array.isArray(parsed) && parsed.length >= 3) {
+            return {
+                workoutName: '',
+                workoutData: parsed.slice(0, 3)
+            };
+        }
+
+        const workoutData = parsed.workoutData || parsed.data || parsed.program || null;
+        if (!Array.isArray(workoutData) || workoutData.length < 3) return null;
+
+        return {
+            workoutName: parsed.workoutName || parsed.name || '',
+            workoutData: workoutData.slice(0, 3)
+        };
+    } catch (error) {
+        return null;
+    }
+}
+
+function applyImportedWorkoutCopy(payload) {
+    if (!currentLevelKey || !payload || !Array.isArray(payload.workoutData)) {
+        alert('Invalid workout data');
+        return;
+    }
+
+    const baseName = (payload.workoutName || '').trim() || 'Imported Workout';
+    const workoutName = getUniqueWorkoutName(baseName, currentLevelKey);
+
+    if (!currentExerciseData[currentLevelKey]) {
+        currentExerciseData[currentLevelKey] = {};
+    }
+
+    currentExerciseData[currentLevelKey][workoutName] = JSON.parse(JSON.stringify(payload.workoutData.slice(0, 3)));
+    currentWorkoutKey = workoutName;
+    currentNavigationLevel = 'exercises';
+    markAsModified();
+    displayNavigationExerciseEditor();
+}
+
+function getUniqueWorkoutName(baseName, levelKey) {
+    const levelData = currentExerciseData[levelKey] || {};
+    if (!levelData[baseName]) return baseName;
+
+    let index = 2;
+    let candidate = `${baseName} Copy`;
+    while (levelData[candidate]) {
+        index += 1;
+        candidate = `${baseName} Copy ${index}`;
+    }
+    return candidate;
+}
+
+function showJsonInputDialog(title, message, initialValue, readonly = false, onConfirm = null) {
+    let overlay = document.getElementById('json-input-overlay');
+    if (overlay) overlay.remove();
+
+    overlay = document.createElement('div');
+    overlay.id = 'json-input-overlay';
+    overlay.style.cssText = 'position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px;';
+
+    const panel = document.createElement('div');
+    panel.style.cssText = 'width: min(900px, 96vw); max-height: 90vh; overflow: auto; background: #111; border: 1px solid #444; border-radius: 12px; padding: 16px; color: #fff; box-shadow: 0 16px 60px rgba(0,0,0,0.5);';
+
+    const titleEl = document.createElement('h4');
+    titleEl.textContent = title;
+    titleEl.style.cssText = 'margin: 0 0 10px 0; color: #00ff37;';
+
+    const messageEl = document.createElement('p');
+    messageEl.textContent = message;
+    messageEl.style.cssText = 'margin: 0 0 12px 0; color: #ccc;';
+
+    const textarea = document.createElement('textarea');
+    textarea.value = initialValue || '';
+    textarea.readOnly = readonly;
+    textarea.style.cssText = 'width: 100%; min-height: 320px; padding: 12px; border-radius: 8px; border: 1px solid #555; background: #000; color: #fff; font-family: Consolas, monospace; font-size: 13px;';
+
+    const actions = document.createElement('div');
+    actions.style.cssText = 'display: flex; gap: 10px; justify-content: flex-end; margin-top: 12px; flex-wrap: wrap;';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.style.cssText = 'background: #666; color: #fff; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer;';
+    cancelBtn.onclick = () => overlay.remove();
+
+    const confirmBtn = document.createElement('button');
+    confirmBtn.textContent = readonly ? 'Close' : 'Import';
+    confirmBtn.style.cssText = 'background: #00ff37; color: #000; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: bold;';
+    confirmBtn.onclick = () => {
+        const handled = typeof onConfirm === 'function' ? onConfirm(textarea.value) : true;
+        if (handled !== false) overlay.remove();
+    };
+
+    actions.appendChild(cancelBtn);
+    actions.appendChild(confirmBtn);
+
+    panel.appendChild(titleEl);
+    panel.appendChild(messageEl);
+    panel.appendChild(textarea);
+    panel.appendChild(actions);
+    overlay.appendChild(panel);
+    document.body.appendChild(overlay);
+
+    setTimeout(() => textarea.focus(), 0);
 }
 
 // Navigation Interface: Edit level name via prompt

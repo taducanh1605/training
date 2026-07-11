@@ -102,33 +102,19 @@ var inputCSV = new Vue({
                 temp = row.split(',');
                 tempName = temp[0].split('+');
                 for (var i = 0, nameI; (nameI = tempName[i]); i++) {
-                    if (nameI.indexOf('?') > -1) {
+                    const transformedToken = transformExerciseToken(nameI, rows.indexOf(row), i);
+                    if (transformedToken) {
                         this.checkHIIT = 1;
-
-                        // [2022-09-10-DA] pour replacer x?[-?-?]
-                        var nbrIn = (nameI.match(/[?]-/g) || []).length;
-                        for (var y = nbrIn; y > 0; y--) {
-                            var repS = nameI.length - nameI.split("").reverse().join("").indexOf('-?'),
-                                repE = nameI.indexOf('?', repS),
-                                rep = parseInt(nameI.slice(repS, repE));
-                            nameI = nameI.substring(0, repS - 1) + ' -' + nameI.substring(repS + nameI.substring(repS).indexOf('?')).replace('?', `<input class="inHIIT" onInput="goal(${rows.indexOf(row)},${i}, this.value, ${y})" type="number" min="0" value="${rep}">`);
-                        }
-
-                        // [2022-09-10-DA] pour replacer [x?]-?-?
-                        var repS = nameI.indexOf(' x') + 2,
-                            repE = nameI.indexOf('?'),
-                            rep = parseInt(nameI.slice(repS, repE));
-                        nameI = nameI.substring(0, repS) + nameI.substring(repS + nameI.substring(repS).indexOf('?')).replace('?', `<input class="inHIIT" onInput="goal(${rows.indexOf(row)},${i}, this.value)" type="number" min="0" value="${rep}">`);
-                        tempName[i] = nameI.replaceAll(' -', '-');
+                        tempName[i] = transformedToken.displayHtml;
                     }
                 }
                 tempNameOnly = [];
                 tempLinkSearch = [];
                 //make set of original name
                 tempName.forEach(name => {
-                    newName = name.split('').reverse().join('').replace('x', '*').split('*')[1].split('').reverse().join('');
-                    tempNameOnly.push(newName);
-                    tempLinkSearch.push('https://www.google.com/search?q=gym+exercise+tutorial+' + newName.split(' ').join('+'));
+                    const tokenInfo = buildExerciseDisplayInfo(name);
+                    tempNameOnly.push(tokenInfo.displayName);
+                    tempLinkSearch.push(tokenInfo.linkSearch);
                 });
                 this.exNameOnly.push(tempNameOnly);
                 this.exLinkSearch.push(tempLinkSearch);
@@ -172,35 +158,21 @@ var inputCSV = new Vue({
             vm.programName = this.select;
             vm.selectLvl = this.selectLvl;
 
-            dataEx[this.selectLvl][this.select][0].forEach(exercise => {
+            dataEx[this.selectLvl][this.select][0].forEach((exercise, exerciseIndex) => {
                 tempName = exercise.split('+');
                 for (var i = 0, nameI; (nameI = tempName[i]); i++) {
-                    if (nameI.indexOf('?') > -1) {
+                    const transformedToken = transformExerciseToken(nameI, exerciseIndex, i);
+                    if (transformedToken) {
                         this.checkHIIT = 1;
-
-                        // [2022-09-10-DA] pour replacer x?[-?-?]
-                        var nbrIn = (nameI.match(/[?]-/g) || []).length;
-                        for (var y = nbrIn; y > 0; y--) {
-                            var repS = nameI.length - nameI.split("").reverse().join("").indexOf('-?'),
-                                repE = nameI.indexOf('?', repS),
-                                rep = parseInt(nameI.slice(repS, repE));
-                            nameI = nameI.substring(0, repS - 1) + ' -' + nameI.substring(repS + nameI.substring(repS).indexOf('?')).replace('?', `<input class="inHIIT" onInput="goal(${dataEx[this.selectLvl][this.select][0].indexOf(exercise)},${i}, this.value, ${y})" type="number" min="0" value="${rep}">`);
-                        }
-
-                        // [2022-09-10-DA] pour replacer [x?]-?-?
-                        var repS = nameI.indexOf(' x') + 2,
-                            repE = nameI.indexOf('?'),
-                            rep = parseInt(nameI.slice(repS, repE));
-                        nameI = nameI.substring(0, repS) + nameI.substring(repS + nameI.substring(repS).indexOf('?')).replace('?', `<input class="inHIIT" onInput="goal(${dataEx[this.selectLvl][this.select][0].indexOf(exercise)},${i}, this.value)" type="number" min="0" value="${rep}">`);
-                        tempName[i] = nameI.replaceAll(' -', '-');
+                        tempName[i] = transformedToken.displayHtml;
                     }
                 }
                 tempNameOnly = [];
                 tempLinkSearch = [];
                 tempName.forEach(name => {
-                    newName = name.split('').reverse().join('').split('x ')[1].split('').reverse().join('');
-                    tempNameOnly.push(newName);
-                    tempLinkSearch.push('https://www.google.com/search?q=gym+exercise+tutorial+' + newName.split(' ').join('+'));
+                    const tokenInfo = buildExerciseDisplayInfo(name);
+                    tempNameOnly.push(tokenInfo.displayName);
+                    tempLinkSearch.push(tokenInfo.linkSearch);
 
                 });
                 this.exNameOnly.push(tempNameOnly);
@@ -280,6 +252,7 @@ var vm = new Vue({
         row2: '',
         row3: '',
         row3_exs: [],
+        currentHiit: null,
         row4: '',
         textbreak: 'doit',
         buttonStart: 'Start',
@@ -303,6 +276,7 @@ var vm = new Vue({
             this.exSumSet = 0;
             this.exOrder = 0;
             this.exRound = 0;
+            this.currentHiit = null;
         },
         handleStart() {
             var that = this;
@@ -588,12 +562,14 @@ function updateContext() {
             if (vm.rest > 0) {
                 vm.row2 = 'ROUND: ' + vm.exRound + '/' + vm.exSet[vm.exOrder];
                 vm.row3_exs = vm.exName[vm.exOrder];
+                vm.currentHiit = null;
                 vm.row4 = 'Break time: ' + vm.rest;
                 vm.textbreak = 'break';
             }
             else {
                 vm.row2 = 'ROUND: ' + vm.exRound + '/' + vm.exSet[vm.exOrder];
                 vm.row3_exs = vm.exName[vm.exOrder];
+                vm.currentHiit = extractHiitConfig(vm.row3_exs);
                 vm.row4 = 'Let\'s do it';
                 vm.textbreak = 'doit';
             }
@@ -613,7 +589,141 @@ function updateContext() {
         (vm.rest > 0) ? vm.buttonStart = 'Pause' :
             (vm.count < vm.exSumSet) ? vm.buttonStart = 'Done' :
                 vm.buttonStart = 'Finish';
+
+    renderHiitFrame(document.getElementById('hiit-frame-row'));
 };
+
+function renderHiitFrame(targetRow) {
+    if (!targetRow) return;
+
+    if (vm.flagStart === 1 && vm.currentHiit && vm.rest === 0 && vm.count > 0) {
+        targetRow.innerHTML = `<iframe title="HIIT timer" src="${vm.currentHiit.url}" style="width: 100%; min-height: 340px; border: 0; border-radius: 12px; background: #000;"></iframe>`;
+        return;
+    }
+
+    targetRow.innerHTML = '';
+}
+
+/*----------------------------------------------------------------------
+HIIT helpers
+----------------------------------------------------------------------*/
+function transformExerciseToken(nameI, exerciseIndex, tokenIndex) {
+    if (!nameI || typeof nameI !== 'string') return null;
+
+    const hiitMatch = nameI.match(/^xhiit-(\d+\??)-(\d+\??)-(\d+\??)$/i);
+    if (hiitMatch) {
+        const values = hiitMatch.slice(1).map(part => parseInt(part.replace('?', ''), 10) || 0);
+        const editable = hiitMatch.some(part => part.includes('?'));
+        const displayHtml = editable
+            ? `xhiit-${buildHiitInputHtml(exerciseIndex, tokenIndex, 1, values[0])}-${buildHiitInputHtml(exerciseIndex, tokenIndex, 2, values[1])}-${buildHiitInputHtml(exerciseIndex, tokenIndex, 3, values[2])}`
+            : `xhiit-${values[0]}-${values[1]}-${values[2]}`;
+
+        return {
+            displayHtml,
+            hiit: {
+                time: values[0],
+                rest: values[1],
+                set: values[2],
+                editable: editable,
+                url: `https://taducanh1605.github.io/cardio/?time=${values[0]}&rest=${values[1]}&set=${values[2]}&warmup=0`
+            }
+        };
+    }
+
+    if (nameI.indexOf('?') > -1) {
+        let transformed = nameI;
+        let transformedAny = false;
+
+        // keep the legacy x?/x?-?-? flow editable
+        const nbrIn = (transformed.match(/[?]-/g) || []).length;
+        for (var y = nbrIn; y > 0; y--) {
+            var repS = transformed.length - transformed.split("").reverse().join("").indexOf('-?'),
+                repE = transformed.indexOf('?', repS),
+                rep = parseInt(transformed.slice(repS, repE));
+            if (!Number.isNaN(rep)) {
+                transformedAny = true;
+                transformed = transformed.substring(0, repS - 1) + ' -' + transformed.substring(repS + transformed.substring(repS).indexOf('?')).replace('?', buildHiitInputHtml(exerciseIndex, tokenIndex, y, rep));
+            }
+        }
+
+        var repS2 = transformed.indexOf(' x') + 2,
+            repE2 = transformed.indexOf('?'),
+            rep2 = parseInt(transformed.slice(repS2, repE2));
+        if (!Number.isNaN(rep2)) {
+            transformedAny = true;
+            transformed = transformed.substring(0, repS2) + transformed.substring(repS2 + transformed.substring(repS2).indexOf('?')).replace('?', buildHiitInputHtml(exerciseIndex, tokenIndex, 1, rep2));
+        }
+
+        if (transformedAny) {
+            return {
+                displayHtml: transformed.replaceAll(' -', '-'),
+                hiit: null
+            };
+        }
+    }
+
+    return null;
+}
+
+function buildHiitInputHtml(exerciseIndex, tokenIndex, inputOrder, value) {
+    return `<input class="inHIIT" data-hiit="1" onInput="goal(${exerciseIndex},${tokenIndex}, this.value, ${inputOrder})" type="number" min="0" value="${value}">`;
+}
+
+function buildExerciseDisplayInfo(name) {
+    const rawText = stripHtml(name || '').trim();
+    const hiitMatch = rawText.match(/^xhiit-(\d+)-(\d+)-(\d+)$/i);
+
+    if (hiitMatch) {
+        const time = parseInt(hiitMatch[1], 10) || 0;
+        const rest = parseInt(hiitMatch[2], 10) || 0;
+        const set = parseInt(hiitMatch[3], 10) || 0;
+        return {
+            displayName: `xhiit-${time}-${rest}-${set}`,
+            linkSearch: `https://taducanh1605.github.io/cardio/?time=${time}&rest=${rest}&set=${set}&warmup=0`,
+            hiit: { time, rest, set, editable: false }
+        };
+    }
+
+    return {
+        displayName: extractPlainExerciseName(rawText),
+        linkSearch: 'https://www.google.com/search?q=gym+exercise+tutorial+' + extractPlainExerciseName(rawText).split(' ').join('+'),
+        hiit: null
+    };
+}
+
+function stripHtml(value) {
+    return (value || '').replace(/<[^>]*>/g, '');
+}
+
+function extractPlainExerciseName(name) {
+    if (!name) return '';
+    if (name.indexOf(' x') > -1) {
+        return name.split('').reverse().join('').replace('x', '*').split('*')[1].split('').reverse().join('');
+    }
+    return name.trim();
+}
+
+function extractHiitConfig(exerciseTokens) {
+    if (!Array.isArray(exerciseTokens)) return null;
+
+    for (const token of exerciseTokens) {
+        const rawText = stripHtml(token);
+        const match = rawText.match(/^xhiit-(\d+)-(\d+)-(\d+)$/i);
+        if (match) {
+            const time = parseInt(match[1], 10) || 0;
+            const rest = parseInt(match[2], 10) || 0;
+            const set = parseInt(match[3], 10) || 0;
+            return {
+                time,
+                rest,
+                set,
+                url: `https://taducanh1605.github.io/cardio/?time=${time}&rest=${rest}&set=${set}&warmup=0`
+            };
+        }
+    }
+
+    return null;
+}
 
 
 /*----------------------------------------------------------------------

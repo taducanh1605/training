@@ -253,6 +253,10 @@ var vm = new Vue({
         row3: '',
         row3_exs: [],
         currentHiit: null,
+        hiitFrameState: {
+            active: false,
+            url: ''
+        },
         row4: '',
         textbreak: 'doit',
         buttonStart: 'Start',
@@ -277,6 +281,10 @@ var vm = new Vue({
             this.exOrder = 0;
             this.exRound = 0;
             this.currentHiit = null;
+            this.hiitFrameState = {
+                active: false,
+                url: ''
+            };
         },
         handleStart() {
             var that = this;
@@ -596,12 +604,39 @@ function updateContext() {
 function renderHiitFrame(targetRow) {
     if (!targetRow) return;
 
-    if (vm.flagStart === 1 && vm.currentHiit && vm.rest === 0 && vm.count > 0) {
-        targetRow.innerHTML = `<iframe title="HIIT timer" src="${vm.currentHiit.url}" style="width: 100%; min-height: 340px; border: 0; border-radius: 12px; background: #000;"></iframe>`;
+    const shouldShowHiit = vm.flagStart === 1 && vm.currentHiit && vm.rest === 0 && vm.count > 0;
+
+    if (!shouldShowHiit) {
+        if (vm.hiitFrameState.active) {
+            targetRow.replaceChildren();
+            vm.hiitFrameState.active = false;
+            vm.hiitFrameState.url = '';
+        }
         return;
     }
 
-    targetRow.innerHTML = '';
+    if (vm.hiitFrameState.active && vm.hiitFrameState.url === vm.currentHiit.url) {
+        return;
+    }
+
+    let iframe = targetRow.querySelector('iframe');
+    if (!iframe) {
+        iframe = document.createElement('iframe');
+        iframe.title = 'HIIT timer';
+        iframe.style.width = '100%';
+        iframe.style.minHeight = '340px';
+        iframe.style.border = '0';
+        iframe.style.borderRadius = '12px';
+        iframe.style.background = '#000';
+        targetRow.replaceChildren(iframe);
+    }
+
+    if (iframe.src !== vm.currentHiit.url) {
+        iframe.src = vm.currentHiit.url;
+    }
+
+    vm.hiitFrameState.active = true;
+    vm.hiitFrameState.url = vm.currentHiit.url;
 }
 
 /*----------------------------------------------------------------------

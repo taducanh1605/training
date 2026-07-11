@@ -1,8 +1,9 @@
-﻿// Exercise Management Functions
+// Exercise Management Functions
 // Dedicated file for managing exercise editing and customization
 
 // const API_BASE = 'https://pika-proxy.taducanhbkhn.workers.dev/port/32445';
 const EXERCISE_STORAGE_KEY = 'training.editedExercises';
+const EXERCISE_SYNC_PENDING_KEY = 'training.editedExercises.pendingSync';
 
 // Navigation state
 let currentExerciseData = {};
@@ -239,6 +240,18 @@ function getLocalStorageExercises() {
     }
 }
 
+function hasPendingExerciseSync() {
+    return localStorage.getItem(EXERCISE_SYNC_PENDING_KEY) === '1';
+}
+
+function markPendingExerciseSync() {
+    localStorage.setItem(EXERCISE_SYNC_PENDING_KEY, '1');
+}
+
+function clearPendingExerciseSync() {
+    localStorage.removeItem(EXERCISE_SYNC_PENDING_KEY);
+}
+
 // Save exercises to localStorage
 function saveToLocalStorage(exercises) {
     try {
@@ -254,6 +267,7 @@ function saveToLocalStorage(exercises) {
 // Clear localStorage exercises
 function clearLocalStorageExercises() {
     localStorage.removeItem(EXERCISE_STORAGE_KEY);
+    clearPendingExerciseSync();
     console.log('localStorage exercises cleared');
 }
 
@@ -938,6 +952,13 @@ async function checkAndRetryLocalStorageExercises() {
         const pendingExercises = getLocalStorageExercises();
         
         if (pendingExercises) {
+            inputCSV.dataUsers = pendingExercises;
+            inputCSV.listProgUsers = json2ListProg(pendingExercises);
+
+            if (!hasPendingExerciseSync()) {
+                return;
+            }
+
             console.log('Found pending exercises in localStorage, attempting to sync with server...');
             
             try {
@@ -945,22 +966,14 @@ async function checkAndRetryLocalStorageExercises() {
                 
                 if (result.success) {
                     console.log('Successfully synced localStorage exercises to server');
-                    clearLocalStorageExercises();
-                    
-                    // Update local data
-                    inputCSV.dataUsers = pendingExercises;
-                    inputCSV.listProgUsers = json2ListProg(pendingExercises);
+                    clearPendingExerciseSync();
                 } else {
                     console.log('Server sync failed, keeping localStorage data:', result.message);
-                    // Use localStorage data locally
-                    inputCSV.dataUsers = pendingExercises;
-                    inputCSV.listProgUsers = json2ListProg(pendingExercises);
+                    markPendingExerciseSync();
                 }
             } catch (error) {
                 console.log('Server sync failed, using localStorage data:', error.message);
-                // Use localStorage data locally
-                inputCSV.dataUsers = pendingExercises;
-                inputCSV.listProgUsers = json2ListProg(pendingExercises);
+                markPendingExerciseSync();
             }
         }
     } catch (error) {
@@ -1949,12 +1962,14 @@ async function submitExerciseChanges() {
         
         // Save to localStorage first
         saveToLocalStorage(updatedExercises);
+        markPendingExerciseSync();
         
         try {
             // Try to update server
             const result = await updateUserExercises({ exercises: updatedExercises });
             
             if (result.success) {
+                clearPendingExerciseSync();
                 // Update inputCSV.dataUsers with new data
                 inputCSV.dataUsers = updatedExercises;
                 inputCSV.listProgUsers = json2ListProg(updatedExercises);
@@ -1968,11 +1983,13 @@ async function submitExerciseChanges() {
                     window.location.reload(true);
                 }, 500);
             } else {
+                markPendingExerciseSync();
                 alert('Server update failed, changes saved locally: ' + (result.message || 'Unknown error'));
                 console.log('Changes kept in localStorage for retry');
             }
         } catch (serverError) {
             console.error('Server update failed:', serverError);
+            markPendingExerciseSync();
             alert('Server update failed, changes saved locally. Will retry on next startup.');
             
             // Update local data immediately

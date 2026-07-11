@@ -376,6 +376,11 @@ function loadMentorSelection() {
 
 // Select user for exercise editing
 async function selectUserForExerciseEdit(userId) {
+    // Always reset editing navigation to top-level before switching user context.
+    if (typeof navigateToLevels === 'function') {
+        navigateToLevels();
+    }
+
     if (userId === 'self') {
         currentSelectedUser = {
             user_id: 'self',

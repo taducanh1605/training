@@ -214,7 +214,7 @@ async function updateUserExercises(exerciseData) {
 }
 
 // Show exercise editor form
-function showExerciseEditor() {
+async function showExerciseEditor() {
     // Hide row3 and row4 content
     const row3Elements = document.querySelectorAll('.row3, .row4-regular, .row4-break');
     const row4Elements = document.querySelectorAll('[class*="row4"]');
@@ -226,7 +226,23 @@ function showExerciseEditor() {
     const exerciseEditor = document.getElementById('exercise-editor-container');
     if (exerciseEditor) {
         exerciseEditor.style.display = 'block';
-        loadCurrentExercisesForEdit(inputCSV.dataUsers, 'ProgUsers');
+
+        // Always prefer per-user server data to avoid stale merged state.
+        if (typeof getUserExercises === 'function') {
+            try {
+                const selfResult = await getUserExercises();
+                if (selfResult && selfResult.success && selfResult.exercises) {
+                    loadCurrentExercisesForEdit(selfResult.exercises, 'self-server');
+                } else {
+                    loadCurrentExercisesForEdit(inputCSV.dataUsers, 'fallback-merged');
+                }
+            } catch (error) {
+                console.warn('Failed to load self exercises from server, using fallback data:', error.message);
+                loadCurrentExercisesForEdit(inputCSV.dataUsers, 'fallback-merged');
+            }
+        } else {
+            loadCurrentExercisesForEdit(inputCSV.dataUsers, 'fallback-merged');
+        }
         
         // Auto scroll to exercise editor
         setTimeout(() => {
@@ -264,7 +280,7 @@ function hideExerciseEditor() {
 // Do not read from localStorage here to avoid showing unsynced/stale data as if server saved it.
 function loadCurrentExercisesForEdit(sourceExercises = null, sourceLabel = 'provided source') {
     try {
-        const exerciseData = sourceExercises || inputCSV.dataUsers;
+        const exerciseData = JSON.parse(JSON.stringify(sourceExercises || inputCSV.dataUsers || {}));
         console.log(`Loading exercises from ${sourceLabel}:`, exerciseData);
         
         if (exerciseData && Object.keys(exerciseData).length > 0) {
@@ -2189,6 +2205,72 @@ function setupExerciseDragAndDrop(row, dragHandle) {
             return false;
         });
     }
+
+    // Touch/pointer fallback for mobile devices where HTML5 drag events are unreliable.
+    let touchDragActive = false;
+    let touchTargetRow = null;
+
+    const clearTouchIndicators = () => {
+        document.querySelectorAll('.drag-over-touch').forEach(el => el.classList.remove('drag-over-touch'));
+    };
+
+    const moveRowRelativeToTarget = (movingRow, targetRow) => {
+        if (!movingRow || !targetRow || movingRow === targetRow) return;
+        const targetRect = targetRow.getBoundingClientRect();
+        const movingRect = movingRow.getBoundingClientRect();
+        const movingIsAbove = movingRect.top < targetRect.top;
+
+        if (movingIsAbove) {
+            targetRow.parentNode.insertBefore(movingRow, targetRow.nextSibling);
+        } else {
+            targetRow.parentNode.insertBefore(movingRow, targetRow);
+        }
+
+        markAsModified();
+        showDragDropFeedback();
+    };
+
+    dragHandle.addEventListener('pointerdown', (e) => {
+        if (e.pointerType !== 'touch') return;
+        touchDragActive = true;
+        touchTargetRow = null;
+        row.style.opacity = '0.7';
+        dragHandle.setPointerCapture(e.pointerId);
+        e.preventDefault();
+    });
+
+    dragHandle.addEventListener('pointermove', (e) => {
+        if (!touchDragActive || e.pointerType !== 'touch') return;
+
+        const elementUnder = document.elementFromPoint(e.clientX, e.clientY);
+        const candidate = elementUnder ? elementUnder.closest('.detailed-exercise-row') : null;
+
+        clearTouchIndicators();
+        if (candidate && candidate !== row) {
+            touchTargetRow = candidate;
+            candidate.classList.add('drag-over-touch');
+        }
+    });
+
+    const endTouchReorder = (e) => {
+        if (!touchDragActive) return;
+        touchDragActive = false;
+        row.style.opacity = '';
+        clearTouchIndicators();
+        moveRowRelativeToTarget(row, touchTargetRow);
+        touchTargetRow = null;
+
+        try {
+            if (e && typeof e.pointerId !== 'undefined') {
+                dragHandle.releasePointerCapture(e.pointerId);
+            }
+        } catch (_) {
+            // Ignore capture release errors.
+        }
+    };
+
+    dragHandle.addEventListener('pointerup', endTouchReorder);
+    dragHandle.addEventListener('pointercancel', endTouchReorder);
 }
 
 // Show feedback when exercises are reordered

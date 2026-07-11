@@ -624,7 +624,7 @@ function renderHiitFrame(targetRow) {
         iframe = document.createElement('iframe');
         iframe.title = 'HIIT timer';
         iframe.style.width = '100%';
-        iframe.style.minHeight = '340px';
+        iframe.style.minHeight = '390px';
         iframe.style.border = '0';
         iframe.style.borderRadius = '12px';
         iframe.style.background = '#000';
@@ -647,11 +647,12 @@ function transformExerciseToken(nameI, exerciseIndex, tokenIndex) {
 
     const hiitMatch = nameI.match(/xhiit-(\d+\??)-(\d+\??)-(\d+\??).$/i);
     if (hiitMatch) {
+        let nameEx = nameI.replace(/xhiit-(\d+\??)-(\d+\??)-(\d+\??).$/i, '').trim();
         const values = hiitMatch.slice(1).map(part => parseInt(part.replace('?', ''), 10) || 0);
         const editable = hiitMatch.some(part => part.includes('?'));
         const displayHtml = editable
-            ? `xhiit-${buildHiitInputHtml(exerciseIndex, tokenIndex, 1, values[0])}-${buildHiitInputHtml(exerciseIndex, tokenIndex, 2, values[1])}-${buildHiitInputHtml(exerciseIndex, tokenIndex, 3, values[2])}`
-            : `xhiit-${values[0]}-${values[1]}-${values[2]}`;
+            ? `${nameI} xhiit-${buildHiitInputHtml(exerciseIndex, tokenIndex, 1, values[0])}-${buildHiitInputHtml(exerciseIndex, tokenIndex, 2, values[1])}-${buildHiitInputHtml(exerciseIndex, tokenIndex, 3, values[2])}`
+            : `${nameI} xhiit-${values[0]}-${values[1]}-${values[2]}`;
 
         return {
             displayHtml,
@@ -660,7 +661,7 @@ function transformExerciseToken(nameI, exerciseIndex, tokenIndex) {
                 rest: values[1],
                 set: values[2],
                 editable: editable,
-                url: `https://taducanh1605.github.io/cardio/?time=${values[0]}&rest=${values[1]}&set=${values[2]}&warmup=0&autostart=0`
+                url: `https://taducanh1605.github.io/cardio/?time=${values[0]}&rest=${values[1]}&set=${values[2]}&warmup=0&autostart=1`
             }
         };
     }
@@ -714,7 +715,7 @@ function buildExerciseDisplayInfo(name) {
         const set = parseInt(hiitMatch[3], 10) || 0;
         return {
             displayName: name,
-            linkSearch: `https://taducanh1605.github.io/cardio/?time=${time}&rest=${rest}&set=${set}&warmup=0&autostart=0`,
+            linkSearch: `https://taducanh1605.github.io/cardio/?time=${time}&rest=${rest}&set=${set}&warmup=0&autostart=1`,
             hiit: { time, rest, set, editable: false }
         };
     }
@@ -732,8 +733,9 @@ function stripHtml(value) {
 
 function extractPlainExerciseName(name) {
     if (!name) return '';
-    if (name.indexOf(' x') > -1) {
-        return name.split('').reverse().join('').replace('x', '*').split('*')[1].split('').reverse().join('');
+    name = name.replace("xMax", "x");
+    if (name.lasIndexOf(' x') > -1) {
+        name = name.substring(0, name.lastIndexOf(' x'));
     }
     return name.trim();
 }
@@ -752,7 +754,7 @@ function extractHiitConfig(exerciseTokens) {
                 time,
                 rest,
                 set,
-                url: `https://taducanh1605.github.io/cardio/?time=${time}&rest=${rest}&set=${set}&warmup=0&autostart=0`
+                url: `https://taducanh1605.github.io/cardio/?time=${time}&rest=${rest}&set=${set}&warmup=0&autostart=1`
             };
         }
     }

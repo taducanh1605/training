@@ -102,6 +102,7 @@ async function callExerciseAPI(endpoint, method = 'GET', data = null) {
     
     const options = {
         method: method,
+        cache: 'no-store',
         headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -2023,7 +2024,7 @@ async function submitExerciseChanges() {
                 inputCSV.listProgUsers = json2ListProg(updatedExercises);
                 currentExerciseData = JSON.parse(JSON.stringify(updatedExercises));
                 
-                hideExerciseEditor();
+                // hideExerciseEditor();
                 alert('Exercise plan updated successfully!');
                 
                 // Refresh to show changes

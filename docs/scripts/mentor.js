@@ -112,14 +112,12 @@ async function loadStudentsList() {
     }
 
     try {
-        const response = await fetch(`${API_BASE}/api/mentor/students`, {
+        const response = await fetch(`${API_BASE}/api/mentor/students?_=${Date.now()}`, {
             method: 'GET',
             cache: 'no-store',
             headers: {
                 'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-                'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache'
+                'Content-Type': 'application/json'
             }
         });
 
@@ -457,9 +455,7 @@ async function loadStudentExercisesForEdit(student) {
             cache: 'no-store',
             headers: {
                 'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-                'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache'
+                'Content-Type': 'application/json'
             }
         });
 
@@ -607,9 +603,7 @@ async function saveStudentExerciseChanges(studentUserId) {
             cache: 'no-store',
             headers: {
                 'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-                'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache'
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({ exercises: exercises })
         });

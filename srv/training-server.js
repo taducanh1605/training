@@ -35,7 +35,7 @@ app.use(cors({
   origin: true, // Cho phép tất cả origin (có thể config cụ thể sau)
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization', 'Cookie']
+  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization', 'Cookie', 'Cache-Control', 'Pragma']
 }));
 
 // Middleware

@@ -9,6 +9,42 @@ let currentExerciseData = {};
 let currentNavigationLevel = 'levels'; // 'levels' -> 'workouts' -> 'exercises'
 let currentLevelKey = null;
 let currentWorkoutKey = null;
+const RESERVED_OBJECT_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
+
+function normalizeEntityName(name) {
+    if (typeof name !== 'string') return '';
+    return name.trim().replace(/\s+/g, ' ');
+}
+
+function isSafeEntityKey(name) {
+    return !!name && !RESERVED_OBJECT_KEYS.has(name);
+}
+
+function getValidatedEntityName(rawName, label) {
+    const normalized = normalizeEntityName(rawName);
+    if (!normalized) {
+        alert(`${label} name cannot be empty`);
+        return null;
+    }
+    if (!isSafeEntityKey(normalized)) {
+        alert(`${label} name is not allowed`);
+        return null;
+    }
+    return normalized;
+}
+
+function isWorkoutDataShape(value) {
+    return Array.isArray(value) && value.length >= 3 &&
+        Array.isArray(value[0]) && Array.isArray(value[1]) && Array.isArray(value[2]);
+}
+
+function createBreadcrumbLink(text, color, onClick) {
+    const link = document.createElement('span');
+    link.textContent = text;
+    link.style.cssText = `color: ${color}; cursor: pointer;`;
+    link.addEventListener('click', onClick);
+    return link;
+}
 
 // Calculate workout time estimate
 function calculateWorkoutTimeEstimate(workoutData) {
@@ -763,59 +799,12 @@ function updateExerciseIndices(category, workoutName) {
     });
 }
 
-// Submit exercise changes
-async function submitExerciseChanges() {
-    try {
-        // Collect data from advanced editor
-        const updatedExercises = collectExerciseData();
-        
-        if (!updatedExercises || Object.keys(updatedExercises).length === 0) {
-            alert('No exercise data to save');
-            return;
-        }
-        
-        console.log('Submitting exercise changes:', updatedExercises);
-        
-        // Save to localStorage first
-        saveToLocalStorage(updatedExercises);
-        
-        try {
-            // Try to update server
-            const result = await updateUserExercises({ exercises: updatedExercises });
-            
-            if (result.success) {
-                // Server update successful, clear localStorage
-                clearLocalStorageExercises();
-                
-                // Update inputCSV.dataUsers with new data
-                inputCSV.dataUsers = updatedExercises;
-                inputCSV.listProgUsers = json2ListProg(updatedExercises);
-                
-                hideExerciseEditor();
-                alert('Exercise plan updated successfully!');
-                
-                // Refresh to show changes
-                setTimeout(() => {
-                    window.location.reload(true);
-                }, 500);
-            } else {
-                alert('Server update failed, changes saved locally: ' + (result.message || 'Unknown error'));
-                console.log('Changes kept in localStorage for retry');
-            }
-        } catch (serverError) {
-            console.error('Server update failed:', serverError);
-            alert('Server update failed, changes saved locally. Will retry on next startup.');
-            
-            // Update local data immediately
-            inputCSV.dataUsers = updatedExercises;
-            inputCSV.listProgUsers = json2ListProg(updatedExercises);
-            
-            hideExerciseEditor();
-        }
-    } catch (error) {
-        console.error('Error submitting exercise changes:', error);
-        alert('Error updating exercises: ' + error.message);
-    }
+// Submit exercise changes (legacy advanced editor path)
+async function submitExerciseChangesLegacy() {
+    // Deprecated legacy submit path kept only for backward compatibility.
+    // The active navigation editor uses the submitExerciseChanges implementation
+    // near the bottom of this file.
+    return;
 }
 
 // Collect exercise data from the advanced editor
@@ -1071,18 +1060,24 @@ function createBreadcrumb(container) {
     
     const breadcrumbText = document.createElement('div');
     breadcrumbText.style.cssText = 'color: #ccc; font-size: 14px;';
-    
-    let breadcrumbHTML = '<span style="color: #00ff37; cursor: pointer;" onclick="navigateToLevels()">📁 Levels</span>';
-    
+
+    breadcrumbText.appendChild(createBreadcrumbLink('📁 Levels', '#00ff37', navigateToLevels));
+
     if (currentLevelKey) {
-        breadcrumbHTML += ` > <span style="color: #00a2ff; cursor: pointer;" onclick="navigateToWorkouts('${currentLevelKey}')">${currentLevelKey}</span>`;
+        const divider = document.createTextNode(' > ');
+        breadcrumbText.appendChild(divider);
+        breadcrumbText.appendChild(createBreadcrumbLink(currentLevelKey, '#00a2ff', () => navigateToWorkouts(currentLevelKey)));
     }
-    
+
     if (currentWorkoutKey) {
-        breadcrumbHTML += ` > <span style="color: #fff;">${currentWorkoutKey}</span>`;
+        const divider = document.createTextNode(' > ');
+        const current = document.createElement('span');
+        current.textContent = currentWorkoutKey;
+        current.style.color = '#fff';
+        breadcrumbText.appendChild(divider);
+        breadcrumbText.appendChild(current);
     }
-    
-    breadcrumbText.innerHTML = breadcrumbHTML;
+
     breadcrumbDiv.appendChild(breadcrumbText);
     container.appendChild(breadcrumbDiv);
 }
@@ -1322,6 +1317,25 @@ function displayExercisesView(container) {
     header.style.cssText = 'color: #ff8c00; margin: 0 0 10px 0; font-size: 18px; text-align: center;';
     exercisesDiv.appendChild(header);
 
+    const renameBar = document.createElement('div');
+    renameBar.style.cssText = 'display: flex; gap: 10px; align-items: center; margin-bottom: 14px; flex-wrap: wrap;';
+
+    const workoutNameInput = document.createElement('input');
+    workoutNameInput.type = 'text';
+    workoutNameInput.value = currentWorkoutKey;
+    workoutNameInput.placeholder = 'Workout name';
+    workoutNameInput.style.cssText = 'flex: 1; min-width: 220px; padding: 10px 12px; border-radius: 6px; border: 1px solid #555; background: #000; color: #fff; font-weight: bold;';
+    workoutNameInput.onchange = () => renameWorkoutFromExerciseEditor(workoutNameInput.value);
+
+    const renameBtn = document.createElement('button');
+    renameBtn.textContent = 'Rename Workout';
+    renameBtn.onclick = () => renameWorkoutFromExerciseEditor(workoutNameInput.value);
+    renameBtn.style.cssText = 'background: #8a5cff; color: #fff; border: none; padding: 10px 14px; border-radius: 6px; cursor: pointer; font-weight: bold;';
+
+    renameBar.appendChild(workoutNameInput);
+    renameBar.appendChild(renameBtn);
+    exercisesDiv.appendChild(renameBar);
+
     const copyBtn = document.createElement('button');
     copyBtn.textContent = 'Copy This Program';
     copyBtn.onclick = copyCurrentWorkoutProgram;
@@ -1549,9 +1563,14 @@ function deleteExerciseFromWorkout(row) {
 // Navigation Interface: Add new level to data structure (prompt-based)
 function addNewLevelNavigation() {
     const newLevelName = prompt('Enter new level name:', 'New Level');
-    if (newLevelName && newLevelName.trim()) {
+    const levelName = getValidatedEntityName(newLevelName, 'Level');
+    if (levelName) {
         // Add new level to current exercise data with default workout
-        currentExerciseData[newLevelName.trim()] = {
+        if (currentExerciseData[levelName]) {
+            alert('This level already exists');
+            return;
+        }
+        currentExerciseData[levelName] = {
             'New Workout': [['New Exercise x10'], [3], [60]]
         };
         markAsModified();
@@ -1562,12 +1581,41 @@ function addNewLevelNavigation() {
 // Navigation Interface: Add new workout to current level (prompt-based)
 function addNewWorkoutNavigation() {
     const newWorkoutName = prompt('Enter new workout name:', 'New Workout');
-    if (newWorkoutName && newWorkoutName.trim() && currentLevelKey) {
+    const workoutName = getValidatedEntityName(newWorkoutName, 'Workout');
+    if (workoutName && currentLevelKey) {
         // Add workout to current level with default exercise, rounds, and rest time
-        currentExerciseData[currentLevelKey][newWorkoutName.trim()] = [['New Exercise x10'], [3], [60]];
+        if (currentExerciseData[currentLevelKey][workoutName]) {
+            alert('This workout already exists in the current level');
+            return;
+        }
+        currentExerciseData[currentLevelKey][workoutName] = [['New Exercise x10'], [3], [60]];
         markAsModified();
         displayNavigationExerciseEditor(); // Refresh the navigation view
     }
+}
+
+function renameWorkoutFromExerciseEditor(newName) {
+    if (!currentLevelKey || !currentWorkoutKey || !currentExerciseData[currentLevelKey]) {
+        return;
+    }
+
+    const trimmedName = getValidatedEntityName(newName, 'Workout');
+    if (!trimmedName) return;
+
+    if (trimmedName === currentWorkoutKey) {
+        return;
+    }
+
+    if (currentExerciseData[currentLevelKey][trimmedName]) {
+        alert('A workout with this name already exists in the current level');
+        return;
+    }
+
+    currentExerciseData[currentLevelKey][trimmedName] = currentExerciseData[currentLevelKey][currentWorkoutKey];
+    delete currentExerciseData[currentLevelKey][currentWorkoutKey];
+    currentWorkoutKey = trimmedName;
+    markAsModified();
+    displayNavigationExerciseEditor();
 }
 
 function copyCurrentWorkoutProgram() {
@@ -1654,17 +1702,23 @@ function parseWorkoutCopyPayload(rawText) {
         const parsed = JSON.parse(rawText);
 
         if (Array.isArray(parsed) && parsed.length >= 3) {
+            if (!isWorkoutDataShape(parsed)) return null;
             return {
                 workoutName: '',
                 workoutData: parsed.slice(0, 3)
             };
         }
 
+        if (!parsed || typeof parsed !== 'object') return null;
+
         const workoutData = parsed.workoutData || parsed.data || parsed.program || null;
-        if (!Array.isArray(workoutData) || workoutData.length < 3) return null;
+        if (!isWorkoutDataShape(workoutData)) return null;
+
+        const incomingName = normalizeEntityName(parsed.workoutName || parsed.name || '');
+        if (incomingName && !isSafeEntityKey(incomingName)) return null;
 
         return {
-            workoutName: parsed.workoutName || parsed.name || '',
+            workoutName: incomingName,
             workoutData: workoutData.slice(0, 3)
         };
     } catch (error) {
@@ -1673,7 +1727,7 @@ function parseWorkoutCopyPayload(rawText) {
 }
 
 function applyImportedWorkoutCopy(payload) {
-    if (!currentLevelKey || !payload || !Array.isArray(payload.workoutData)) {
+    if (!currentLevelKey || !payload || !isWorkoutDataShape(payload.workoutData)) {
         alert('Invalid workout data');
         return;
     }
@@ -1761,13 +1815,18 @@ function showJsonInputDialog(title, message, initialValue, readonly = false, onC
 // Navigation Interface: Edit level name via prompt
 function editLevelName(oldName) {
     const newName = prompt('Enter new level name:', oldName);
-    if (newName && newName.trim() && newName !== oldName) {
+    const levelName = getValidatedEntityName(newName, 'Level');
+    if (levelName && levelName !== oldName) {
+        if (currentExerciseData[levelName]) {
+            alert('This level name already exists');
+            return;
+        }
         // Rename level in data structure
-        currentExerciseData[newName.trim()] = currentExerciseData[oldName];
+        currentExerciseData[levelName] = currentExerciseData[oldName];
         delete currentExerciseData[oldName];
         // Update current navigation state if we're editing the active level
         if (currentLevelKey === oldName) {
-            currentLevelKey = newName.trim();
+            currentLevelKey = levelName;
         }
         markAsModified();
         displayNavigationExerciseEditor(); // Refresh view to show changes
@@ -1777,13 +1836,18 @@ function editLevelName(oldName) {
 // Navigation Interface: Edit workout name via prompt
 function editWorkoutName(oldName) {
     const newName = prompt('Enter new workout name:', oldName);
-    if (newName && newName.trim() && newName !== oldName && currentLevelKey) {
+    const workoutName = getValidatedEntityName(newName, 'Workout');
+    if (workoutName && workoutName !== oldName && currentLevelKey) {
+        if (currentExerciseData[currentLevelKey][workoutName]) {
+            alert('This workout name already exists in the current level');
+            return;
+        }
         // Rename workout in current level
-        currentExerciseData[currentLevelKey][newName.trim()] = currentExerciseData[currentLevelKey][oldName];
+        currentExerciseData[currentLevelKey][workoutName] = currentExerciseData[currentLevelKey][oldName];
         delete currentExerciseData[currentLevelKey][oldName];
         // Update current navigation state if we're editing the active workout
         if (currentWorkoutKey === oldName) {
-            currentWorkoutKey = newName.trim();
+            currentWorkoutKey = workoutName;
         }
         markAsModified();
         displayNavigationExerciseEditor(); // Refresh view to show changes
@@ -1891,12 +1955,10 @@ async function submitExerciseChanges() {
             const result = await updateUserExercises({ exercises: updatedExercises });
             
             if (result.success) {
-                // Server update successful, clear localStorage
-                clearLocalStorageExercises();
-                
                 // Update inputCSV.dataUsers with new data
                 inputCSV.dataUsers = updatedExercises;
                 inputCSV.listProgUsers = json2ListProg(updatedExercises);
+                currentExerciseData = JSON.parse(JSON.stringify(updatedExercises));
                 
                 hideExerciseEditor();
                 alert('Exercise plan updated successfully!');

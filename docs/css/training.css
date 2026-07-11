@@ -465,6 +465,7 @@ BUTTON
     color: #ccc;
     font-size: 14px;
     user-select: none;
+    touch-action: none;
     transition: all 0.2s ease;
 }
 
@@ -492,6 +493,13 @@ BUTTON
     background: rgba(0, 255, 55, 0.1);
     transform: translateY(-2px);
     transition: all 0.2s ease;
+}
+
+.exercise-row.drag-over-touch,
+.detailed-exercise-row.drag-over-touch {
+    border: 2px dashed #00ff37;
+    background: rgba(0, 255, 55, 0.14);
+    transform: translateY(-1px);
 }
 
 .exercises-container.drag-active,

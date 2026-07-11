@@ -117,6 +117,28 @@ class TrainingApp {
     this.db.run('CREATE INDEX IF NOT EXISTS idx_histo_user_id ON histo(user_id)');
     this.db.run('CREATE INDEX IF NOT EXISTS idx_histo_date ON histo(workout_date)');
     this.db.run('CREATE INDEX IF NOT EXISTS idx_progs_user_id ON progs(user_id)');
+
+    // Keep only the newest program row per user before enforcing uniqueness.
+    this.db.run(`
+      DELETE FROM progs
+      WHERE id NOT IN (
+        SELECT keep_id FROM (
+          SELECT p.id AS keep_id
+          FROM progs p
+          WHERE p.id = (
+            SELECT p2.id
+            FROM progs p2
+            WHERE p2.user_id = p.user_id
+            ORDER BY p2.updated_at DESC, p2.id DESC
+            LIMIT 1
+          )
+        )
+      )
+    `);
+
+    // Enforce one program row per user to prevent stale read/write inconsistencies.
+    this.db.run('CREATE UNIQUE INDEX IF NOT EXISTS idx_progs_user_id_unique ON progs(user_id)');
+
     this.db.run('CREATE INDEX IF NOT EXISTS idx_mentors_mentor_id ON mentors(mentor_id)');
     this.db.run('CREATE INDEX IF NOT EXISTS idx_prime_user_id ON prime(user_id)');
     this.db.run('CREATE INDEX IF NOT EXISTS idx_prime_mentor_id ON prime(mentor_id)');
@@ -464,26 +486,26 @@ class TrainingApp {
         }
         // Permission granted for mentor
       }
-      // Kiểm tra xem user đã có program chưa
-      const existingProg = await this.get('SELECT id FROM progs WHERE user_id = ?', [user_id]);
-      
-      if (existingProg) {
-        // Update existing program
-        const result = await this.run(
-          'UPDATE progs SET exercises = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?',
-          [exercisesJson, user_id]
-        );
-        
-        return { success: true, message: 'Program updated', id: existingProg.id };
-      } else {
-        // Create new program
-        const result = await this.run(
-          'INSERT INTO progs (user_id, exercises) VALUES (?, ?)',
-          [user_id, exercisesJson]
-        );
-        
-        return { success: true, message: 'Program created', id: result.lastID };
-      }
+      // One-row-per-user UPSERT to keep reads and writes consistent.
+      await this.run(
+        `INSERT INTO progs (user_id, exercises, created_at, updated_at)
+         VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+         ON CONFLICT(user_id) DO UPDATE SET
+           exercises = excluded.exercises,
+           updated_at = CURRENT_TIMESTAMP`,
+        [user_id, exercisesJson]
+      );
+
+      const latestProgram = await this.get(
+        'SELECT id FROM progs WHERE user_id = ? ORDER BY updated_at DESC, id DESC LIMIT 1',
+        [user_id]
+      );
+
+      return {
+        success: true,
+        message: 'Program upserted',
+        id: latestProgram ? latestProgram.id : null
+      };
     } catch (error) {
       console.error('Error saving program:', error);
       return { error: 'Failed to save program', details: error.message };
@@ -982,15 +1004,22 @@ class TrainingApp {
         allUserIds = allUserIds.concat(students);
       }
 
-      // Get programs for all relevant users
+      // Get only the latest program per user to avoid stale duplicate rows.
       const programs = await new Promise((resolve) => {
         const placeholders = allUserIds.map(() => '?').join(',');
         this.db.all(
           `SELECT p.*, pr.user_name, pr.user_email 
            FROM progs p
            JOIN profiles pr ON p.user_id = pr.user_id
-           WHERE p.user_id IN (${placeholders}) 
-           ORDER BY p.created_at DESC`,
+           WHERE p.user_id IN (${placeholders})
+             AND p.id = (
+               SELECT p2.id
+               FROM progs p2
+               WHERE p2.user_id = p.user_id
+               ORDER BY p2.updated_at DESC, p2.id DESC
+               LIMIT 1
+             )
+           ORDER BY p.updated_at DESC, p.id DESC`,
           allUserIds,
           (err, results) => {
             if (err) resolve({ error: err.message });
@@ -1110,7 +1139,7 @@ class TrainingApp {
     }
     return new Promise((resolve) => {
       this.db.get(
-        'SELECT * FROM progs WHERE user_id = ? ORDER BY created_at DESC LIMIT 1',
+        'SELECT * FROM progs WHERE user_id = ? ORDER BY updated_at DESC, id DESC LIMIT 1',
         [userId],
         (err, program) => {
           if (err) {

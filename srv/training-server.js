@@ -1123,9 +1123,11 @@ app.get('/api/training/exercises', authenticateToken, async (req, res) => {
   try {
     // Lấy profile để có mentor_id
     const profileResult = await trainingApp.getUserProfile(req.user.id, req.user);
-    
-    // Gọi TrainingApp để lấy dữ liệu workout (not exercise)
-    const result = await trainingApp.handleRequest('/workout', 'GET', req.query, req.user);
+
+    // Return ONLY current user's latest exercises for the main program list.
+    // Mentor/student editing uses dedicated mentor endpoints and should not
+    // pollute this payload with merged cross-user data.
+    const selfWorkout = await trainingApp.getUserWorkout(req.user.id);
     
     // Include mentor_id trong user info
     const userWithMentorId = {
@@ -1138,7 +1140,15 @@ app.get('/api/training/exercises', authenticateToken, async (req, res) => {
       success: true,
       data: {
         user: userWithMentorId,
-        exercises: result.exercises || result
+        exercises: selfWorkout && !selfWorkout.error && selfWorkout.exercises
+          ? selfWorkout.exercises
+          : {
+              FullBodyMale: {},
+              FullBodyFemale: {},
+              FullBodyPers: {},
+              Calisthenic: {},
+              pika: {}
+            }
       },
       message: 'Training data'
     });

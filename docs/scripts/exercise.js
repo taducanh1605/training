@@ -2209,6 +2209,37 @@ function setupExerciseDragAndDrop(row, dragHandle) {
     // Touch/pointer fallback for mobile devices where HTML5 drag events are unreliable.
     let touchDragActive = false;
     let touchTargetRow = null;
+    let lastTouchPointer = null;
+
+    const getCandidateRowFromPoint = (clientX, clientY) => {
+        const elementUnder = document.elementFromPoint(clientX, clientY);
+        if (elementUnder) {
+            const directMatch = elementUnder.closest('.detailed-exercise-row, .exercise-row');
+            if (directMatch) return directMatch;
+        }
+
+        // Fallback: choose nearest sibling row by vertical distance when a
+        // covering element intercepts hit-testing on touch devices.
+        const siblings = Array.from((row.parentNode && row.parentNode.children) || [])
+            .filter(el => el !== row && el.matches && el.matches('.detailed-exercise-row, .exercise-row'));
+
+        if (siblings.length === 0) return null;
+
+        let nearest = null;
+        let nearestDistance = Infinity;
+
+        siblings.forEach((candidate) => {
+            const rect = candidate.getBoundingClientRect();
+            const centerY = rect.top + rect.height / 2;
+            const distance = Math.abs(centerY - clientY);
+            if (distance < nearestDistance) {
+                nearestDistance = distance;
+                nearest = candidate;
+            }
+        });
+
+        return nearest;
+    };
 
     const clearTouchIndicators = () => {
         document.querySelectorAll('.drag-over-touch').forEach(el => el.classList.remove('drag-over-touch'));
@@ -2230,30 +2261,49 @@ function setupExerciseDragAndDrop(row, dragHandle) {
         showDragDropFeedback();
     };
 
-    dragHandle.addEventListener('pointerdown', (e) => {
-        if (e.pointerType !== 'touch') return;
+    const beginTouchDrag = (pointerId) => {
         touchDragActive = true;
         touchTargetRow = null;
         row.style.opacity = '0.7';
-        dragHandle.setPointerCapture(e.pointerId);
-        e.preventDefault();
-    });
+        lastTouchPointer = pointerId;
+    };
 
-    dragHandle.addEventListener('pointermove', (e) => {
-        if (!touchDragActive || e.pointerType !== 'touch') return;
+    const updateTouchDrag = (clientX, clientY) => {
+        if (!touchDragActive) return;
 
-        const elementUnder = document.elementFromPoint(e.clientX, e.clientY);
-        const candidate = elementUnder ? elementUnder.closest('.detailed-exercise-row') : null;
-
+        const candidate = getCandidateRowFromPoint(clientX, clientY);
         clearTouchIndicators();
         if (candidate && candidate !== row) {
             touchTargetRow = candidate;
             candidate.classList.add('drag-over-touch');
         }
+    };
+
+    dragHandle.addEventListener('pointerdown', (e) => {
+        if (e.pointerType !== 'touch') return;
+        beginTouchDrag(e.pointerId);
+        try {
+            dragHandle.setPointerCapture(e.pointerId);
+        } catch (_) {
+            // Some synthetic/non-active pointer events cannot be captured.
+        }
+        e.preventDefault();
+    });
+
+    dragHandle.addEventListener('pointermove', (e) => {
+        if (!touchDragActive || e.pointerType !== 'touch') return;
+        updateTouchDrag(e.clientX, e.clientY);
+        e.preventDefault();
     });
 
     const endTouchReorder = (e) => {
         if (!touchDragActive) return;
+
+        if (!touchTargetRow && e && e.changedTouches && e.changedTouches.length > 0) {
+            const endTouch = e.changedTouches[0];
+            touchTargetRow = getCandidateRowFromPoint(endTouch.clientX, endTouch.clientY);
+        }
+
         touchDragActive = false;
         row.style.opacity = '';
         clearTouchIndicators();
@@ -2267,10 +2317,34 @@ function setupExerciseDragAndDrop(row, dragHandle) {
         } catch (_) {
             // Ignore capture release errors.
         }
+
+        lastTouchPointer = null;
     };
 
     dragHandle.addEventListener('pointerup', endTouchReorder);
     dragHandle.addEventListener('pointercancel', endTouchReorder);
+
+    // iOS/Safari fallback when pointer events are not dispatched for custom drags.
+    dragHandle.addEventListener('touchstart', (e) => {
+        if (!e.touches || e.touches.length === 0) return;
+        beginTouchDrag(lastTouchPointer);
+        e.preventDefault();
+    }, { passive: false });
+
+    dragHandle.addEventListener('touchmove', (e) => {
+        if (!touchDragActive || !e.touches || e.touches.length === 0) return;
+        const touch = e.touches[0];
+        updateTouchDrag(touch.clientX, touch.clientY);
+        e.preventDefault();
+    }, { passive: false });
+
+    dragHandle.addEventListener('touchend', (e) => {
+        endTouchReorder(e);
+    }, { passive: false });
+
+    dragHandle.addEventListener('touchcancel', (e) => {
+        endTouchReorder(e);
+    }, { passive: false });
 }
 
 // Show feedback when exercises are reordered

@@ -645,9 +645,9 @@ HIIT helpers
 function transformExerciseToken(nameI, exerciseIndex, tokenIndex) {
     if (!nameI || typeof nameI !== 'string') return null;
 
-    const hiitMatch = nameI.match(/xhiit-(\d+\??)-(\d+\??)-(\d+\??).$/i);
+    const hiitMatch = nameI.trim().match(/xhiit-(\d+)-(\d+)-(\d+)$/i);
     if (hiitMatch) {
-        let nameEx = nameI.replace(/xhiit-(\d+\??)-(\d+\??)-(\d+\??).$/i, '').trim();
+        let nameEx = nameI.trim().replace(/xhiit-(\d+)-(\d+)-(\d+)$/i, '').trim();
         const values = hiitMatch.slice(1).map(part => parseInt(part.replace('?', ''), 10) || 0);
         const editable = hiitMatch.some(part => part.includes('?'));
         const displayHtml = editable
@@ -707,14 +707,14 @@ function buildHiitInputHtml(exerciseIndex, tokenIndex, inputOrder, value) {
 
 function buildExerciseDisplayInfo(name) {
     const rawText = stripHtml(name || '').trim();
-    const hiitMatch = rawText.match(/xhiit-(\d+)-(\d+)-(\d+)$/i);
+    const hiitMatch = rawText.trim().match(/xhiit-(\d+)-(\d+)-(\d+)$/i);
 
     if (hiitMatch) {
         const time = parseInt(hiitMatch[1], 10) || 0;
         const rest = parseInt(hiitMatch[2], 10) || 0;
         const set = parseInt(hiitMatch[3], 10) || 0;
         return {
-            displayName: name,
+            displayName: extractPlainExerciseName(name),
             linkSearch: `https://taducanh1605.github.io/cardio/?time=${time}&rest=${rest}&set=${set}&warmup=0&autostart=1`,
             hiit: { time, rest, set, editable: false }
         };
@@ -745,7 +745,7 @@ function extractHiitConfig(exerciseTokens) {
 
     for (const token of exerciseTokens) {
         const rawText = stripHtml(token);
-        const match = rawText.match(/xhiit-(\d+)-(\d+)-(\d+)$/i);
+        const match = rawText.trim().match(/xhiit-(\d+)-(\d+)-(\d+)$/i);
         if (match) {
             const time = parseInt(match[1], 10) || 0;
             const rest = parseInt(match[2], 10) || 0;

@@ -651,8 +651,8 @@ function transformExerciseToken(nameI, exerciseIndex, tokenIndex) {
         const values = hiitMatch.slice(1).map(part => parseInt(part.replace('?', ''), 10) || 0);
         const editable = hiitMatch.some(part => part.includes('?'));
         const displayHtml = editable
-            ? `${nameI} xhiit-${buildHiitInputHtml(exerciseIndex, tokenIndex, 1, values[0])}-${buildHiitInputHtml(exerciseIndex, tokenIndex, 2, values[1])}-${buildHiitInputHtml(exerciseIndex, tokenIndex, 3, values[2])}`
-            : `${nameI} xhiit-${values[0]}-${values[1]}-${values[2]}`;
+            ? `${nameEx} xhiit-${buildHiitInputHtml(exerciseIndex, tokenIndex, 1, values[0])}-${buildHiitInputHtml(exerciseIndex, tokenIndex, 2, values[1])}-${buildHiitInputHtml(exerciseIndex, tokenIndex, 3, values[2])}`
+            : `${nameEx} xhiit-${values[0]}-${values[1]}-${values[2]}`;
 
         return {
             displayHtml,

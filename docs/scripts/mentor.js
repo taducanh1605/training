@@ -394,9 +394,16 @@ async function selectUserForExerciseEdit(userId) {
         if (exerciseEditor) {
             exerciseEditor.style.display = 'block';
             
-            // Call existing loadCurrentExercisesForEdit if available
-            if (typeof loadCurrentExercisesForEdit === 'function') {
-                await loadCurrentExercisesForEdit();
+            // Load self exercises directly from server to avoid merged mentor/student view.
+            if (typeof getUserExercises === 'function' && typeof loadCurrentExercisesForEdit === 'function') {
+                const selfResult = await getUserExercises();
+                if (selfResult && selfResult.success) {
+                    await loadCurrentExercisesForEdit(selfResult.exercises, 'self-server');
+                } else {
+                    await loadCurrentExercisesForEdit(inputCSV.dataUsers, 'fallback-merged');
+                }
+            } else if (typeof loadCurrentExercisesForEdit === 'function') {
+                await loadCurrentExercisesForEdit(inputCSV.dataUsers, 'fallback-merged');
             }
             
             // Scroll to mentor editor to keep it visible at top

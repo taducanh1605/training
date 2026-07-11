@@ -623,11 +623,11 @@ function renderHiitFrame(targetRow) {
     if (!iframe) {
         iframe = document.createElement('iframe');
         iframe.title = 'HIIT timer';
-        iframe.style.width = '100%';
+        iframe.style.width = '70%';
         iframe.style.minHeight = '390px';
         iframe.style.border = '0';
         iframe.style.borderRadius = '12px';
-        iframe.style.background = '#000';
+        iframe.style.background = 'transparent';
         targetRow.replaceChildren(iframe);
     }
 

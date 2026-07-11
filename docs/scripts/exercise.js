@@ -182,10 +182,28 @@ async function getUserExercises() {
     }
 }
 
+async function getCurrentUserIdForMentorSave() {
+    let profileResult = null;
+
+    if (typeof getUserProfile === 'function') {
+        profileResult = await getUserProfile();
+    } else {
+        profileResult = await callExerciseAPI('/api/user/me', 'GET');
+    }
+
+    const userId = profileResult && profileResult.user && profileResult.user.id;
+    if (!userId || Number.isNaN(Number(userId))) {
+        throw new Error('Unable to resolve current user id for save');
+    }
+
+    return Number(userId);
+}
+
 // Update user's exercises
 async function updateUserExercises(exerciseData) {
     try {
-        const result = await callExerciseAPI('/api/user/exercises', 'PUT', exerciseData);
+        const userId = await getCurrentUserIdForMentorSave();
+        const result = await callExerciseAPI(`/api/mentor/student-exercises/${userId}`, 'PUT', exerciseData);
         return result;
     } catch (error) {
         console.error('Update user exercises error:', error);
@@ -2009,9 +2027,9 @@ async function submitExerciseChanges() {
                 alert('Exercise plan updated successfully!');
                 
                 // Refresh to show changes
-                setTimeout(() => {
-                    window.location.reload(true);
-                }, 500);
+                // setTimeout(() => {
+                //     window.location.reload(true);
+                // }, 500);
             } else {
                 alert('Server update failed: ' + (result.message || 'Unknown error'));
             }

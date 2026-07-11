@@ -114,14 +114,61 @@ async function callExerciseAPI(endpoint, method = 'GET', data = null) {
     }
     
     const response = await fetch(`${API_BASE}${endpoint}`, options);
-    let result = await response.json();
+    const responseText = await response.text();
+    let result = null;
+
+    if (responseText && responseText.trim()) {
+        try {
+            result = JSON.parse(responseText);
+        } catch (parseError) {
+            throw new Error(`Invalid JSON response (HTTP ${response.status})`);
+        }
+    }
     
     // Handle error responses
     if (!response.ok) {
-        throw new Error(result.message || `HTTP ${response.status}: ${response.statusText}`);
+        const serverMessage = result && result.message ? result.message : responseText;
+        throw new Error(serverMessage || `HTTP ${response.status}: ${response.statusText}`);
     }
     
-    return result;
+    return result || { success: true };
+}
+
+function stableSortObject(value) {
+    if (Array.isArray(value)) {
+        return value.map(stableSortObject);
+    }
+    if (value && typeof value === 'object') {
+        const sorted = {};
+        Object.keys(value).sort().forEach(key => {
+            sorted[key] = stableSortObject(value[key]);
+        });
+        return sorted;
+    }
+    return value;
+}
+
+function areExercisesEquivalent(a, b) {
+    try {
+        return JSON.stringify(stableSortObject(a)) === JSON.stringify(stableSortObject(b));
+    } catch (error) {
+        console.error('Failed to compare exercise payloads:', error);
+        return false;
+    }
+}
+
+async function verifyUserExercisesOnServer(expectedExercises) {
+    const latest = await getUserExercises();
+    if (!latest || !latest.success) {
+        return { ok: false, reason: 'Cannot read exercises from server after save' };
+    }
+    if (!latest.exercises) {
+        return { ok: false, reason: 'Server returned empty exercises after save' };
+    }
+    return {
+        ok: areExercisesEquivalent(expectedExercises, latest.exercises),
+        reason: 'Server exercises differ from submitted payload'
+    };
 }
 
 // Get user's current exercises
@@ -943,35 +990,13 @@ async function resetToDefaultExercises() {
 
 // ====== STARTUP CHECK FOR LOCALSTORAGE ======
 
-// Check for pending localStorage exercises and retry upload
+// Legacy migration: do not auto-apply localStorage exercises anymore.
+// Server state is the source of truth to avoid "saved locally but not on server" confusion.
 async function checkAndRetryLocalStorageExercises() {
     try {
-        const pendingExercises = getLocalStorageExercises();
-        
-        if (pendingExercises) {
-            inputCSV.dataUsers = pendingExercises;
-            inputCSV.listProgUsers = json2ListProg(pendingExercises);
-
-            if (!hasPendingExerciseSync()) {
-                return;
-            }
-
-            console.log('Found pending exercises in localStorage, attempting to sync with server...');
-            
-            try {
-                const result = await updateUserExercises({ exercises: pendingExercises });
-                
-                if (result.success) {
-                    console.log('Successfully synced localStorage exercises to server');
-                    clearPendingExerciseSync();
-                } else {
-                    console.log('Server sync failed, keeping localStorage data:', result.message);
-                    markPendingExerciseSync();
-                }
-            } catch (error) {
-                console.log('Server sync failed, using localStorage data:', error.message);
-                markPendingExerciseSync();
-            }
+        if (hasPendingExerciseSync()) {
+            console.warn('Ignoring legacy pending local exercise sync; server data is authoritative.');
+            clearPendingExerciseSync();
         }
     } catch (error) {
         console.error('Error checking localStorage exercises:', error);
@@ -1963,17 +1988,18 @@ async function submitExerciseChanges() {
         }
         
         console.log('Submitting exercise changes:', updatedExercises);
-        
-        // Save to localStorage first
-        saveToLocalStorage(updatedExercises);
-        markPendingExerciseSync();
-        
+
         try {
-            // Try to update server
+            // Update server first; do not treat local cache as a successful save.
             const result = await updateUserExercises({ exercises: updatedExercises });
             
             if (result.success) {
-                clearPendingExerciseSync();
+                const verification = await verifyUserExercisesOnServer(updatedExercises);
+                if (!verification.ok) {
+                    alert(`Server verification failed: ${verification.reason}. Changes were NOT confirmed.`);
+                    return;
+                }
+
                 // Update inputCSV.dataUsers with new data
                 inputCSV.dataUsers = updatedExercises;
                 inputCSV.listProgUsers = json2ListProg(updatedExercises);
@@ -1987,20 +2013,11 @@ async function submitExerciseChanges() {
                     window.location.reload(true);
                 }, 500);
             } else {
-                markPendingExerciseSync();
-                alert('Server update failed, changes saved locally: ' + (result.message || 'Unknown error'));
-                console.log('Changes kept in localStorage for retry');
+                alert('Server update failed: ' + (result.message || 'Unknown error'));
             }
         } catch (serverError) {
             console.error('Server update failed:', serverError);
-            markPendingExerciseSync();
-            alert('Server update failed, changes saved locally. Will retry on next startup.');
-            
-            // Update local data immediately
-            inputCSV.dataUsers = updatedExercises;
-            inputCSV.listProgUsers = json2ListProg(updatedExercises);
-            
-            hideExerciseEditor();
+            alert('Server update failed: ' + (serverError.message || 'Unknown error'));
         }
     } catch (error) {
         console.error('Error submitting exercise changes:', error);

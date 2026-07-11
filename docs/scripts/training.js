@@ -706,15 +706,15 @@ function buildHiitInputHtml(exerciseIndex, tokenIndex, inputOrder, value) {
 
 function buildExerciseDisplayInfo(name) {
     const rawText = stripHtml(name || '').trim();
-    const hiitMatch = rawText.match(/^xhiit-(\d+)-(\d+)-(\d+)$/i);
+    const hiitMatch = rawText.match(/xhiit-(\d+)-(\d+)-(\d+)$/i);
 
     if (hiitMatch) {
         const time = parseInt(hiitMatch[1], 10) || 0;
         const rest = parseInt(hiitMatch[2], 10) || 0;
         const set = parseInt(hiitMatch[3], 10) || 0;
         return {
-            displayName: `xhiit-${time}-${rest}-${set}`,
-            linkSearch: `https://taducanh1605.github.io/cardio/?time=${time}&rest=${rest}&set=${set}&warmup=0`,
+            displayName: name,
+            linkSearch: `https://taducanh1605.github.io/cardio/?time=${time}&rest=${rest}&set=${set}&warmup=0&autostart=0`,
             hiit: { time, rest, set, editable: false }
         };
     }
@@ -743,7 +743,7 @@ function extractHiitConfig(exerciseTokens) {
 
     for (const token of exerciseTokens) {
         const rawText = stripHtml(token);
-        const match = rawText.match(/^xhiit-(\d+)-(\d+)-(\d+)$/i);
+        const match = rawText.match(/xhiit-(\d+)-(\d+)-(\d+)$/i);
         if (match) {
             const time = parseInt(match[1], 10) || 0;
             const rest = parseInt(match[2], 10) || 0;
@@ -752,7 +752,7 @@ function extractHiitConfig(exerciseTokens) {
                 time,
                 rest,
                 set,
-                url: `https://taducanh1605.github.io/cardio/?time=${time}&rest=${rest}&set=${set}&warmup=0`
+                url: `https://taducanh1605.github.io/cardio/?time=${time}&rest=${rest}&set=${set}&warmup=0&autostart=0`
             };
         }
     }

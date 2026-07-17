@@ -668,7 +668,7 @@ function matchIframeSize(title) {
 }
 
 function sendDoneFromIframe(title) {
-    document.querySelector('iframe[title="HIIT timer"]').contentWindow.document.querySelectorAll('img[src="cardio/finish.png"]').length > 0 
+    document.querySelector('iframe[title="HIIT timer"]')?.contentWindow?.document?.querySelectorAll('img[src="cardio/finish.png"]').length > 0 
     && vm.handleStart()
     && vm.hiitFrameState.sendDone.clear();
 }

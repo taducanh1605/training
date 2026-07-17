@@ -651,16 +651,18 @@ function renderHiitFrame(targetRow) {
 
     vm.hiitFrameState.active = true;
     vm.hiitFrameState.url = vm.currentHiit.url;
-    matchIframeSize('HIIT timer');
-    vm.hiitFrameState.matchSize = setInterval(() => {matchIframeSize('HIIT timer')}, 300);
+    vm.hiitFrameState.matchSize = setInterval(() => {matchIframeSize('HIIT timer')}, 120);
     vm.hiitFrameState.sendDone = setInterval(() => {sendDoneFromIframe('HIIT timer')}, 300);
 }
 
 function matchIframeSize(title) {
     const iframe = document.querySelector(`iframe[title="${title}"]`);
     const doc = iframe?.contentWindow?.document;
-    const newHeight = (doc.querySelector('div.content-card').offsetHeight + 'px') || '390px';
-    const newWidth = (doc.querySelector('div.content-card').offsetWidth + 'px') || '70%';
+    const contentCard = doc?.querySelector('div.content-card');
+    if (!contentCard) return;
+    const newHeight = (doc.querySelector('div.content-card')?.offsetHeight || '390') + 'px';
+    const newWidth = doc.querySelector('div.content-card')?.offsetWidth;
+    newWidth = newWidth ? (newWidth + 'px') : '70%';
     iframe.style.minHeight = newHeight;
     iframe.style.width = newWidth;
 }

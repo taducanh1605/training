@@ -284,7 +284,8 @@ var vm = new Vue({
             this.hiitFrameState = {
                 active: false,
                 url: '',
-                matchSize: null
+                matchSize: null,
+                sendDone: null
             };
         },
         handleStart() {
@@ -615,6 +616,9 @@ function renderHiitFrame(targetRow) {
             if (vm.hiitFrameState.matchSize) {
                 vm.hiitFrameState.matchSize.clear();
             }
+            if (vm.hiitFrameState.sendDone) {
+                vm.hiitFrameState.sendDone.clear();
+            }
         }
         return;
     }
@@ -642,6 +646,7 @@ function renderHiitFrame(targetRow) {
     vm.hiitFrameState.active = true;
     vm.hiitFrameState.url = vm.currentHiit.url;
     vm.hiitFrameState.matchSize = setInterval(() => {matchIframeSize('HIIT timer')}, 300);
+    vm.hiitFrameState.sendDone = setInterval(() => {sendDoneFromIframe('HIIT timer')}, 300);
 }
 
 function matchIframeSize(title) {
@@ -651,6 +656,10 @@ function matchIframeSize(title) {
     const newWidth = (doc.querySelector('div.content-card').offsetWidth + 'px') || '70%';
     iframe.style.minHeight = newHeight;
     iframe.style.width = newWidth;
+}
+
+function sendDoneFromIframe(title) {
+    document.querySelector('iframe[title="HIIT timer"]').contentWindow.document.querySelectorAll('img[src="cardio/finish.png"]').length > 0 && vm.handleNext();
 }
 
 /*----------------------------------------------------------------------

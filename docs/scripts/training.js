@@ -580,7 +580,7 @@ function updateContext() {
                 vm.row2 = 'ROUND: ' + vm.exRound + '/' + vm.exSet[vm.exOrder];
                 vm.row3_exs = vm.exName[vm.exOrder];
                 vm.currentHiit = extractHiitConfig(vm.row3_exs);
-                vm.row4 = 'Let\'s do it';
+                vm.row4 = vm.hiitFrameState.active ? '' : 'Let\'s do it';
                 vm.textbreak = 'doit';
             }
         }
@@ -594,13 +594,19 @@ function updateContext() {
         vm.row3 = "CHOOSE YOUR PROGRAM";
         vm.row4 = "";
     }
-    //update Button Start
-    (vm.flagStart == 0) ? vm.buttonStart = 'Start' :
-        (vm.rest > 0) ? vm.buttonStart = 'Pause' :
-            (vm.count < vm.exSumSet) ? vm.buttonStart = 'Done' :
-                vm.buttonStart = 'Finish';
-
+    
+    // Render HIIT frame if applicable
     renderHiitFrame(document.getElementById('hiit-frame-row'));
+
+    //update Button Start
+    if (vm.hiitFrameState.active) {
+        vm.buttonStart = '';
+    } else {
+        (vm.flagStart == 0) ? vm.buttonStart = 'Start' :
+            (vm.rest > 0) ? vm.buttonStart = 'Pause' :
+                (vm.count < vm.exSumSet) ? vm.buttonStart = 'Done' :
+                    vm.buttonStart = 'Finish';
+    }
 };
 
 function renderHiitFrame(targetRow) {
@@ -1155,7 +1161,7 @@ async function checkLoginAndUpdateTextMode() {
             inputCSV.user_email = user.email;
             inputCSV.mentor_code = user.mentor_id || null;
             
-            console.log('User logged in:', user.name, user.email, 'mentor_id:', user.mentor_id);
+            // console.log('User logged in:', user.name, user.email, 'mentor_id:', user.mentor_id);
             
             // Check if user profile is complete and show form if needed
             checkAndShowProfileForm();

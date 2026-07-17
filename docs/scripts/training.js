@@ -283,7 +283,8 @@ var vm = new Vue({
             this.currentHiit = null;
             this.hiitFrameState = {
                 active: false,
-                url: ''
+                url: '',
+                matchSize: null
             };
         },
         handleStart() {
@@ -611,6 +612,9 @@ function renderHiitFrame(targetRow) {
             targetRow.replaceChildren();
             vm.hiitFrameState.active = false;
             vm.hiitFrameState.url = '';
+            if (vm.hiitFrameState.matchSize) {
+                vm.hiitFrameState.matchSize.clear();
+            }
         }
         return;
     }
@@ -637,6 +641,16 @@ function renderHiitFrame(targetRow) {
 
     vm.hiitFrameState.active = true;
     vm.hiitFrameState.url = vm.currentHiit.url;
+    vm.hiitFrameState.matchSize = setInterval(() => {matchIframeSize('HIIT timer')}, 300);
+}
+
+function matchIframeSize(title) {
+    const iframe = document.querySelector(`iframe[title="${title}"]`);
+    const doc = iframe?.contentWindow?.document;
+    const newHeight = (doc.querySelector('div.content-card').offsetHeight + 'px') || '390px';
+    const newWidth = (doc.querySelector('div.content-card').offsetWidth + 'px') || '70%';
+    iframe.style.minHeight = newHeight;
+    iframe.style.width = newWidth;
 }
 
 /*----------------------------------------------------------------------

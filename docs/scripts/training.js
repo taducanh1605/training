@@ -661,8 +661,7 @@ function matchIframeSize(title) {
     const contentCard = doc?.querySelector('div.content-card');
     if (!contentCard) return;
     const newHeight = (doc.querySelector('div.content-card')?.offsetHeight || '390') + 'px';
-    const newWidth = doc.querySelector('div.content-card')?.offsetWidth;
-    newWidth = newWidth ? (newWidth + 'px') : '70%';
+    const newWidth = doc.querySelector('div.content-card') ? doc.querySelector('div.content-card').offsetWidth + 'px' : '70%';
     iframe.style.minHeight = newHeight;
     iframe.style.width = newWidth;
 }

@@ -651,6 +651,7 @@ function renderHiitFrame(targetRow) {
 
     vm.hiitFrameState.active = true;
     vm.hiitFrameState.url = vm.currentHiit.url;
+    matchIframeSize('HIIT timer');
     vm.hiitFrameState.matchSize = setInterval(() => {matchIframeSize('HIIT timer')}, 300);
     vm.hiitFrameState.sendDone = setInterval(() => {sendDoneFromIframe('HIIT timer')}, 300);
 }

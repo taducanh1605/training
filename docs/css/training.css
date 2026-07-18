@@ -242,6 +242,8 @@ pre {
     justify-content: center;
     overflow: hidden;
     overflow-anchor: none;
+    contain: layout paint;
+    min-height: 390px;
 }
 
 #hiit-frame-row iframe {

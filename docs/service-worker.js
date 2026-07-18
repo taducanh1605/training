@@ -76,7 +76,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
 
   // Skip non-GET requests (POST, PUT, DELETE go to network directly)
-  if (request.method !== 'GET') {
+  if (request.method !== 'GET' || !isSupportedCacheScheme(url)) {
     return;
   }
 
@@ -94,6 +94,10 @@ self.addEventListener('fetch', (event) => {
   */
 });
 
+function isSupportedCacheScheme(url) {
+  return url.protocol === 'http:' || url.protocol === 'https:';
+}
+
 // Cache-first strategy: serve from cache, fall back to network and update cache
 async function cacheFirst(request) {
   // Open the versioned cache by name to avoid stale matches from old cache versions
@@ -106,7 +110,10 @@ async function cacheFirst(request) {
   try {
     const networkResponse = await fetch(request);
     if (networkResponse && networkResponse.status === 200) {
-      cache.put(request, networkResponse.clone());
+      const requestUrl = new URL(request.url);
+      if (isSupportedCacheScheme(requestUrl)) {
+        await cache.put(request, networkResponse.clone());
+      }
     }
     return networkResponse;
   } catch (error) {
@@ -124,12 +131,16 @@ async function cacheFirst(request) {
 
 // Network-first strategy: try network, fall back to cache
 async function networkFirst(request) {
+  const requestUrl = new URL(request.url);
+
   try {
     const networkResponse = await fetch(request);
     if (networkResponse && networkResponse.status === 200) {
       // Cache successful API responses for offline fallback
-      const cache = await caches.open(CACHE_NAME);
-      cache.put(request, networkResponse.clone());
+      if (isSupportedCacheScheme(requestUrl)) {
+        const cache = await caches.open(CACHE_NAME);
+        await cache.put(request, networkResponse.clone());
+      }
     }
     return networkResponse;
   } catch (error) {

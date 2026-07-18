@@ -637,11 +637,17 @@ function renderHiitFrame(targetRow) {
     if (!iframe) {
         iframe = document.createElement('iframe');
         iframe.title = 'HIIT timer';
+        iframe.setAttribute('scrolling', 'no');
+        iframe.tabIndex = -1;
         iframe.style.width = '70%';
         iframe.style.minHeight = '390px';
         iframe.style.border = '0';
         iframe.style.borderRadius = '12px';
         iframe.style.background = 'transparent';
+        iframe.style.overflow = 'hidden';
+        iframe.style.display = 'block';
+        iframe.style.margin = '0 auto';
+        iframe.style.overscrollBehavior = 'contain';
         targetRow.replaceChildren(iframe);
     }
 

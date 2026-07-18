@@ -1,19 +1,29 @@
 {
-  "name": "Njk\" Training",
+  "id": "./",
+  "name": "Njk Training",
   "short_name": "Training",
   "description": "A training app for the Njk team",
+  "lang": "en",
+  "dir": "ltr",
   "start_url": ".",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
   "background_color": "#121111",
   "theme_color": "#121111",
   "orientation": "any",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "images/icon/NJKlogo.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "images/icon/NJKlogo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "categories": ["health", "fitness", "sports"]

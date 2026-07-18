@@ -312,6 +312,7 @@ var vm = new Vue({
                 }
                 else if (this.rest > 0) {
                     this.flagStart = 0;
+                    releaseKeepScreenAwake();
                 }
                 else {
                     if (this.count < this.exSumSet) {
@@ -335,6 +336,7 @@ var vm = new Vue({
                     else if (this.count == this.exSumSet) {
                         this.count += 1;
                         this.flagStart = 2;
+                        releaseKeepScreenAwake();
                         clearSavedWorkout(false);
                         ring("finish.wav");
                         return;
@@ -398,18 +400,87 @@ Prevent Lock Screen on mobile
 - first event: click
 - second event: hide tab
 ----------------------------------------------------------------------*/
-document.addEventListener('click', async () => {
-    if (('wakeLock' in navigator) && (checkScreen == 0) && (vm.flagStart == 1)) {
+let wakeLockSentinel = null;
+let wakeLockFallback = null;
+
+function isIosLikeDevice() {
+    try {
+        return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    } catch (error) {
+        return false;
+    }
+}
+
+async function requestKeepScreenAwake() {
+    if (vm.flagStart !== 1) return;
+
+    try {
+        if ('wakeLock' in navigator && typeof navigator.wakeLock.request === 'function') {
+            if (!wakeLockSentinel) {
+                wakeLockSentinel = await navigator.wakeLock.request('screen');
+                wakeLockSentinel?.addEventListener('release', () => {
+                    wakeLockSentinel = null;
+                });
+            }
+            return;
+        }
+    } catch (error) {
+        wakeLockSentinel = null;
+    }
+
+    if (isIosLikeDevice()) {
+        try {
+            if (!wakeLockFallback) {
+                const keepAwakeAudio = new Audio('./sound/start.wav');
+                keepAwakeAudio.loop = true;
+                keepAwakeAudio.muted = true;
+                keepAwakeAudio.playsInline = true;
+                keepAwakeAudio.preload = 'auto';
+                wakeLockFallback = { keepAwakeAudio };
+            }
+
+            if (wakeLockFallback.keepAwakeAudio?.paused) {
+                await wakeLockFallback.keepAwakeAudio.play().catch(() => {});
+            }
+        } catch (error) {
+            wakeLockFallback = null;
+        }
+    }
+}
+
+function releaseKeepScreenAwake() {
+    try {
+        if (wakeLockSentinel) {
+            const sentinel = wakeLockSentinel;
+            wakeLockSentinel = null;
+            sentinel.release?.().catch(() => {});
+        }
+    } catch (error) {}
+
+    try {
+        if (wakeLockFallback) {
+            wakeLockFallback.keepAwakeAudio?.pause?.();
+            wakeLockFallback.keepAwakeAudio?.removeAttribute('src');
+            wakeLockFallback.keepAwakeAudio?.load?.();
+            wakeLockFallback = null;
+        }
+    } catch (error) {}
+}
+
+document.addEventListener('click', () => {
+    if (checkScreen == 0 && vm.flagStart == 1) {
         checkScreen = 1;
-        let screenLock = await navigator.wakeLock.request('screen');
-    };
+        requestKeepScreenAwake().catch(() => {});
+    }
 });
 
-document.addEventListener('visibilitychange', async () => {
-    if (('wakeLock' in navigator) && (vm.flagStart == 1)) {
-        let screenLock = await navigator.wakeLock.request('screen');
-    };
+document.addEventListener('visibilitychange', () => {
+    if (vm.flagStart == 1 && !document.hidden) {
+        requestKeepScreenAwake().catch(() => {});
+    }
 });
+
+window.addEventListener('pagehide', releaseKeepScreenAwake);
 
 
 /*----------------------------------
@@ -500,6 +571,12 @@ function ring(nameRing) {
         myRing.src = './sound/' + nameRing;
     });
     ring.click();
+
+    if (isIosLikeDevice()) {
+        setTimeout(() => {
+            requestKeepScreenAwake().catch(() => {});
+        }, 0);
+    }
 };
 
 
@@ -663,19 +740,23 @@ function renderHiitFrame(targetRow) {
 
 function matchIframeSize(title) {
     const iframe = document.querySelector(`iframe[title="${title}"]`);
-    const doc = iframe?.contentWindow?.document;
-    const contentCard = doc?.querySelector('div.content-card');
-    if (!contentCard) return;
-    const newHeight = (doc.querySelector('div.content-card')?.offsetHeight || '390') + 'px';
-    const newWidth = doc.querySelector('div.content-card') ? doc.querySelector('div.content-card').offsetWidth + 'px' : '70%';
-    iframe.style.minHeight = newHeight;
-    iframe.style.width = newWidth;
+    try {
+        const doc = iframe?.contentWindow?.document;
+        const contentCard = doc?.querySelector('div.content-card');
+        if (!contentCard) return;
+        const newHeight = (doc.querySelector('div.content-card')?.offsetHeight || '390') + 'px';
+        const newWidth = doc.querySelector('div.content-card') ? doc.querySelector('div.content-card').offsetWidth + 'px' : '70%';
+        iframe.style.minHeight = newHeight;
+        iframe.style.width = newWidth;
+    } catch (error) {}
 }
 
 function sendDoneFromIframe(title) {
-    document.querySelector('iframe[title="HIIT timer"]')?.contentWindow?.document?.querySelectorAll('img[src="cardio/finish.png"]').length > 0 
-    && vm.handleStart()
-    && vm.hiitFrameState.sendDone.clear();
+    try {
+        document.querySelector('iframe[title="HIIT timer"]')?.contentWindow?.document?.querySelectorAll('img[src="cardio/finish.png"]').length > 0 
+        && vm.handleStart()
+        && vm.hiitFrameState.sendDone.clear();
+    } catch (error) {}
 }
 
 /*----------------------------------------------------------------------

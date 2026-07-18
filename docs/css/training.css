@@ -236,6 +236,20 @@ pre {
     border: none;
 }
 
+#hiit-frame-row {
+    margin: 12px 0 0 0;
+    display: flex;
+    justify-content: center;
+    overflow: hidden;
+    overflow-anchor: none;
+}
+
+#hiit-frame-row iframe {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+}
+
 .row4-break {
     margin: 2rem auto;
     font-family: "Sportrop Regular";

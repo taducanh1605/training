@@ -243,7 +243,7 @@ pre {
     overflow: hidden;
     overflow-anchor: none;
     contain: layout paint;
-    min-height: 390px;
+    /* min-height: 390px; */
 }
 
 #hiit-frame-row iframe {

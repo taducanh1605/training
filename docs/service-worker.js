@@ -5,6 +5,7 @@ const CACHE_NAME = 'training-app-v2';
 const STATIC_ASSETS = [
   './',
   './index.html',
+  './manifest.json',
   './background.html',
   './css/training.css',
   './scripts/oauth.js',
@@ -23,6 +24,7 @@ const STATIC_ASSETS = [
   './images/pause.png',
   './images/finish.png',
   './images/NJKlogo.ico',
+  './images/icon/NJKlogo.png',
   './sound/start.wav',
   './sound/breaktime.wav',
   './sound/ringGo.wav',

@@ -10,7 +10,6 @@
   "display_override": ["standalone", "minimal-ui"],
   "background_color": "#121111",
   "theme_color": "#121111",
-  "orientation": "any",
   "prefer_related_applications": false,
   "icons": [
     {

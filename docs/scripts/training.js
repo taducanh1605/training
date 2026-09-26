@@ -781,7 +781,7 @@ function transformExerciseToken(nameI, exerciseIndex, tokenIndex) {
                 rest: values[1],
                 set: values[2],
                 editable: editable,
-                url: `https://taducanh1605.github.io/cardio/?time=${values[0]}&rest=${values[1]}&set=${values[2]}&warmup=0&autostart=1`
+                url: `https://taducanh1605.github.io/cardio/?time=${values[0]}&rest=${values[1]}&set=${values[2]}&warmup=0&autostart=0`
             }
         };
     }
@@ -835,7 +835,7 @@ function buildExerciseDisplayInfo(name) {
         const set = parseInt(hiitMatch[3], 10) || 0;
         return {
             displayName: extractPlainExerciseName(name),
-            linkSearch: `https://taducanh1605.github.io/cardio/?time=${time}&rest=${rest}&set=${set}&warmup=0&autostart=1`,
+            linkSearch: `https://taducanh1605.github.io/cardio/?time=${time}&rest=${rest}&set=${set}&warmup=0&autostart=0`,
             hiit: { time, rest, set, editable: false }
         };
     }
@@ -874,7 +874,7 @@ function extractHiitConfig(exerciseTokens) {
                 time,
                 rest,
                 set,
-                url: `https://taducanh1605.github.io/cardio/?time=${time}&rest=${rest}&set=${set}&warmup=0&autostart=1`
+                url: `https://taducanh1605.github.io/cardio/?time=${time}&rest=${rest}&set=${set}&warmup=0&autostart=0`
             };
         }
     }

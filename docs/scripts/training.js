@@ -1220,6 +1220,13 @@ function addSwitchProgramButton() {
 Check login and update textMode on app start
 ----------------------------------------------------------------------*/
 async function checkLoginAndUpdateTextMode() {
+    const cachedEmail = localStorage.getItem('training.user_email');
+    const cachedExercises = getCachedUserExercises(cachedEmail);
+    if (cachedExercises) {
+        inputCSV.dataUsers = cachedExercises;
+        inputCSV.listProgUsers = json2ListProg(cachedExercises);
+    }
+
     try {
         const response = await callAPI('/api/training/exercises');
         data = response.data;
@@ -1277,6 +1284,7 @@ async function checkLoginAndUpdateTextMode() {
         if (response && exercises) {
             inputCSV.dataUsers = exercises;
             inputCSV.listProgUsers = json2ListProg(exercises);
+            if (user) saveCachedUserExercises(user.email, exercises);
             
             // Check for pending localStorage exercises after setting server data
             if (typeof checkAndRetryLocalStorageExercises === 'function') {
@@ -1284,22 +1292,62 @@ async function checkLoginAndUpdateTextMode() {
             }
         }
     } catch (error) {
-        console.log('Login check failed, setting to free mode:', error);
-        console.log('Token available:', localStorage.getItem('token'));
-        // Clear user info from localStorage
-        localStorage.removeItem('training.user_name');
-        localStorage.removeItem('training.user_email');
-        if (localStorage.getItem('training.selectedLvl')?.[0] == 'p') {
-            localStorage.removeItem('training.selectedLvl');
+        console.log('Login check failed; retaining the local session when available:', error);
+        if (error.status === 401 || error.status === 403) {
+            localStorage.removeItem('training.user_name');
+            localStorage.removeItem('training.user_email');
+            localStorage.removeItem('training.mentor_code');
+            if (localStorage.getItem('training.selectedLvl')?.[0] == 'p') {
+                localStorage.removeItem('training.selectedLvl');
+            }
+            if (localStorage.getItem('training.resume')?.[0] == 'p') {
+                localStorage.removeItem('training.resume');
+            }
+            localStorage.setItem('training.textMode', 'free');
+            inputCSV.textMode = 'free';
+            inputCSV.user_name = null;
+            inputCSV.user_email = null;
+            inputCSV.mentor_code = null;
+        } else {
+            const fallbackExercises = getCachedUserExercises(cachedEmail);
+            if (fallbackExercises) {
+                inputCSV.dataUsers = fallbackExercises;
+                inputCSV.listProgUsers = json2ListProg(fallbackExercises);
+            }
+            inputCSV.user_name = localStorage.getItem('training.user_name') || null;
+            inputCSV.user_email = cachedEmail || null;
+            inputCSV.mentor_code = localStorage.getItem('training.mentor_code') || null;
         }
-        if (localStorage.getItem('training.resume')?.[0] == 'p') {
-            localStorage.removeItem('training.resume');
-        }
-        localStorage.setItem('training.textMode', 'free');
-        inputCSV.textMode = 'free';
-        
-        // Hide profile form since user is not logged in or token is invalid
         hideProfileForm();
+    }
+}
+
+function getCachedUserExercises(email) {
+    if (!email) return null;
+
+    try {
+        const cache = JSON.parse(localStorage.getItem(`training.userExercises.${encodeURIComponent(email.toLowerCase())}`) || 'null');
+        return cache && cache.email === email.toLowerCase() && cache.exercises &&
+            typeof cache.exercises === 'object' && Object.keys(cache.exercises).length > 0
+            ? cache.exercises
+            : null;
+    } catch (error) {
+        console.warn('Could not read cached user exercises:', error);
+        return null;
+    }
+}
+
+function saveCachedUserExercises(email, exercises) {
+    if (!email || !exercises || typeof exercises !== 'object' || Object.keys(exercises).length === 0) return;
+
+    try {
+        const normalizedEmail = email.toLowerCase();
+        localStorage.setItem(`training.userExercises.${encodeURIComponent(normalizedEmail)}`, JSON.stringify({
+            email: normalizedEmail,
+            exercises
+        }));
+    } catch (error) {
+        console.warn('Could not cache user exercises:', error);
     }
 }
 

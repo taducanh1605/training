@@ -117,12 +117,21 @@ async function callAPI(endpoint, method = 'GET', data = null) {
         options.body = JSON.stringify(data);
     }
     
-    const response = await fetch(`${API_BASE}${endpoint}`, options);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    let response;
+    try {
+        response = await fetch(`${API_BASE}${endpoint}`, { ...options, signal: controller.signal });
+    } finally {
+        clearTimeout(timeoutId);
+    }
     let result = await response.json();
     
     // Handle error responses
     if (!response.ok) {
-        throw new Error(result.message || `HTTP ${response.status}: ${response.statusText}`);
+        const error = new Error(result.message || `HTTP ${response.status}: ${response.statusText}`);
+        error.status = response.status;
+        throw error;
     }
     
     return result;

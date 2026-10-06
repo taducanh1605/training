@@ -20,6 +20,15 @@
     <script>
         // Register service worker for offline support
         if ('serviceWorker' in navigator) {
+            const registerCardioServiceWorker = () => {
+                if (!navigator.onLine) return;
+
+                navigator.serviceWorker.register('../cardio/sw.js')
+                    .then((reg) => console.log('[App] Cardio service worker registered, scope:', reg.scope))
+                    .catch((err) => console.warn('[App] Cardio service worker registration failed:', err));
+            };
+
+            window.addEventListener('online', registerCardioServiceWorker);
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./service-worker.js')
                     .then((reg) => {
@@ -36,6 +45,8 @@
                         });
                     })
                     .catch((err) => console.warn('[App] Service Worker registration failed:', err));
+
+                registerCardioServiceWorker();
 
                 // Listen for SW-triggered sync queue processing
                 navigator.serviceWorker.addEventListener('message', (event) => {

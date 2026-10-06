@@ -114,7 +114,14 @@ async function callExerciseAPI(endpoint, method = 'GET', data = null) {
         options.body = JSON.stringify(data);
     }
     
-    const response = await fetch(`${API_BASE}${endpoint}`, options);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    let response;
+    try {
+        response = await fetch(`${API_BASE}${endpoint}`, { ...options, signal: controller.signal });
+    } finally {
+        clearTimeout(timeoutId);
+    }
     const responseText = await response.text();
     let result = null;
 
@@ -129,7 +136,9 @@ async function callExerciseAPI(endpoint, method = 'GET', data = null) {
     // Handle error responses
     if (!response.ok) {
         const serverMessage = result && result.message ? result.message : responseText;
-        throw new Error(serverMessage || `HTTP ${response.status}: ${response.statusText}`);
+        const error = new Error(serverMessage || `HTTP ${response.status}: ${response.statusText}`);
+        error.status = response.status;
+        throw error;
     }
     
     return result || { success: true };

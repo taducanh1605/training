@@ -1281,10 +1281,26 @@ async function checkLoginAndUpdateTextMode() {
             hideProfileForm();
         }
 
-        if (response && exercises) {
-            inputCSV.dataUsers = exercises;
-            inputCSV.listProgUsers = json2ListProg(exercises);
-            if (user) saveCachedUserExercises(user.email, exercises);
+        let latestUserExercises = null;
+        if (user && typeof getUserExercises === 'function') {
+            try {
+                const userExercisesResult = await getUserExercises();
+                if (userExercisesResult && userExercisesResult.success &&
+                    userExercisesResult.exercises && Object.keys(userExercisesResult.exercises).length > 0) {
+                    latestUserExercises = userExercisesResult.exercises;
+                    saveCachedUserExercises(user.email, latestUserExercises);
+                }
+            } catch (error) {
+                console.warn('Could not refresh the complete user exercise list:', error);
+            }
+        }
+
+        const sameAccountCache = user && user.email && cachedEmail &&
+            user.email.toLowerCase() === cachedEmail.toLowerCase() ? cachedExercises : null;
+        const exercisesToUse = latestUserExercises || sameAccountCache || exercises;
+        if (response && exercisesToUse) {
+            inputCSV.dataUsers = exercisesToUse;
+            inputCSV.listProgUsers = json2ListProg(exercisesToUse);
             
             // Check for pending localStorage exercises after setting server data
             if (typeof checkAndRetryLocalStorageExercises === 'function') {
@@ -1479,5 +1495,6 @@ async function processSyncQueue() {
 window.addEventListener('online', () => {
     console.log('[App] Back online, processing sync queue...');
     processSyncQueue();
+    checkLoginAndUpdateTextMode();
 });
 

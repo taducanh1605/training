@@ -791,16 +791,16 @@ function transformExerciseToken(nameI, exerciseIndex, tokenIndex) {
     }
 
     if (nameI.indexOf('?') > -1) {
-        const repsStart = nameI.indexOf(' x') + 2;
-        if (repsStart > 1) {
+        const repsMatch = nameI.match(/\sx((?:\d+\?)(?:-\d+\?)*)$/);
+        if (repsMatch) {
             let repIndex = 0;
-            const transformedReps = nameI.slice(repsStart).replace(/(\d+)\?/g, (match, value) => {
+            const transformedReps = repsMatch[1].replace(/(\d+)\?/g, (match, value) => {
                 return buildRepInputHtml(exerciseIndex, tokenIndex, repIndex++, parseInt(value, 10));
             });
 
             if (repIndex > 0) {
                 return {
-                    displayHtml: `${nameI.slice(0, repsStart)}${transformedReps}`.replaceAll(' -', '-'),
+                    displayHtml: `${nameI.slice(0, repsMatch.index + 2)}${transformedReps}`,
                     hiit: null
                 };
             }

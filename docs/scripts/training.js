@@ -791,34 +791,19 @@ function transformExerciseToken(nameI, exerciseIndex, tokenIndex) {
     }
 
     if (nameI.indexOf('?') > -1) {
-        let transformed = nameI;
-        let transformedAny = false;
+        const repsStart = nameI.indexOf(' x') + 2;
+        if (repsStart > 1) {
+            let repIndex = 0;
+            const transformedReps = nameI.slice(repsStart).replace(/(\d+)\?/g, (match, value) => {
+                return buildRepInputHtml(exerciseIndex, tokenIndex, repIndex++, parseInt(value, 10));
+            });
 
-        // keep the legacy x?/x?-?-? flow editable
-        const nbrIn = (transformed.match(/[?]-/g) || []).length;
-        for (var y = nbrIn; y > 0; y--) {
-            var repS = transformed.length - transformed.split("").reverse().join("").indexOf('-?'),
-                repE = transformed.indexOf('?', repS),
-                rep = parseInt(transformed.slice(repS, repE));
-            if (!Number.isNaN(rep)) {
-                transformedAny = true;
-                transformed = transformed.substring(0, repS - 1) + ' -' + transformed.substring(repS + transformed.substring(repS).indexOf('?')).replace('?', buildRepInputHtml(exerciseIndex, tokenIndex, y, rep));
+            if (repIndex > 0) {
+                return {
+                    displayHtml: `${nameI.slice(0, repsStart)}${transformedReps}`.replaceAll(' -', '-'),
+                    hiit: null
+                };
             }
-        }
-
-        var repS2 = transformed.indexOf(' x') + 2,
-            repE2 = transformed.indexOf('?'),
-            rep2 = parseInt(transformed.slice(repS2, repE2));
-        if (!Number.isNaN(rep2)) {
-            transformedAny = true;
-            transformed = transformed.substring(0, repS2) + transformed.substring(repS2 + transformed.substring(repS2).indexOf('?')).replace('?', buildRepInputHtml(exerciseIndex, tokenIndex, 1, rep2));
-        }
-
-        if (transformedAny) {
-            return {
-                displayHtml: transformed.replaceAll(' -', '-'),
-                hiit: null
-            };
         }
     }
 
@@ -829,8 +814,8 @@ function buildHiitInputHtml(exerciseIndex, tokenIndex, inputOrder, value) {
     return `<input class="inHIIT" data-hiit="1" onInput="goal(${exerciseIndex},${tokenIndex}, this.value, ${inputOrder})" type="number" min="0" value="${value}">`;
 }
 
-function buildRepInputHtml(exerciseIndex, tokenIndex, inputOrder, value) {
-    return `<input class="repInput" data-rep-input="1" onInput="goalRep(${exerciseIndex},${tokenIndex}, this.value, ${inputOrder})" type="number" min="0" value="${value}">`;
+function buildRepInputHtml(exerciseIndex, tokenIndex, repIndex, value) {
+    return `<input class="repInput" data-rep-input="1" data-rep-index="${repIndex}" onInput="goalRep(${exerciseIndex},${tokenIndex}, this.value, ${repIndex})" type="number" min="0" value="${value}">`;
 }
 
 function buildExerciseDisplayInfo(name) {
@@ -923,15 +908,15 @@ function goal(x, y, z, sub) {
 }
 
 function goalRep(x, y, z, sub) {
-    if (vm.exRound !== 1) return;
-
-    var bias = vm.exName[x][y].indexOf("value=", bias) + 7;
-    for (var i = 0; i < parseInt(sub); i++) bias = vm.exName[x][y].indexOf("value=", bias) + 7;
+    if (vm.exRound !== 1 || z === '') return;
 
     if (vm.delayInputRep) clearTimeout(vm.delayInputRep);
     vm.delayInputRep = setTimeout(function () {
-        if (z != '' && vm.exRound === 1) {
-            vm.exName[x][y] = vm.exName[x][y].substring(0, bias) + z + vm.exName[x][y].substring(vm.exName[x][y].indexOf("\"", bias));
+        if (vm.exRound === 1) {
+            vm.exName[x][y] = vm.exName[x][y].replace(/<input\b[^>]*data-rep-index="(\d+)"[^>]*>/g, (input, repIndex) => {
+                if (Number(repIndex) !== Number(sub)) return input;
+                return input.replace(/\bvalue="[^"]*"/, `value="${z}"`);
+            });
         }
     }, 500);
 }

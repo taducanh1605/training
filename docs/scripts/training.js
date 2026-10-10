@@ -918,7 +918,7 @@ function goalRep(x, y, z, sub) {
                 return input.replace(/\bvalue="[^"]*"/, `value="${z}"`);
             });
         }
-    }, 500);
+    }, 800);
 }
 
 

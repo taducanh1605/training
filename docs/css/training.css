@@ -236,6 +236,13 @@ pre {
     border: none;
 }
 
+.repInput {
+    background-color: transparent;
+    width: auto;
+    max-width: calc(53px + (73 - 53) * ((100vw - 300px) / (1200 - 300)));
+    border: none;
+}
+
 #hiit-frame-row {
     margin: 12px 0 0 0;
     display: flex;

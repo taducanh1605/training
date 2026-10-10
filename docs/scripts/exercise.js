@@ -17,6 +17,25 @@ function normalizeEntityName(name) {
     return name.trim().replace(/\s+/g, ' ');
 }
 
+function splitExerciseNameAndReps(movementText) {
+    if (typeof movementText !== 'string') return null;
+
+    const separatorIndex = movementText.lastIndexOf(' x');
+    if (separatorIndex < 0) return null;
+
+    const reps = movementText.slice(separatorIndex + 2).trim();
+    const firstCharacter = reps.charAt(0);
+    const lowerCaseReps = reps.toLowerCase();
+    const startsWithNumber = firstCharacter >= '0' && firstCharacter <= '9';
+    const isKnownRepSuffix = startsWithNumber || lowerCaseReps === 'max' || reps === '?' || lowerCaseReps.startsWith('hiit-');
+    if (!isKnownRepSuffix) return null;
+
+    return {
+        name: movementText.slice(0, separatorIndex).trim(),
+        reps
+    };
+}
+
 function isSafeEntityKey(name) {
     return !!name && !RESERVED_OBJECT_KEYS.has(name);
 }
@@ -1574,10 +1593,10 @@ function createMovementInputRow(movementText) {
     let exerciseName = '';
     let exerciseReps = '10';
     
-    if (movementText.includes(' x')) {
-        const parts = movementText.split(' x');
-        exerciseName = parts[0].trim();
-        exerciseReps = parts[1] ? parts[1].trim() : '10';
+    const parsedMovement = splitExerciseNameAndReps(movementText);
+    if (parsedMovement) {
+        exerciseName = parsedMovement.name;
+        exerciseReps = parsedMovement.reps;
     } else {
         exerciseName = movementText || 'New Exercise';
     }

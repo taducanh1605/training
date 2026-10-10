@@ -322,7 +322,8 @@ var vm = new Vue({
                         this.rest = this.exRest[this.exOrder];
                         /*
                         this.exName[this.exOrder].forEach(function (exer) {
-                            if (exer.split(' x')[1].indexOf('s') > -1) {
+                            const parsedMovement = splitExerciseNameAndReps(exer);
+                            if (parsedMovement && parsedMovement.reps.endsWith('s')) {
                                 that.exHold = 1;
                             }
                         });
@@ -790,20 +791,25 @@ function transformExerciseToken(nameI, exerciseIndex, tokenIndex) {
         };
     }
 
-    if (nameI.indexOf('?') > -1) {
-        const repsMatch = nameI.match(/\sx((?:\d+\?)(?:-\d+\?)*)$/);
-        if (repsMatch) {
-            let repIndex = 0;
-            const transformedReps = repsMatch[1].replace(/(\d+)\?/g, (match, value) => {
-                return buildRepInputHtml(exerciseIndex, tokenIndex, repIndex++, parseInt(value, 10));
-            });
+    const parsedMovement = splitExerciseNameAndReps(nameI.trim());
+    if (parsedMovement && parsedMovement.reps.includes('?')) {
+        const repValues = parsedMovement.reps.split('-');
+        const isEditableRepSequence = repValues.length > 0 && repValues.every(repValue => {
+            if (!repValue.endsWith('?')) return false;
+            const value = repValue.slice(0, -1);
+            return value.length > 0 && Array.from(value).every(character => character >= '0' && character <= '9');
+        });
 
-            if (repIndex > 0) {
-                return {
-                    displayHtml: `${nameI.slice(0, repsMatch.index + 2)}${transformedReps}`,
-                    hiit: null
-                };
-            }
+        if (isEditableRepSequence) {
+            const transformedReps = repValues.map((repValue, repIndex) => {
+                const value = parseInt(repValue.slice(0, -1), 10);
+                return buildRepInputHtml(exerciseIndex, tokenIndex, repIndex, value);
+            }).join('-');
+
+            return {
+                displayHtml: `${parsedMovement.name} x${transformedReps}`,
+                hiit: null
+            };
         }
     }
 
@@ -846,11 +852,9 @@ function stripHtml(value) {
 
 function extractPlainExerciseName(name) {
     if (!name) return '';
-    name = name.replace("xMax", "x");
-    if (name.lastIndexOf(' x') > -1) {
-        name = name.substring(0, name.lastIndexOf(' x'));
-    }
-    return name.trim();
+    const plainText = stripHtml(name).trim();
+    const parsedMovement = splitExerciseNameAndReps(plainText);
+    return parsedMovement ? parsedMovement.name : plainText;
 }
 
 function extractHiitConfig(exerciseTokens) {
@@ -908,7 +912,10 @@ function goal(x, y, z, sub) {
 }
 
 function goalRep(x, y, z, sub) {
-    if (vm.exRound !== 1 || z === '') return;
+    if (vm.exRound !== 1 || z === '') {
+        if (vm.delayInputRep) clearTimeout(vm.delayInputRep);
+        return;
+    }
 
     if (vm.delayInputRep) clearTimeout(vm.delayInputRep);
     vm.delayInputRep = setTimeout(function () {
@@ -918,7 +925,7 @@ function goalRep(x, y, z, sub) {
                 return input.replace(/\bvalue="[^"]*"/, `value="${z}"`);
             });
         }
-    }, 800);
+    }, 600);
 }
 
 

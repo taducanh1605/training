@@ -671,6 +671,10 @@ function updateContext() {
         vm.row3 = "CHOOSE YOUR PROGRAM";
         vm.row4 = "";
     }
+
+    document.querySelectorAll('#lower-content input.repInput').forEach(input => {
+        input.disabled = vm.exRound !== 1;
+    });
     
     // Render HIIT frame if applicable
     renderHiitFrame(document.getElementById('hiit-frame-row'));
@@ -798,7 +802,7 @@ function transformExerciseToken(nameI, exerciseIndex, tokenIndex) {
                 rep = parseInt(transformed.slice(repS, repE));
             if (!Number.isNaN(rep)) {
                 transformedAny = true;
-                transformed = transformed.substring(0, repS - 1) + ' -' + transformed.substring(repS + transformed.substring(repS).indexOf('?')).replace('?', buildHiitInputHtml(exerciseIndex, tokenIndex, y, rep));
+                transformed = transformed.substring(0, repS - 1) + ' -' + transformed.substring(repS + transformed.substring(repS).indexOf('?')).replace('?', buildHiitInputHtml(exerciseIndex, tokenIndex, y, rep, true));
             }
         }
 
@@ -807,7 +811,7 @@ function transformExerciseToken(nameI, exerciseIndex, tokenIndex) {
             rep2 = parseInt(transformed.slice(repS2, repE2));
         if (!Number.isNaN(rep2)) {
             transformedAny = true;
-            transformed = transformed.substring(0, repS2) + transformed.substring(repS2 + transformed.substring(repS2).indexOf('?')).replace('?', buildHiitInputHtml(exerciseIndex, tokenIndex, 1, rep2));
+            transformed = transformed.substring(0, repS2) + transformed.substring(repS2 + transformed.substring(repS2).indexOf('?')).replace('?', buildHiitInputHtml(exerciseIndex, tokenIndex, 1, rep2, true));
         }
 
         if (transformedAny) {
@@ -821,8 +825,9 @@ function transformExerciseToken(nameI, exerciseIndex, tokenIndex) {
     return null;
 }
 
-function buildHiitInputHtml(exerciseIndex, tokenIndex, inputOrder, value) {
-    return `<input class="inHIIT" data-hiit="1" onInput="goal(${exerciseIndex},${tokenIndex}, this.value, ${inputOrder})" type="number" min="0" value="${value}">`;
+function buildHiitInputHtml(exerciseIndex, tokenIndex, inputOrder, value, isRep = false) {
+    const repClass = isRep ? ' repInput' : '';
+    return `<input class="inHIIT${repClass}" data-hiit="1" onInput="goal(${exerciseIndex},${tokenIndex}, this.value, ${inputOrder}, ${isRep})" type="number" min="0" value="${value}">`;
 }
 
 function buildExerciseDisplayInfo(name) {
@@ -902,13 +907,15 @@ function getOrder(count) {
 /*----------------------------------------------------------------------
 Change goal
 ----------------------------------------------------------------------*/
-function goal(x, y, z, sub) {
+function goal(x, y, z, sub, isRep = false) {
+    if (isRep && vm.exRound !== 1) return;
+
     var bias = vm.exName[x][y].indexOf("value=", bias) + 7;
     for (var i = 0; i < parseInt(sub); i++) bias = vm.exName[x][y].indexOf("value=", bias) + 7;
 
     if (vm.delayInputHIIT) clearTimeout(vm.delayInputHIIT);
     vm.delayInputHIIT = setTimeout(function () {
-        if (z != '') {
+        if (z != '' && (!isRep || vm.exRound === 1)) {
             vm.exName[x][y] = vm.exName[x][y].substring(0, bias) + z + vm.exName[x][y].substring(vm.exName[x][y].indexOf("\"", bias));
         }
     }, 500);

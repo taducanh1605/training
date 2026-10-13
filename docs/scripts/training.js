@@ -280,6 +280,7 @@ var vm = new Vue({
             this.exSumSet = 0;
             this.exOrder = 0;
             this.exRound = 0;
+            this.exHold = 0;
             this.currentHiit = null;
             this.hiitFrameState = {
                 active: false,
@@ -301,6 +302,7 @@ var vm = new Vue({
                         ring("start.wav");
                         this.count += 1;
                         [this.exOrder, this.exRound] = getOrder(this.count);
+                        prepareTimedExercise();
                     }
                 }
                 else if (this.flagStart == 2) {
@@ -320,19 +322,8 @@ var vm = new Vue({
                         this.count += 1;
                         [this.exOrder, this.exRound] = getOrder(this.count);
                         this.rest = this.exRest[this.exOrder];
-                        /*
-                        this.exName[this.exOrder].forEach(function (exer) {
-                            const parsedMovement = splitExerciseNameAndReps(exer);
-                            if (parsedMovement && parsedMovement.reps.endsWith('s')) {
-                                that.exHold = 1;
-                            }
-                        });
-                        if (this.exHold == 1) {
-                            // [2023-03-19-DA] pause for counting hold time
-                            this.flagStart = 0;
-                            this.exHold = 0;
-                        }
-                        */
+                        this.exHold = 0;
+                        if (this.rest === 0) prepareTimedExercise();
                     }
                     else if (this.count == this.exSumSet) {
                         this.count += 1;
@@ -356,7 +347,9 @@ var vm = new Vue({
             if ((this.exSumSet > 0) && (this.count < this.exSumSet)) {
                 this.count += 1;
                 this.rest = 0;
+                this.exHold = 0;
                 [this.exOrder, this.exRound] = getOrder(this.count);
+                prepareTimedExercise();
                 localStorage.setItem('training.resume', [this.textMode, this.selectGen, this.selectLvl, this.programName, this.time, this.count, Date.now()].join('***'));
                 saveWorkoutProgressToDB(this);
             }
@@ -369,7 +362,9 @@ var vm = new Vue({
                 }
                 this.count -= 1;
                 this.rest = 0;
+                this.exHold = 0;
                 [this.exOrder, this.exRound] = getOrder(this.count);
+                prepareTimedExercise();
                 localStorage.setItem('training.resume', [this.textMode, this.selectGen, this.selectLvl, this.programName, this.time, this.count, Date.now()].join('***'));
                 saveWorkoutProgressToDB(this);
             }
@@ -584,6 +579,20 @@ function ring(nameRing) {
 /*----------------------------------------------------------------------
 Update time and break time each 1 sec
 ----------------------------------------------------------------------*/
+function prepareTimedExercise() {
+    const duration = vm.exName[vm.exOrder].reduce((total, movement) => {
+        const parsedMovement = splitExerciseNameAndReps(movement);
+        const timedReps = parsedMovement && parsedMovement.reps.match(/^(\d+)s$/i);
+        return total + (timedReps ? Number(timedReps[1]) : 0);
+    }, 0);
+    if (duration > 0) {
+        vm.exHold = 1;
+        vm.rest = duration;
+        vm.flagStart = 0;
+        releaseKeepScreenAwake();
+    }
+}
+
 function updateTime() {
     //update Time clock
 
@@ -598,6 +607,11 @@ function updateTime() {
             vm.flagLetDoIt = 1;
             if (vm.rest == 0) {
                 ring("ringGo.wav");
+                if (vm.exHold) {
+                    vm.exHold = 0;
+                } else {
+                    prepareTimedExercise();
+                }
             }
         }
         else {
@@ -651,8 +665,8 @@ function updateContext() {
                 vm.row2 = 'ROUND: ' + vm.exRound + '/' + vm.exSet[vm.exOrder];
                 vm.row3_exs = vm.exName[vm.exOrder];
                 vm.currentHiit = null;
-                vm.row4 = 'Break time: ' + vm.rest;
-                vm.textbreak = 'break';
+                vm.row4 = vm.exHold ? 'Training time: ' + vm.rest + 's' : 'Break time: ' + vm.rest;
+                vm.textbreak = vm.exHold ? 'training' : 'break';
             }
             else {
                 vm.row2 = 'ROUND: ' + vm.exRound + '/' + vm.exSet[vm.exOrder];
@@ -839,9 +853,10 @@ function buildExerciseDisplayInfo(name) {
         };
     }
 
+    const displayName = extractPlainExerciseName(name);
     return {
-        displayName: extractPlainExerciseName(rawText),
-        linkSearch: 'https://www.google.com/search?q=gym+exercise+tutorial+' + extractPlainExerciseName(rawText).split(' ').join('+'),
+        displayName,
+        linkSearch: 'https://www.google.com/search?q=gym+exercise+tutorial+' + displayName.split(' ').join('+'),
         hiit: null
     };
 }
@@ -852,6 +867,8 @@ function stripHtml(value) {
 
 function extractPlainExerciseName(name) {
     if (!name) return '';
+    const editableReps = name.match(/^(.*?)\s+x(?:hiit-)?<input\b/i);
+    if (editableReps) return stripHtml(editableReps[1]).trim();
     const plainText = stripHtml(name).trim();
     const parsedMovement = splitExerciseNameAndReps(plainText);
     return parsedMovement ? parsedMovement.name : plainText;

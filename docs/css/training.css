@@ -269,7 +269,8 @@ pre {
     color: #ff1044;
     text-shadow: 0 0 20px rgb(230, 10, 65),  0 0 20px rgba(230, 10, 65, 0);
 }
-.row4-doit {
+.row4-doit,
+.row4-training {
     margin: 2rem auto;
     font-family: "Sportrop Regular";
     /*letter-spacing: 0.05em;

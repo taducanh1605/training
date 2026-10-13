@@ -1,7 +1,7 @@
 // Service Worker for Training App
 // Handles offline caching and background sync
 
-const CACHE_NAME = 'training-app-v4.8';
+const CACHE_NAME = 'training-app-v4.9';
 const STATIC_ASSETS = [
   './',
   './index.html',

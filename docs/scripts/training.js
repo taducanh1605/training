@@ -606,10 +606,11 @@ function updateTime() {
             vm.rest -= 1;
             vm.flagLetDoIt = 1;
             if (vm.rest == 0) {
-                ring("ringGo.wav");
                 if (vm.exHold) {
                     vm.exHold = 0;
+                    vm.handleStart();
                 } else {
+                    ring("ringGo.wav");
                     prepareTimedExercise();
                 }
             }

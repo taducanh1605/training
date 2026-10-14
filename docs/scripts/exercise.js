@@ -1,7 +1,7 @@
 // Exercise Management Functions
 // Dedicated file for managing exercise editing and customization
 
-// const API_BASE = 'https://pika-proxy.taducanhbkhn.workers.dev/port/32445';
+// const API_BASE = 'https://pika-proxy.taducanhbkhn.workers.dev/port/2445';
 const EXERCISE_STORAGE_KEY = 'training.editedExercises';
 const EXERCISE_SYNC_PENDING_KEY = 'training.editedExercises.pendingSync';
 

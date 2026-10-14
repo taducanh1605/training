@@ -328,7 +328,7 @@ var vm = new Vue({
                     else if (this.count == this.exSumSet) {
                         this.count += 1;
                         this.flagStart = 2;
-                        releaseKeepScreenAwake();
+                        syncKeepScreenAwake();
                         clearSavedWorkout(false);
                         ring("finish.wav");
                         return;
@@ -337,6 +337,7 @@ var vm = new Vue({
                 }
             }
 
+            syncKeepScreenAwake();
             // Save training state to localStorage with current timestamp for cross-device sync
             localStorage.setItem('training.resume', [that.textMode, that.selectGen, that.selectLvl, that.programName, that.time, that.count, Date.now()].join('***'));
             // Persist workout state to DB so it can be restored on another device
@@ -374,7 +375,10 @@ var vm = new Vue({
 });
 
 //console.log(vm.fileInput)
-let checkScreen = 0;
+let wakeLockSentinel = null;
+let wakeLockFallback = null;
+let wakeLockRequest = null;
+let wakeLockGeneration = 0;
 setInterval(updateContext, 10);
 updateContext;
 setInterval(updateTime, 1000);
@@ -396,9 +400,6 @@ Prevent Lock Screen on mobile
 - first event: click
 - second event: hide tab
 ----------------------------------------------------------------------*/
-let wakeLockSentinel = null;
-let wakeLockFallback = null;
-
 function isIosLikeDevice() {
     try {
         return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -408,43 +409,60 @@ function isIosLikeDevice() {
 }
 
 async function requestKeepScreenAwake() {
-    if (vm.flagStart !== 1) return;
+    if (vm.flagStart !== 1 || document.hidden) return;
+    if (wakeLockSentinel && !wakeLockSentinel.released) return;
+    if (wakeLockRequest) return wakeLockRequest;
 
-    try {
-        if ('wakeLock' in navigator && typeof navigator.wakeLock.request === 'function') {
-            if (!wakeLockSentinel) {
-                wakeLockSentinel = await navigator.wakeLock.request('screen');
-                wakeLockSentinel?.addEventListener('release', () => {
-                    wakeLockSentinel = null;
-                });
-            }
-            return;
-        }
-    } catch (error) {
-        wakeLockSentinel = null;
-    }
-
-    if (isIosLikeDevice()) {
+    const generation = wakeLockGeneration;
+    wakeLockRequest = (async () => {
         try {
-            if (!wakeLockFallback) {
-                const keepAwakeAudio = new Audio('./sound/start.wav');
-                keepAwakeAudio.loop = true;
-                keepAwakeAudio.muted = true;
-                keepAwakeAudio.playsInline = true;
-                keepAwakeAudio.preload = 'auto';
-                wakeLockFallback = { keepAwakeAudio };
-            }
-
-            if (wakeLockFallback.keepAwakeAudio?.paused) {
-                await wakeLockFallback.keepAwakeAudio.play().catch(() => {});
+            if ('wakeLock' in navigator && typeof navigator.wakeLock.request === 'function') {
+                const sentinel = await navigator.wakeLock.request('screen');
+                if (generation !== wakeLockGeneration || vm.flagStart !== 1 || document.hidden) {
+                    await sentinel.release();
+                    return;
+                }
+                wakeLockSentinel = sentinel;
+                sentinel.addEventListener('release', () => {
+                    if (wakeLockSentinel !== sentinel) return;
+                    wakeLockSentinel = null;
+                    requestKeepScreenAwake().catch(() => {});
+                });
+                return;
             }
         } catch (error) {
-            wakeLockFallback = null;
+            wakeLockSentinel = null;
         }
-    }
+
+        if (generation !== wakeLockGeneration || vm.flagStart !== 1 || document.hidden) return;
+        if (isIosLikeDevice()) {
+            try {
+                if (!wakeLockFallback) {
+                    const keepAwakeAudio = new Audio('./sound/start.wav');
+                    keepAwakeAudio.loop = true;
+                    keepAwakeAudio.muted = true;
+                    keepAwakeAudio.playsInline = true;
+                    keepAwakeAudio.preload = 'auto';
+                    wakeLockFallback = { keepAwakeAudio };
+                }
+
+                const keepAwakeAudio = wakeLockFallback.keepAwakeAudio;
+                if (keepAwakeAudio?.paused) {
+                    await keepAwakeAudio.play().catch(() => {});
+                }
+                if (generation !== wakeLockGeneration || vm.flagStart !== 1 || document.hidden) {
+                    keepAwakeAudio.pause();
+                }
+            } catch (error) {
+                wakeLockFallback = null;
+            }
+        }
+    })().finally(() => { wakeLockRequest = null; });
+    return wakeLockRequest;
 }
 
 function releaseKeepScreenAwake() {
+    wakeLockGeneration += 1;
     try {
         if (wakeLockSentinel) {
             const sentinel = wakeLockSentinel;
@@ -463,19 +481,17 @@ function releaseKeepScreenAwake() {
     } catch (error) {}
 }
 
-document.addEventListener('click', () => {
-    if (checkScreen == 0 && vm.flagStart == 1) {
-        checkScreen = 1;
+function syncKeepScreenAwake() {
+    if (vm.flagStart === 1 && !document.hidden) {
         requestKeepScreenAwake().catch(() => {});
+    } else {
+        releaseKeepScreenAwake();
     }
-});
+}
 
-document.addEventListener('visibilitychange', () => {
-    if (vm.flagStart == 1 && !document.hidden) {
-        requestKeepScreenAwake().catch(() => {});
-    }
-});
-
+document.addEventListener('click', syncKeepScreenAwake);
+document.addEventListener('visibilitychange', syncKeepScreenAwake);
+window.addEventListener('pageshow', syncKeepScreenAwake);
 window.addEventListener('pagehide', releaseKeepScreenAwake);
 
 
@@ -627,6 +643,7 @@ function updateTime() {
     if ((inputCSV.loaded < 1) && (vm.time > 0)) {
         inputCSV.loaded = 1;
     }
+    syncKeepScreenAwake();
 };
 
 /*----------------------------------------------------------------------
